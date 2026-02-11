@@ -1,19 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
-  scenarioNameAtom,
   currentScenarioIdAtom,
   scenarioListAtom,
-  snapshotScenarioAtom,
   loadScenarioAtom,
   resetToDefaultsAtom,
 } from '@/store/scenario-atoms.ts';
 import {
-  saveScenario,
-  listScenarios,
-  deleteScenario,
-} from '@/lib/firestore.ts';
-import type { Scenario } from '@/types';
+  listScenarioData,
+  deleteScenarioData,
+  saveScenarioPreferences,
+} from '@/lib/business-firestore';
+import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -22,93 +20,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Save, Plus, Trash2 } from 'lucide-react';
-
-const PLAN_ID = 'default';
+import { Plus, Trash2 } from 'lucide-react';
 
 export function ScenarioManager() {
-  const [scenarioName] = useAtom(scenarioNameAtom);
+  const businessId = useAtomValue(activeBusinessIdAtom);
   const [currentId] = useAtom(currentScenarioIdAtom);
-  const [scenarioList, setScenarioList] = useAtom(scenarioListAtom);
-  const variables = useAtomValue(snapshotScenarioAtom);
+  const scenarioList = useAtomValue(scenarioListAtom);
+  const setScenarioList = useSetAtom(scenarioListAtom);
   const loadScenario = useSetAtom(loadScenarioAtom);
   const resetToDefaults = useSetAtom(resetToDefaultsAtom);
 
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
-
-  // Load scenario list from Firestore on mount
-  useEffect(() => {
-    let mounted = true;
-    setIsLoading(true);
-
-    listScenarios(PLAN_ID)
-      .then((scenarios) => {
-        if (!mounted) return;
-        const metadataList = scenarios.map((s) => s.metadata);
-        setScenarioList(metadataList);
-
-        // If we have saved scenarios, load the first one (or baseline)
-        if (scenarios.length > 0) {
-          const baseline = scenarios.find((s) => s.metadata.isBaseline) ?? scenarios[0];
-          loadScenario(baseline);
-        }
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setIsOffline(true);
-      })
-      .finally(() => {
-        if (mounted) setIsLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [setScenarioList, loadScenario]);
-
-  // Save current scenario
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const scenario: Scenario = {
-        metadata: {
-          id: currentId,
-          name: scenarioName,
-          description: '',
-          createdAt: new Date().toISOString(),
-          isBaseline: currentId === 'baseline',
-        },
-        variables,
-      };
-
-      await saveScenario(PLAN_ID, scenario);
-
-      // Update list
-      setScenarioList((prev) => {
-        const exists = prev.find((m) => m.id === currentId);
-        if (exists) {
-          return prev.map((m) => (m.id === currentId ? scenario.metadata : m));
-        }
-        return [...prev, scenario.metadata];
-      });
-    } catch {
-      setIsOffline(true);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [currentId, scenarioName, variables, setScenarioList]);
 
   // Switch to a different scenario
   const handleSwitch = useCallback(
     async (scenarioId: string) => {
+      if (!businessId) return;
       setIsLoading(true);
       try {
-        const scenarios = await listScenarios(PLAN_ID);
+        const scenarios = await listScenarioData(businessId);
         const target = scenarios.find((s) => s.metadata.id === scenarioId);
         if (target) {
           loadScenario(target);
+          await saveScenarioPreferences(businessId, { activeScenarioId: scenarioId });
         }
       } catch {
         setIsOffline(true);
@@ -116,7 +51,7 @@ export function ScenarioManager() {
         setIsLoading(false);
       }
     },
-    [loadScenario]
+    [businessId, loadScenario]
   );
 
   // Create new scenario (reset to defaults)
@@ -126,10 +61,11 @@ export function ScenarioManager() {
 
   // Delete current scenario
   const handleDelete = useCallback(async () => {
-    if (scenarioList.length <= 1) return; // Cannot delete the only scenario
+    if (!businessId) return;
+    if (scenarioList.length <= 1) return;
 
     try {
-      await deleteScenario(PLAN_ID, currentId);
+      await deleteScenarioData(businessId, currentId);
       const updatedList = scenarioList.filter((m) => m.id !== currentId);
       setScenarioList(updatedList);
 
@@ -140,7 +76,7 @@ export function ScenarioManager() {
     } catch {
       setIsOffline(true);
     }
-  }, [currentId, scenarioList, setScenarioList, handleSwitch]);
+  }, [businessId, currentId, scenarioList, setScenarioList, handleSwitch]);
 
   const currentMeta = scenarioList.find((m) => m.id === currentId);
 
@@ -172,16 +108,6 @@ export function ScenarioManager() {
 
       {/* Actions */}
       <div className="flex items-center gap-2 ml-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          <Save className="size-4 mr-1" />
-          {isSaving ? 'Saving...' : 'Save'}
-        </Button>
-
         <Button variant="outline" size="sm" onClick={handleNew}>
           <Plus className="size-4 mr-1" />
           New
@@ -197,6 +123,9 @@ export function ScenarioManager() {
           Delete
         </Button>
       </div>
+
+      {/* Auto-save indicator */}
+      <span className="text-xs text-muted-foreground">Auto-saved</span>
 
       {/* Offline indicator */}
       {isOffline && (

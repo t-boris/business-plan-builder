@@ -4,14 +4,14 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { BrowserRouter } from 'react-router';
 import { auth } from '@/lib/firebase';
 import { authStateAtom, authStatusAtom, ALLOWED_EMAILS } from '@/store/auth-atoms';
-import { currentPlanIdAtom } from '@/store/plan-atoms';
+import { activeBusinessIdAtom } from '@/store/business-atoms';
 import {
   scenarioListAtom,
   loadScenarioAtom,
   scenarioSyncReadyAtom,
 } from '@/store/scenario-atoms';
 import { DEFAULT_SCENARIO_VARIABLES } from '@/lib/constants';
-import { listScenarios, getActiveState, saveScenario, saveActiveState } from '@/lib/firestore';
+import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences } from '@/lib/business-firestore';
 import { useScenarioSync } from '@/hooks/use-scenario-sync';
 import { useBusinesses } from '@/hooks/use-businesses';
 import type { Scenario } from '@/types';
@@ -57,20 +57,33 @@ function BusinessLoader() {
 
 function ScenarioSync() {
   const authStatus = useAtomValue(authStatusAtom);
-  const planId = useAtomValue(currentPlanIdAtom);
+  const businessId = useAtomValue(activeBusinessIdAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
   const loadScenario = useSetAtom(loadScenarioAtom);
   const setSyncReady = useSetAtom(scenarioSyncReadyAtom);
   const loadedRef = useRef(false);
+  const prevBusinessIdRef = useRef<string | null>(null);
 
-  // Load scenarios from Firestore on auth
+  // Load scenarios from Firestore on auth + business change
   useEffect(() => {
+    // Detect business change — reset loaded state to re-initialize
+    if (prevBusinessIdRef.current !== businessId) {
+      if (prevBusinessIdRef.current !== null) {
+        // Business actually changed (not first render) — reset state
+        loadedRef.current = false;
+        setSyncReady(false);
+        setScenarioList([]);
+      }
+      prevBusinessIdRef.current = businessId;
+    }
+
     if (authStatus !== 'authenticated' || loadedRef.current) return;
+    if (!businessId) return;
     loadedRef.current = true;
 
     async function init() {
       try {
-        const scenarios = await listScenarios(planId);
+        const scenarios = await listScenarioData(businessId!);
 
         if (scenarios.length === 0) {
           // No scenarios exist — create a default "Baseline"
@@ -90,16 +103,16 @@ function ScenarioSync() {
               ),
             },
           };
-          await saveScenario(planId, baseline);
-          await saveActiveState(planId, { activeScenarioId: 'baseline' });
+          await saveScenarioData(businessId!, baseline);
+          await saveScenarioPreferences(businessId!, { activeScenarioId: 'baseline' });
           setScenarioList([baseline.metadata]);
           loadScenario(baseline);
         } else {
           setScenarioList(scenarios.map((s) => s.metadata));
 
           // Determine which scenario to load
-          const activeState = await getActiveState(planId);
-          const activeId = activeState?.activeScenarioId;
+          const prefs = await getScenarioPreferences(businessId!);
+          const activeId = prefs?.activeScenarioId;
           const target =
             scenarios.find((s) => s.metadata.id === activeId) ??
             scenarios.find((s) => s.metadata.isBaseline) ??
@@ -114,7 +127,7 @@ function ScenarioSync() {
     }
 
     init();
-  }, [authStatus, planId, setScenarioList, loadScenario, setSyncReady]);
+  }, [authStatus, businessId, setScenarioList, loadScenario, setSyncReady]);
 
   // Wire up auto-save
   useScenarioSync();
