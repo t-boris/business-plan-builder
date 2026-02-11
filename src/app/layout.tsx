@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from "react-router";
+import { useAtomValue } from "jotai";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -10,11 +11,15 @@ import {
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/app-sidebar";
+import { activeBusinessAtom } from "@/store/business-atoms";
 
 const routeTitles: Record<string, string> = {
   "/": "Dashboard",
+  "/businesses": "Your Businesses",
+  "/businesses/new": "New Business",
   "/executive-summary": "Executive Summary",
   "/market-analysis": "Market Analysis",
   "/product-service": "Product & Service",
@@ -30,6 +35,7 @@ const routeTitles: Record<string, string> = {
 
 export function DashboardLayout() {
   const location = useLocation();
+  const activeBusiness = useAtomValue(activeBusinessAtom);
   const pageTitle = routeTitles[location.pathname] ?? "Page";
 
   return (
@@ -41,6 +47,14 @@ export function DashboardLayout() {
           <Separator orientation="vertical" className="mr-2 !h-4" />
           <Breadcrumb>
             <BreadcrumbList>
+              {activeBusiness && (
+                <>
+                  <BreadcrumbItem>
+                    <span className="text-muted-foreground">{activeBusiness.profile.name}</span>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </>
+              )}
               <BreadcrumbItem>
                 <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
               </BreadcrumbItem>
