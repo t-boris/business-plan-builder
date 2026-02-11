@@ -1,8 +1,8 @@
-# Roadmap: Fun Box Planning
+# Roadmap: Business Planning Platform
 
 ## Overview
 
-Build a Firebase-hosted business planning dashboard (React + TypeScript) for the Fun Box kids birthday party service. Start with project foundation and dashboard shell, then build out all 9 business plan section UIs with pre-populated data, add interactive what-if scenario modeling that propagates changes across sections in real time, and finish with Gemini 2.5 Pro AI assistance and polished business plan export (in-app + PDF).
+Transform a single-business Fun Box planning app into a generic multi-business platform. The journey goes: new data model → business management → strip hardcoded content → generic configuration → dynamic scenario engine → AI adaptation → sharing → polish. The financial calculator and scenario modeling are the core value; text sections are secondary. Every phase must preserve the existing architecture patterns (Jotai atoms, useSection hook, feature modules) while making them business-aware.
 
 ## Domain Expertise
 
@@ -14,65 +14,169 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [x] **Phase 1: Foundation** — React + TS + Firebase setup, dashboard shell, routing, Firestore data model
-- [x] **Phase 2: Business Plan Sections** — All 9 section UIs with forms, pre-populated data, deep research integration
-- [x] **Phase 3: What-If Engine** — Scenario modeling with real-time calculation propagation and comparison
-- [x] **Phase 4: AI + Export** — Gemini 2.5 Pro per-section AI, business plan view, PDF export
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Firestore Data Model** - New multi-business data structure, TypeScript types, Firestore service layer
+- [ ] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
+- [ ] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
+- [ ] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
+- [ ] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
+- [ ] **Phase 6: Variable Library** - Predefined business variables organized by business type
+- [ ] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
+- [ ] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
+- [ ] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
+- [ ] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
+- [ ] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
+- [ ] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
 
 ## Phase Details
 
-### Phase 1: Foundation
-**Goal**: Working dashboard shell deployed to Firebase with sidebar navigation, routing between sections, Firestore connection, and base component library (inputs, cards, charts)
+### Phase 1: Firestore Data Model
+**Goal**: Design and implement the new multi-business Firestore document structure and TypeScript types. This is the foundation everything else builds on.
 **Depends on**: Nothing (first phase)
-**Research**: Likely (Firebase + Vite + React project setup, Firestore schema design for nested business plan data)
-**Research topics**: Vite + React + TypeScript + Firebase Hosting setup, Firestore data modeling for document-heavy apps, chart library selection (e.g., Recharts vs Chart.js)
-**Plans**: 3 plans
+**Research**: Unlikely (Firestore patterns already established in codebase)
+**Plans**: 2 plans
 
 Plans:
-- [x] 01-01: Project scaffolding (Vite + React + TS + Firebase), Firestore config, deploy pipeline
-- [x] 01-02: Dashboard layout (sidebar nav, header, content area), routing for all 9 sections
-- [x] 01-03: Base component library (form inputs, cards, data tables, chart wrapper) + Firestore data model
+- [ ] 01-01: Define TypeScript types and interfaces for multi-business data model (Business, BusinessConfig, BusinessProfile)
+- [ ] 01-02: Implement new Firestore service layer (business CRUD operations, section/scenario paths scoped to business)
 
-### Phase 2: Business Plan Sections
-**Goal**: All 9 business plan sections fully functional with editable forms, pre-populated with known Fun Box data (packages, KPIs, marketing channels, research findings), auto-saving to Firestore
+### Phase 2: Business CRUD
+**Goal**: Users can create new businesses, see a list of their businesses, switch between them, and delete businesses. Business selector appears in UI.
 **Depends on**: Phase 1
-**Research**: Unlikely (standard React form patterns, internal UI work)
+**Research**: Unlikely (standard CRUD with existing Firebase patterns)
 **Plans**: 3 plans
 
 Plans:
-- [x] 02-01: Product/Service + Market Analysis + KPIs sections (packages data, Miami demographics, competitive benchmarks, target metrics)
-- [x] 02-02: Marketing Strategy + Operations + Launch Plan sections (channels, budgets, crew, capacity, 3-stage launch timeline)
-- [x] 02-03: Financial Projections + Risks & Due Diligence + Executive Summary sections (P&L, unit economics, research report integration, auto-generated summary)
+- [ ] 02-01: Create business flow (form with name, type, description, location)
+- [ ] 02-02: Business list and selector UI (sidebar or header component for switching)
+- [ ] 02-03: Delete business with confirmation and data cleanup
 
-### Phase 3: What-If Engine
-**Goal**: Interactive scenario modeling where changing any variable (pricing, CAC, conversion, capacity, costs, ad budgets) propagates through all dependent sections in real time, with scenario save/load and side-by-side comparison
+### Phase 3: Dynamic Business Context
+**Goal**: Replace the hardcoded `'default-plan'` ID with the dynamically selected business ID. All atoms, hooks, and routes become business-aware.
 **Depends on**: Phase 2
-**Research**: Unlikely (internal calculation logic, React state management)
+**Research**: Unlikely (internal refactoring of existing patterns)
 **Plans**: 2 plans
 
 Plans:
-- [x] 03-01: Calculation engine (dependency graph between variables, real-time propagation), scenario CRUD (create, save, load, delete)
-- [x] 03-02: Side-by-side scenario comparison UI, variable sliders/inputs per section, visual diff highlighting
+- [ ] 03-01: Refactor store atoms and hooks to use dynamic business ID (plan-atoms, scenario-atoms, useSection, useScenarioSync)
+- [ ] 03-02: Update routing and layout to include business context (URL structure, breadcrumbs, sidebar)
 
-### Phase 4: AI + Export
-**Goal**: Gemini 2.5 Pro "Ask AI" button per section (contextual — sees section data + business context), polished in-app business plan read-only view, and PDF export with professional formatting
+### Phase 4: Strip Hardcoded Content
+**Goal**: Remove all Fun Box-specific content from 12+ files. Create a generic defaults system that loads business-context-aware defaults instead of hardcoded values.
 **Depends on**: Phase 3
-**Research**: Likely (Gemini 2.5 Pro API — current endpoints, auth, context window; PDF generation library)
-**Research topics**: Gemini 2.5 Pro API (authentication, chat/generate endpoints, context handling), PDF generation in React (react-pdf, jsPDF, or Puppeteer-based), prompt engineering for business plan content generation
+**Research**: Unlikely (content removal + defaults extraction)
+**Plans**: 3 plans
+
+Plans:
+- [ ] 04-01: Extract constants and defaults into configurable structure (constants.ts, system-prompt.ts, default section data)
+- [ ] 04-02: Clean section components (executive-summary, market-analysis, product-service, marketing-strategy, operations, financial-projections)
+- [ ] 04-03: Clean remaining files (risks-due-diligence, kpis-metrics, launch-plan, dashboard, auth login-page, PDF CoverPage)
+
+### Phase 5: Business Profile & Section Config
+**Goal**: Business profile editor where users set name, type, location, description. Section configurator where users pick which of the 9 sections are relevant for their business.
+**Depends on**: Phase 4
+**Research**: Unlikely (UI forms with existing component patterns)
 **Plans**: 2 plans
 
 Plans:
-- [x] 04-01: Gemini 2.5 Pro integration (API setup, per-section "Ask AI" with contextual prompts, inline response display)
-- [x] 04-02: Business plan read-only view (polished layout), PDF export (professional formatting, all sections + selected scenario)
+- [ ] 05-01: Business profile editor page (name, type, industry, location, description, logo/color)
+- [ ] 05-02: Section configurator (toggle sections on/off per business, section order customization)
+
+### Phase 6: Variable Library
+**Goal**: Define a library of predefined business variables organized by business type (SaaS, retail, service, restaurant, etc.). Users pick which variables apply to their business. This is the foundation for the generic scenario engine.
+**Depends on**: Phase 1
+**Research**: Likely (need to define meaningful variable sets for different business types)
+**Research topics**: Common business metrics by industry, revenue driver categories, cost structure patterns for SaaS/retail/service/restaurant/event businesses
+**Plans**: 3 plans
+
+Plans:
+- [ ] 06-01: Define variable library data model (VariableDefinition, VariableCategory, BusinessTypeTemplate)
+- [ ] 06-02: Populate variable library with templates for 5+ business types
+- [ ] 06-03: Variable picker UI (browse by category, select variables, preview derived metrics)
+
+### Phase 7: Generic Scenario Engine
+**Goal**: Refactor the scenario engine from hardcoded Fun Box atoms to dynamic atoms driven by the variable library. Derived metrics compute automatically based on selected variables. Scenario comparison works with any variable set.
+**Depends on**: Phase 6, Phase 3
+**Research**: Likely (dynamic Jotai atom creation at runtime from variable definitions)
+**Research topics**: Jotai atom families, dynamic atom creation patterns, atom-in-atom patterns for variable-driven state, performance implications of dynamic atoms
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01: Dynamic atom architecture (create atoms from variable definitions, atom families for business-scoped state)
+- [ ] 07-02: Derived metrics refactor (generic computation engine that works with any variable set)
+- [ ] 07-03: Scenario dashboard and controls refactor (dynamic controls UI based on active variables)
+
+### Phase 8: Business-Aware AI
+**Goal**: AI system prompt dynamically built from business profile (name, type, location, context). Section prompts adapt to the business type and its selected variables. AI generates content relevant to the specific business.
+**Depends on**: Phase 5, Phase 7
+**Research**: Unlikely (extending existing Gemini integration patterns)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01: Dynamic system prompt builder (construct prompt from business profile, active variables, scenario data)
+- [ ] 08-02: Section prompt adaptation (section-specific prompts that reference business context and relevant variables)
+
+### Phase 9: Sharing & Access
+**Goal**: Business owner generates a shareable URL. Any authenticated user who opens the link gets full edit access. The shared business appears in their business list.
+**Depends on**: Phase 2
+**Research**: Likely (Firestore security rules for multi-tenant sharing, URL-based access granting)
+**Research topics**: Firestore security rules for shared documents, invite token patterns, dynamic access control without server functions
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01: Sharing data model and URL generation (share tokens in Firestore, generate/revoke share links)
+- [ ] 09-02: Accept share flow and access enforcement (open link → add to user's business list, Firestore rules for shared access)
+
+### Phase 10: Dashboard & Navigation
+**Goal**: Dashboard shows business-specific KPIs and projections based on that business's variables and scenarios. Sidebar navigation reflects enabled sections. Breadcrumbs include business name.
+**Depends on**: Phase 7, Phase 5
+**Research**: Unlikely (UI work with established patterns)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 10-01: Multi-business dashboard (KPI cards and charts driven by business's active variables and derived metrics)
+- [ ] 10-02: Sidebar and navigation updates (business name in header, section list from business config, breadcrumbs)
+
+### Phase 11: Export Updates
+**Goal**: PDF export and business plan view work with generic businesses. Cover page shows business name/info. Section rendering adapts to enabled sections and business-specific data.
+**Depends on**: Phase 7, Phase 5
+**Research**: Unlikely (fixing existing @react-pdf patterns)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01: Business plan view updates (dynamic sections based on business config, generic content rendering)
+- [ ] 11-02: PDF export fix (dynamic cover page, section-aware document structure, variable-driven financial tables)
+
+### Phase 12: Integration & Polish
+**Goal**: End-to-end verification of the full multi-business flow. Fix edge cases, improve error handling, UI polish.
+**Depends on**: All previous phases
+**Research**: Unlikely (verification and polish)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01: End-to-end flow verification (create business → configure → scenario modeling → AI generation → export)
+- [ ] 12-02: UI polish and edge cases (empty states, loading states, error handling, offline behavior)
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+
+Note: Phase 6 can start in parallel with Phases 2-5 (depends only on Phase 1).
+Phase 9 can start after Phase 2 (independent of Phases 3-8).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation | 3/3 | Complete | 2026-02-11 |
-| 2. Business Plan Sections | 3/3 | Complete | 2026-02-11 |
-| 3. What-If Engine | 2/2 | Complete | 2026-02-11 |
-| 4. AI + Export | 2/2 | Complete | 2026-02-11 |
+| 1. Firestore Data Model | 0/2 | Not started | - |
+| 2. Business CRUD | 0/3 | Not started | - |
+| 3. Dynamic Business Context | 0/2 | Not started | - |
+| 4. Strip Hardcoded Content | 0/3 | Not started | - |
+| 5. Business Profile & Section Config | 0/2 | Not started | - |
+| 6. Variable Library | 0/3 | Not started | - |
+| 7. Generic Scenario Engine | 0/3 | Not started | - |
+| 8. Business-Aware AI | 0/2 | Not started | - |
+| 9. Sharing & Access | 0/2 | Not started | - |
+| 10. Dashboard & Navigation | 0/2 | Not started | - |
+| 11. Export Updates | 0/2 | Not started | - |
+| 12. Integration & Polish | 0/2 | Not started | - |

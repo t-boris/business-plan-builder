@@ -4,86 +4,54 @@
 
 See: .planning/PROJECT.md (updated 2026-02-11)
 
-**Core value:** Interactive what-if scenario modeling that lets the owner see how changing any business variable ripples through the entire business plan in real time.
-**Current focus:** Phase 4 — AI + Export (complete)
+**Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
+**Current focus:** Phase 1 — Firestore Data Model
 
 ## Current Position
 
-Phase: 4 of 4 (AI + Export)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-11 — Completed 04-02-PLAN.md
+Phase: 1 of 12 (Firestore Data Model)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-02-11 — Project initialized, codebase mapped, roadmap created
 
-Progress: ██████████ 100%
+Progress: ░░░░░░░░░░ 0%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 4 min
-- Total execution time: 35 min
+- Total plans completed: 0
+- Average duration: —
+- Total execution time: 0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation | 3/3 | 12 min | 4 min |
-| 2. Business Plan Sections | 3/3 | 9 min | 3 min |
-| 3. What-If Engine | 2/2 | 6 min | 3 min |
-| 4. AI + Export | 2/2 | 8 min | 4 min |
+| — | — | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 3 min, 3 min, 3 min, 8 min
-- Trend: Stable (~3-4 min), last plan slightly longer due to PDF library integration
+- Last 5 plans: —
+- Trend: —
 
 ## Accumulated Context
 
 ### Decisions
 
-| Phase | Decision | Rationale |
-|-------|----------|-----------|
-| 01-01 | Vite 7.3.1 (not 6.x) | create-vite@8.3.0 ships Vite 7.3.1 |
-| 01-01 | shadcn/ui new-york style | Default style from shadcn init |
-| 01-01 | Path alias in root tsconfig.json | Required for shadcn/ui alias detection |
-| 01-02 | shadcn/ui Sidebar collapsible="icon" | Desktop icon-only collapse mode for sidebar |
-| 01-02 | Feature-based directory structure | src/features/{name}/index.tsx for all page components |
-| 01-02 | Three sidebar groups | Overview, Business Plan (9 items), Tools |
-| 01-03 | Firestore subcollection paths | plans/{planId}/sections/{slug} and plans/{planId}/scenarios/{id} |
-| 01-03 | Equal distribution for avgCheck | Simple average of 3 package prices until booking mix data available |
-| 01-03 | Crew hourly rate $20, 4 hrs/event | Derived from PROJECT.md labor cost data for derived atom calculations |
-| 02-01 | useSection exposes updateData callback | Needed for nested state mutations beyond simple field updates |
-| 02-01 | Conversion rate: decimal storage, % display | Stored as 0.2, displayed as 20% with bidirectional conversion |
-| 02-01 | CSS grid for competitors table | Simpler than DataTable for 3-5 rows |
-| 02-02 | Channel names via display lookup map | Fixed categories (Meta Ads, Google Ads, etc.) not editable |
-| 02-02 | Amber badges for safety protocol numbering | Protocols are text descriptions, not boolean completion items |
-| 02-02 | Vertical CSS timeline for Launch Plan | Border connecting line with primary-colored dots for stage hierarchy |
-| 02-03 | Recharts Tooltip Number() cast for v3 | Recharts v3 Tooltip formatter value is `number | undefined`, needs cast |
-| 02-03 | Risk severity badge color scheme | bg-red-100/bg-amber-100/bg-green-100 for high/medium/low distinctness |
-| 02-03 | Break-even from $2200 fixed marketing cost | Monthly marketing as baseline fixed cost for unit economics calculation |
-| 03-01 | Explicit atom<number> type annotations | as const defaults cause literal type inference, breaking SetStateAction compatibility |
-| 03-01 | Ramp-pattern 12-month projection | 40%-100% over 4 months more realistic than flat-line |
-| 03-01 | Offline-first Firestore with amber indicator | Graceful degradation allows full in-memory scenario functionality |
-| 03-02 | ComputedMetrics separate from DerivedMetrics | Comparison needs profitMargin and totalMonthlyAdSpend not in original type |
-| 03-02 | Flat-line dashboard projection vs ramp editor | Dashboard steady-state, scenario editor shows growth trajectory |
-| 03-02 | Blue/emerald winner badge coloring | Matches scenario A/B header colors for visual consistency |
-| 04-01 | Zod v4 native toJSONSchema | Zod v4 has built-in z.toJSONSchema(), no need for zod-to-json-schema package |
-| 04-01 | stripUnsupportedFields for Gemini | Gemini API rejects $schema and additionalProperties in JSON schemas |
-| 04-01 | Financial projections free-text AI | Numbers come from scenario engine; AI only generates narrative analysis |
-| 04-01 | Select disabled={isPreview} pattern | Radix Select lacks readOnly prop, use disabled during AI preview |
-| 04-02 | html2canvas for chart capture | More reliable than recharts-to-png with Recharts v3, is the underlying dependency anyway |
-| 04-02 | Dynamic import for PDF dependencies | Keeps ~1.8MB of PDF libs out of initial bundle, loaded only on demand |
-| 04-02 | Chart ref passed via BusinessPlanView props | Enables chart capture from visible chart without hidden duplicate |
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+(None yet)
 
 ### Deferred Issues
 
-None.
+None yet.
 
 ### Blockers/Concerns
 
-None.
+None yet.
 
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 04-02-PLAN.md — Phase 4 complete, all phases done
+Stopped at: Project initialization and roadmap creation complete
 Resume file: None
