@@ -45,8 +45,8 @@ export function CreateBusiness() {
     setError("");
     setIsCreating(true);
     try {
-      await createNewBusiness(name.trim(), selectedType, description.trim());
-      navigate("/");
+      const newId = await createNewBusiness(name.trim(), selectedType, description.trim());
+      navigate(`/business/${newId}`);
     } catch {
       setError("Failed to create business. Please try again.");
     } finally {
@@ -60,7 +60,7 @@ export function CreateBusiness() {
         {/* Header */}
         <div className="mb-8">
           <Link
-            to="/"
+            to="/businesses"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowLeft className="size-4" />
@@ -162,7 +162,7 @@ export function CreateBusiness() {
                   )}
                 </Button>
                 <Button variant="ghost" asChild>
-                  <Link to="/">Cancel</Link>
+                  <Link to="/businesses">Cancel</Link>
                 </Button>
               </div>
             </form>

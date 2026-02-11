@@ -26,19 +26,13 @@ export function useBusinesses() {
   const { user } = useAuth();
 
   // Load businesses for current user from Firestore
+  // Note: Does NOT set activeBusinessIdAtom — that is now the router's job
+  // via BusinessContextLayout syncing URL param → atom
   async function loadBusinesses() {
     if (!user) return;
     try {
       const list = await getUserBusinesses(user.uid);
       setBusinessList(list);
-
-      // Restore active business from localStorage
-      const storedId = localStorage.getItem("active-business-id");
-      if (storedId && list.some((b) => b.id === storedId)) {
-        setActiveBusinessId(storedId);
-      } else if (list.length > 0) {
-        setActiveBusinessId(list[0].id);
-      }
     } catch {
       /* silent - app works without businesses loaded */
     } finally {
@@ -46,13 +40,14 @@ export function useBusinesses() {
     }
   }
 
-  // Switch active business
+  // Switch active business — only updates localStorage
+  // The URL change + BusinessContextLayout handles atom sync
   function switchBusiness(businessId: string) {
-    setActiveBusinessId(businessId);
     localStorage.setItem("active-business-id", businessId);
   }
 
-  // Create a new business
+  // Create a new business — returns the new business ID
+  // Caller handles navigation to /business/${newId}
   async function createNewBusiness(
     name: string,
     type: BusinessType,
@@ -81,25 +76,22 @@ export function useBusinesses() {
       updatedAt: now,
     });
 
-    // Refresh list and switch to new business
+    // Refresh list (caller navigates to /business/${businessId})
     const updatedList = await getUserBusinesses(user.uid);
     setBusinessList(updatedList);
-    switchBusiness(businessId);
 
     return businessId;
   }
 
-  // Delete a business
+  // Delete a business — handles data operations only
+  // Caller handles navigation after deletion
   async function removeBusiness(businessId: string) {
     await deleteBusiness(businessId);
     // Remove from local list
     setBusinessList((prev) => prev.filter((b) => b.id !== businessId));
-    // If deleted the active business, switch to first remaining
-    const remaining = businesses.filter((b) => b.id !== businessId);
-    if (remaining.length > 0) {
-      switchBusiness(remaining[0].id);
-    } else {
-      setActiveBusinessId(null);
+    // Clear localStorage if deleted the stored business
+    const storedId = localStorage.getItem("active-business-id");
+    if (storedId === businessId) {
       localStorage.removeItem("active-business-id");
     }
   }

@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate, Outlet } from "react-router";
-import { useAtomValue } from "jotai";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, Outlet, useParams, Link } from "react-router";
+import { useAtomValue, useSetAtom } from "jotai";
 import { DashboardLayout } from "@/app/layout";
 import { Dashboard } from "@/features/dashboard";
 import { ExecutiveSummary } from "@/features/sections/executive-summary";
@@ -17,7 +18,12 @@ import { BusinessList } from "@/features/businesses";
 import { CreateBusiness } from "@/features/businesses/create-business";
 import { LoginPage } from "@/features/auth/login-page";
 import { authStatusAtom } from "@/store/auth-atoms";
-import { activeBusinessIdAtom, businessesLoadedAtom } from "@/store/business-atoms";
+import {
+  activeBusinessIdAtom,
+  businessListAtom,
+  businessesLoadedAtom,
+} from "@/store/business-atoms";
+import { Button } from "@/components/ui/button";
 
 function LoadingScreen() {
   return (
@@ -42,10 +48,67 @@ function BusinessListLayout() {
   );
 }
 
+function BusinessNotFoundPage() {
+  return (
+    <div className="flex min-h-svh items-center justify-center bg-background">
+      <div className="mx-auto max-w-md text-center space-y-4">
+        <div className="text-4xl font-bold text-muted-foreground">404</div>
+        <h1 className="text-xl font-semibold">Business not found</h1>
+        <p className="text-sm text-muted-foreground">
+          The business you are looking for does not exist or you do not have
+          access to it.
+        </p>
+        <Button asChild>
+          <Link to="/businesses">Go to Your Businesses</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function BusinessContextLayout() {
+  const { businessId } = useParams<{ businessId: string }>();
+  const businesses = useAtomValue(businessListAtom);
+  const businessesLoaded = useAtomValue(businessesLoadedAtom);
+  const setActiveBusinessId = useSetAtom(activeBusinessIdAtom);
+
+  // Sync URL param -> atom + localStorage (URL is source of truth)
+  useEffect(() => {
+    if (businessId) {
+      setActiveBusinessId(businessId);
+      localStorage.setItem("active-business-id", businessId);
+    }
+  }, [businessId, setActiveBusinessId]);
+
+  // Loading state: businesses not yet loaded from Firestore
+  if (!businessesLoaded) return <LoadingScreen />;
+
+  // Validate business exists in user's list
+  const businessExists = businesses.some((b) => b.id === businessId);
+  if (!businessExists) return <BusinessNotFoundPage />;
+
+  return <DashboardLayout />;
+}
+
+function RootRedirect() {
+  const businesses = useAtomValue(businessListAtom);
+  const businessesLoaded = useAtomValue(businessesLoadedAtom);
+
+  if (!businessesLoaded) return <LoadingScreen />;
+
+  // Try localStorage first, then first business in list
+  const storedId = localStorage.getItem("active-business-id");
+  const targetId =
+    storedId && businesses.some((b) => b.id === storedId)
+      ? storedId
+      : businesses[0]?.id;
+
+  if (targetId) return <Navigate to={`/business/${targetId}`} replace />;
+  return <Navigate to="/businesses" replace />;
+}
+
 export function AppRoutes() {
   const status = useAtomValue(authStatusAtom);
-  const activeBusinessId = useAtomValue(activeBusinessIdAtom);
-  const businessesLoaded = useAtomValue(businessesLoadedAtom);
 
   if (status === "loading") {
     return <LoadingScreen />;
@@ -57,18 +120,17 @@ export function AppRoutes() {
 
   return (
     <Routes>
+      {/* Root redirect */}
+      <Route index element={<RootRedirect />} />
+
       {/* Business management routes (no sidebar layout) */}
       <Route path="/businesses" element={<BusinessListLayout />}>
         <Route index element={<BusinessList />} />
         <Route path="new" element={<CreateBusiness />} />
       </Route>
 
-      {/* Business plan routes (with sidebar layout) — redirect to /businesses if no active business */}
-      <Route element={
-        !businessesLoaded ? <LoadingScreen /> :
-        !activeBusinessId ? <Navigate to="/businesses" replace /> :
-        <DashboardLayout />
-      }>
+      {/* Business-scoped routes (with sidebar layout) */}
+      <Route path="/business/:businessId" element={<BusinessContextLayout />}>
         <Route index element={<Dashboard />} />
         <Route path="executive-summary" element={<ExecutiveSummary />} />
         <Route path="market-analysis" element={<MarketAnalysis />} />
@@ -82,6 +144,9 @@ export function AppRoutes() {
         <Route path="scenarios" element={<Scenarios />} />
         <Route path="export" element={<Export />} />
       </Route>
+
+      {/* Catch-all: redirect to root */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

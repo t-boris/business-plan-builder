@@ -10,8 +10,8 @@ import {
   Sparkles,
   Plus,
   Trash2,
-  type LucideIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useBusinesses } from "@/hooks/use-businesses";
 import { BUSINESS_TYPE_TEMPLATES } from "@/lib/business-templates";
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
@@ -181,7 +181,7 @@ function BusinessCard({ business, onSelect, onDelete }: BusinessCardProps) {
 }
 
 export function BusinessList() {
-  const { businesses, isLoading, switchBusiness, removeBusiness } =
+  const { businesses, isLoading, removeBusiness } =
     useBusinesses();
   const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState<Business | null>(null);
@@ -207,8 +207,7 @@ export function BusinessList() {
             key={business.id}
             business={business}
             onSelect={() => {
-              switchBusiness(business.id);
-              navigate("/");
+              navigate(`/business/${business.id}`);
             }}
             onDelete={() => setDeleteTarget(business)}
           />
@@ -224,6 +223,11 @@ export function BusinessList() {
         onConfirm={async () => {
           if (deleteTarget) {
             await removeBusiness(deleteTarget.id);
+            // Navigate to first remaining business or stay on list
+            const remaining = businesses.filter((b) => b.id !== deleteTarget.id);
+            if (remaining.length > 0) {
+              navigate(`/business/${remaining[0].id}`);
+            }
           }
         }}
       />
