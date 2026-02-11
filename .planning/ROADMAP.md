@@ -30,7 +30,7 @@ None
 
 Plans:
 - [x] 01-01: Project scaffolding (Vite + React + TS + Firebase), Firestore config, deploy pipeline
-- [ ] 01-02: Dashboard layout (sidebar nav, header, content area), routing for all 9 sections
+- [x] 01-02: Dashboard layout (sidebar nav, header, content area), routing for all 9 sections
 - [ ] 01-03: Base component library (form inputs, cards, data tables, chart wrapper) + Firestore data model
 
 ### Phase 2: Business Plan Sections
@@ -72,7 +72,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation | 1/3 | In progress | - |
+| 1. Foundation | 2/3 | In progress | - |
 | 2. Business Plan Sections | 0/3 | Not started | - |
 | 3. What-If Engine | 0/2 | Not started | - |
 | 4. AI + Export | 0/2 | Not started | - |
