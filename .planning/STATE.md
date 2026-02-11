@@ -66,6 +66,10 @@ Progress: ██████████ 100%
 | 03-02 | ComputedMetrics separate from DerivedMetrics | Comparison needs profitMargin and totalMonthlyAdSpend not in original type |
 | 03-02 | Flat-line dashboard projection vs ramp editor | Dashboard steady-state, scenario editor shows growth trajectory |
 | 03-02 | Blue/emerald winner badge coloring | Matches scenario A/B header colors for visual consistency |
+| 04-01 | Zod v4 native toJSONSchema | Zod v4 has built-in z.toJSONSchema(), no need for zod-to-json-schema package |
+| 04-01 | stripUnsupportedFields for Gemini | Gemini API rejects $schema and additionalProperties in JSON schemas |
+| 04-01 | Financial projections free-text AI | Numbers come from scenario engine; AI only generates narrative analysis |
+| 04-01 | Select disabled={isPreview} pattern | Radix Select lacks readOnly prop, use disabled during AI preview |
 | 04-02 | html2canvas for chart capture | More reliable than recharts-to-png with Recharts v3, is the underlying dependency anyway |
 | 04-02 | Dynamic import for PDF dependencies | Keeps ~1.8MB of PDF libs out of initial bundle, loaded only on demand |
 | 04-02 | Chart ref passed via BusinessPlanView props | Enables chart capture from visible chart without hidden duplicate |
