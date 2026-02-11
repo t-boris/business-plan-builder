@@ -1,4 +1,8 @@
 import { useSection } from '@/hooks/use-section';
+import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
+import { isAiAvailable } from '@/lib/ai/gemini-client';
+import { AiActionBar } from '@/components/ai-action-bar';
+import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import type { LaunchPlan as LaunchPlanType, LaunchStage, TaskStatus } from '@/types';
 import {
   Card,
@@ -15,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, AlertCircle } from 'lucide-react';
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
   pending: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
@@ -72,6 +76,7 @@ export function LaunchPlan() {
     'launch-plan',
     defaultLaunchPlan
   );
+  const aiSuggestion = useAiSuggestion<LaunchPlanType>('launch-plan');
 
   if (isLoading) {
     return (
@@ -80,6 +85,14 @@ export function LaunchPlan() {
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
+  }
+
+  const isPreview = aiSuggestion.state.status === 'preview';
+  const displayData = isPreview && aiSuggestion.state.suggested ? aiSuggestion.state.suggested : data;
+
+  function handleAccept() {
+    const suggested = aiSuggestion.accept();
+    if (suggested) updateData(() => suggested);
   }
 
   function updateStage(
@@ -142,19 +155,17 @@ export function LaunchPlan() {
     }));
   }
 
-  return (
+  const sectionContent = (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Launch Plan</h1>
-
       {/* Vertical Timeline */}
       <div className="relative">
         {/* Timeline connecting line */}
-        {data.stages.length > 1 && (
+        {displayData.stages.length > 1 && (
           <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
         )}
 
         <div className="space-y-6">
-          {data.stages.map((stage, stageIndex) => (
+          {displayData.stages.map((stage, stageIndex) => (
             <div key={stageIndex} className="relative pl-14">
               {/* Timeline dot */}
               <div className="absolute left-4 top-6 z-10 size-5 rounded-full border-2 border-primary bg-background" />
@@ -174,6 +185,7 @@ export function LaunchPlan() {
                           }
                           placeholder="Stage name"
                           className="font-semibold"
+                          readOnly={isPreview}
                         />
                       </CardTitle>
                     </div>
@@ -188,6 +200,7 @@ export function LaunchPlan() {
                           onChange={(e) =>
                             updateStage(stageIndex, 'startDate', e.target.value)
                           }
+                          readOnly={isPreview}
                         />
                       </div>
                       <div>
@@ -200,6 +213,7 @@ export function LaunchPlan() {
                           onChange={(e) =>
                             updateStage(stageIndex, 'endDate', e.target.value)
                           }
+                          readOnly={isPreview}
                         />
                       </div>
                     </div>
@@ -208,14 +222,16 @@ export function LaunchPlan() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-muted-foreground">Tasks</label>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => addTask(stageIndex)}
-                    >
-                      <Plus className="size-3" />
-                      Add Task
-                    </Button>
+                    {!isPreview && (
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => addTask(stageIndex)}
+                      >
+                        <Plus className="size-3" />
+                        Add Task
+                      </Button>
+                    )}
                   </div>
 
                   {stage.tasks.map((task, taskIndex) => (
@@ -232,12 +248,14 @@ export function LaunchPlan() {
                         }
                         placeholder="Task description"
                         className="text-sm"
+                        readOnly={isPreview}
                       />
                       <Select
                         value={task.status}
                         onValueChange={(value: TaskStatus) =>
                           updateTaskStatus(stageIndex, taskIndex, value)
                         }
+                        disabled={isPreview}
                       >
                         <SelectTrigger size="sm" className="w-[130px] shrink-0">
                           <SelectValue />
@@ -248,13 +266,15 @@ export function LaunchPlan() {
                           <SelectItem value="done">Done</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => removeTask(stageIndex, taskIndex)}
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
+                      {!isPreview && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => removeTask(stageIndex, taskIndex)}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      )}
                     </div>
                   ))}
 
@@ -271,12 +291,36 @@ export function LaunchPlan() {
       </div>
 
       {/* Add Stage Button */}
-      <div className="flex justify-center">
-        <Button variant="outline" onClick={addStage}>
-          <Plus className="size-4" />
-          Add Stage
-        </Button>
+      {!isPreview && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={addStage}>
+            <Plus className="size-4" />
+            Add Stage
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Launch Plan</h1>
+        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
       </div>
+
+      {aiSuggestion.state.status === 'error' && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+          <AlertCircle className="size-4 shrink-0" /><span className="flex-1">{aiSuggestion.state.error}</span>
+          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
+        </div>
+      )}
+
+      {aiSuggestion.state.status === 'loading' && <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading><div /></AiSuggestionPreview>}
+
+      {aiSuggestion.state.status === 'preview' ? (
+        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>{sectionContent}</AiSuggestionPreview>
+      ) : aiSuggestion.state.status !== 'loading' && sectionContent}
     </div>
   );
 }

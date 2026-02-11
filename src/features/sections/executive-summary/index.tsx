@@ -1,4 +1,8 @@
 import { useSection } from '@/hooks/use-section';
+import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
+import { isAiAvailable } from '@/lib/ai/gemini-client';
+import { AiActionBar } from '@/components/ai-action-bar';
+import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import type { ExecutiveSummary as ExecutiveSummaryType } from '@/types';
 import {
   Card,
@@ -8,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Info } from 'lucide-react';
+import { Plus, Trash2, AlertCircle } from 'lucide-react';
 
 const defaultSummary: ExecutiveSummaryType = {
   summary:
@@ -32,6 +36,7 @@ export function ExecutiveSummary() {
     'executive-summary',
     defaultSummary
   );
+  const aiSuggestion = useAiSuggestion<ExecutiveSummaryType>('executive-summary');
 
   if (isLoading) {
     return (
@@ -40,6 +45,17 @@ export function ExecutiveSummary() {
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
+  }
+
+  const displayData = aiSuggestion.state.status === 'preview' && aiSuggestion.state.suggested
+    ? aiSuggestion.state.suggested
+    : data;
+
+  function handleAccept() {
+    const suggested = aiSuggestion.accept();
+    if (suggested) {
+      updateData(() => suggested);
+    }
   }
 
   function updateHighlight(index: number, value: string) {
@@ -64,16 +80,8 @@ export function ExecutiveSummary() {
     }));
   }
 
-  return (
+  const sectionContent = (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Executive Summary</h1>
-
-      {/* Info Note */}
-      <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-        <Info className="size-4 mt-0.5 shrink-0" />
-        <span>This section will be enhanced with AI-generated content in a future update.</span>
-      </div>
-
       {/* Summary */}
       <Card>
         <CardHeader>
@@ -81,10 +89,11 @@ export function ExecutiveSummary() {
         </CardHeader>
         <CardContent>
           <Textarea
-            value={data.summary}
+            value={displayData.summary}
             onChange={(e) => updateField('summary', e.target.value)}
             rows={5}
             placeholder="Executive summary of the business..."
+            readOnly={aiSuggestion.state.status === 'preview'}
           />
         </CardContent>
       </Card>
@@ -97,10 +106,11 @@ export function ExecutiveSummary() {
           </CardHeader>
           <CardContent>
             <Textarea
-              value={data.mission}
+              value={displayData.mission}
               onChange={(e) => updateField('mission', e.target.value)}
               rows={4}
               placeholder="Company mission statement..."
+              readOnly={aiSuggestion.state.status === 'preview'}
             />
           </CardContent>
         </Card>
@@ -110,10 +120,11 @@ export function ExecutiveSummary() {
           </CardHeader>
           <CardContent>
             <Textarea
-              value={data.vision}
+              value={displayData.vision}
               onChange={(e) => updateField('vision', e.target.value)}
               rows={4}
               placeholder="Company vision statement..."
+              readOnly={aiSuggestion.state.status === 'preview'}
             />
           </CardContent>
         </Card>
@@ -124,27 +135,32 @@ export function ExecutiveSummary() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Key Highlights</h2>
-            <Button variant="outline" size="sm" onClick={addHighlight}>
-              <Plus className="size-4" />
-              Add Highlight
-            </Button>
+            {aiSuggestion.state.status !== 'preview' && (
+              <Button variant="outline" size="sm" onClick={addHighlight}>
+                <Plus className="size-4" />
+                Add Highlight
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {data.keyHighlights.map((highlight, index) => (
+            {displayData.keyHighlights.map((highlight, index) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={highlight}
                   onChange={(e) => updateHighlight(index, e.target.value)}
                   placeholder="Key highlight..."
+                  readOnly={aiSuggestion.state.status === 'preview'}
                 />
-                <Button variant="ghost" size="icon-xs" onClick={() => removeHighlight(index)}>
-                  <Trash2 className="size-3" />
-                </Button>
+                {aiSuggestion.state.status !== 'preview' && (
+                  <Button variant="ghost" size="icon-xs" onClick={() => removeHighlight(index)}>
+                    <Trash2 className="size-3" />
+                  </Button>
+                )}
               </div>
             ))}
-            {data.keyHighlights.length === 0 && (
+            {displayData.keyHighlights.length === 0 && (
               <p className="text-sm text-muted-foreground py-2">
                 No highlights yet. Click "Add Highlight" to get started.
               </p>
@@ -152,6 +168,48 @@ export function ExecutiveSummary() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Executive Summary</h1>
+        <AiActionBar
+          onGenerate={() => aiSuggestion.generate('generate', data)}
+          onImprove={() => aiSuggestion.generate('improve', data)}
+          onExpand={() => aiSuggestion.generate('expand', data)}
+          isLoading={aiSuggestion.state.status === 'loading'}
+          disabled={!isAiAvailable}
+        />
+      </div>
+
+      {/* AI Error */}
+      {aiSuggestion.state.status === 'error' && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+          <AlertCircle className="size-4 shrink-0" />
+          <span className="flex-1">{aiSuggestion.state.error}</span>
+          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>
+            Dismiss
+          </Button>
+        </div>
+      )}
+
+      {/* AI Loading */}
+      {aiSuggestion.state.status === 'loading' && (
+        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading>
+          <div />
+        </AiSuggestionPreview>
+      )}
+
+      {/* AI Preview or Normal Content */}
+      {aiSuggestion.state.status === 'preview' ? (
+        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>
+          {sectionContent}
+        </AiSuggestionPreview>
+      ) : (
+        aiSuggestion.state.status !== 'loading' && sectionContent
+      )}
     </div>
   );
 }

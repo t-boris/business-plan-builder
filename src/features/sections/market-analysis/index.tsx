@@ -1,4 +1,8 @@
 import { useSection } from '@/hooks/use-section';
+import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
+import { isAiAvailable } from '@/lib/ai/gemini-client';
+import { AiActionBar } from '@/components/ai-action-bar';
+import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import type { MarketAnalysis as MarketAnalysisType, Competitor } from '@/types';
 import {
   Card,
@@ -10,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Info } from 'lucide-react';
+import { Plus, Trash2, Info, AlertCircle } from 'lucide-react';
 
 const defaultMarketAnalysis: MarketAnalysisType = {
   targetDemographic: {
@@ -51,6 +55,7 @@ export function MarketAnalysis() {
     'market-analysis',
     defaultMarketAnalysis
   );
+  const aiSuggestion = useAiSuggestion<MarketAnalysisType>('market-analysis');
 
   if (isLoading) {
     return (
@@ -59,6 +64,18 @@ export function MarketAnalysis() {
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
+  }
+
+  const isPreview = aiSuggestion.state.status === 'preview';
+  const displayData = isPreview && aiSuggestion.state.suggested
+    ? aiSuggestion.state.suggested
+    : data;
+
+  function handleAccept() {
+    const suggested = aiSuggestion.accept();
+    if (suggested) {
+      updateData(() => suggested);
+    }
   }
 
   function updateDemographic(field: keyof MarketAnalysisType['targetDemographic'], value: string | number) {
@@ -100,10 +117,8 @@ export function MarketAnalysis() {
     }));
   }
 
-  return (
+  const sectionContent = (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Market Analysis</h1>
-
       {/* Deep research insight callout */}
       <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
         <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
@@ -128,15 +143,17 @@ export function MarketAnalysis() {
             <div>
               <label className="text-xs font-medium text-muted-foreground">Age Range</label>
               <Input
-                value={data.targetDemographic.ageRange}
+                value={displayData.targetDemographic.ageRange}
                 onChange={(e) => updateDemographic('ageRange', e.target.value)}
+                readOnly={isPreview}
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Location</label>
               <Input
-                value={data.targetDemographic.location}
+                value={displayData.targetDemographic.location}
                 onChange={(e) => updateDemographic('location', e.target.value)}
+                readOnly={isPreview}
               />
             </div>
             <div>
@@ -144,8 +161,9 @@ export function MarketAnalysis() {
               <div className="relative">
                 <Input
                   type="number"
-                  value={data.targetDemographic.radius}
+                  value={displayData.targetDemographic.radius}
                   onChange={(e) => updateDemographic('radius', Number(e.target.value))}
+                  readOnly={isPreview}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">miles</span>
               </div>
@@ -159,9 +177,10 @@ export function MarketAnalysis() {
           </CardHeader>
           <CardContent>
             <Textarea
-              value={data.marketSize}
+              value={displayData.marketSize}
               onChange={(e) => updateData((prev) => ({ ...prev, marketSize: e.target.value }))}
               rows={6}
+              readOnly={isPreview}
             />
           </CardContent>
         </Card>
@@ -173,10 +192,12 @@ export function MarketAnalysis() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Competitors</h2>
-          <Button variant="outline" size="sm" onClick={addCompetitor}>
-            <Plus className="size-4" />
-            Add Competitor
-          </Button>
+          {!isPreview && (
+            <Button variant="outline" size="sm" onClick={addCompetitor}>
+              <Plus className="size-4" />
+              Add Competitor
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -191,7 +212,7 @@ export function MarketAnalysis() {
                 <span />
               </div>
 
-              {data.competitors.map((competitor, index) => (
+              {displayData.competitors.map((competitor, index) => (
                 <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_1fr_1fr_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
                   <div>
                     <span className="text-xs font-medium text-muted-foreground sm:hidden">Name</span>
@@ -199,6 +220,7 @@ export function MarketAnalysis() {
                       value={competitor.name}
                       onChange={(e) => updateCompetitor(index, 'name', e.target.value)}
                       placeholder="Competitor name"
+                      readOnly={isPreview}
                     />
                   </div>
                   <div>
@@ -207,6 +229,7 @@ export function MarketAnalysis() {
                       value={competitor.pricing}
                       onChange={(e) => updateCompetitor(index, 'pricing', e.target.value)}
                       placeholder="$XXX-$XXX"
+                      readOnly={isPreview}
                     />
                   </div>
                   <div>
@@ -215,6 +238,7 @@ export function MarketAnalysis() {
                       value={competitor.strengths}
                       onChange={(e) => updateCompetitor(index, 'strengths', e.target.value)}
                       placeholder="Key strengths"
+                      readOnly={isPreview}
                     />
                   </div>
                   <div>
@@ -223,20 +247,23 @@ export function MarketAnalysis() {
                       value={competitor.weaknesses}
                       onChange={(e) => updateCompetitor(index, 'weaknesses', e.target.value)}
                       placeholder="Key weaknesses"
+                      readOnly={isPreview}
                     />
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="mt-1 sm:mt-0"
-                    onClick={() => removeCompetitor(index)}
-                  >
-                    <Trash2 className="size-3" />
-                  </Button>
+                  {!isPreview && (
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="mt-1 sm:mt-0"
+                      onClick={() => removeCompetitor(index)}
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+                  )}
                 </div>
               ))}
 
-              {data.competitors.length === 0 && (
+              {displayData.competitors.length === 0 && (
                 <p className="text-sm text-muted-foreground py-2">No competitors added yet.</p>
               )}
             </div>
@@ -256,33 +283,73 @@ export function MarketAnalysis() {
                 <label className="text-xs font-medium text-muted-foreground">Population</label>
                 <Input
                   type="number"
-                  value={data.demographics.population}
+                  value={displayData.demographics.population}
                   onChange={(e) => updateDemographics('population', Number(e.target.value))}
+                  readOnly={isPreview}
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Languages (comma-separated)</label>
                 <Input
-                  value={data.demographics.languages.join(', ')}
+                  value={displayData.demographics.languages.join(', ')}
                   onChange={(e) =>
                     updateDemographics(
                       'languages',
                       e.target.value.split(',').map((l) => l.trim()).filter(Boolean)
                     )
                   }
+                  readOnly={isPreview}
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Median Income</label>
                 <Input
-                  value={data.demographics.income}
+                  value={displayData.demographics.income}
                   onChange={(e) => updateDemographics('income', e.target.value)}
+                  readOnly={isPreview}
                 />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Market Analysis</h1>
+        <AiActionBar
+          onGenerate={() => aiSuggestion.generate('generate', data)}
+          onImprove={() => aiSuggestion.generate('improve', data)}
+          onExpand={() => aiSuggestion.generate('expand', data)}
+          isLoading={aiSuggestion.state.status === 'loading'}
+          disabled={!isAiAvailable}
+        />
+      </div>
+
+      {aiSuggestion.state.status === 'error' && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+          <AlertCircle className="size-4 shrink-0" />
+          <span className="flex-1">{aiSuggestion.state.error}</span>
+          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
+        </div>
+      )}
+
+      {aiSuggestion.state.status === 'loading' && (
+        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading>
+          <div />
+        </AiSuggestionPreview>
+      )}
+
+      {aiSuggestion.state.status === 'preview' ? (
+        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>
+          {sectionContent}
+        </AiSuggestionPreview>
+      ) : (
+        aiSuggestion.state.status !== 'loading' && sectionContent
+      )}
     </div>
   );
 }

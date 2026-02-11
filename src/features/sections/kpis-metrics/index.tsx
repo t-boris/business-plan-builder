@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { useSection } from '@/hooks/use-section';
+import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
+import { isAiAvailable } from '@/lib/ai/gemini-client';
+import { AiActionBar } from '@/components/ai-action-bar';
+import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { DEFAULT_KPI_TARGETS } from '@/lib/constants';
 import type { KpisMetrics as KpisMetricsType, KpiTargets } from '@/types';
 import {
@@ -12,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 
 const defaultKpis: KpisMetricsType = {
   targets: DEFAULT_KPI_TARGETS,
@@ -40,6 +44,7 @@ function KpiInput({
   prefix,
   suffix,
   isPercentage,
+  readOnly,
 }: {
   label: string;
   value: number;
@@ -47,6 +52,7 @@ function KpiInput({
   prefix?: string;
   suffix?: string;
   isPercentage?: boolean;
+  readOnly?: boolean;
 }) {
   // For percentage: store as decimal (0.2) but display as percentage (20)
   const displayValue = isPercentage ? Math.round(value * 100) : value;
@@ -68,6 +74,7 @@ function KpiInput({
             const raw = Number(e.target.value);
             onChange(isPercentage ? raw / 100 : raw);
           }}
+          readOnly={readOnly}
         />
         {suffix && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
@@ -102,6 +109,7 @@ export function KpisMetrics() {
     'kpis-metrics',
     defaultKpis
   );
+  const aiSuggestion = useAiSuggestion<KpisMetricsType>('kpis-metrics');
   const [showActuals, setShowActuals] = useState(!!data.actuals);
 
   if (isLoading) {
@@ -111,6 +119,14 @@ export function KpisMetrics() {
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
+  }
+
+  const isPreview = aiSuggestion.state.status === 'preview';
+  const displayData = isPreview && aiSuggestion.state.suggested ? aiSuggestion.state.suggested : data;
+
+  function handleAccept() {
+    const suggested = aiSuggestion.accept();
+    if (suggested) updateData(() => suggested);
   }
 
   function updateTarget(field: keyof KpiTargets, value: number) {
@@ -145,12 +161,10 @@ export function KpisMetrics() {
     }
   }
 
-  const hasActuals = data.actuals && Object.values(data.actuals).some((v) => v > 0);
+  const hasActuals = displayData.actuals && Object.values(displayData.actuals).some((v) => v > 0);
 
-  return (
+  const sectionContent = (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">KPIs & Metrics</h1>
-
       {/* Targets Card */}
       <Card>
         <CardHeader>
@@ -165,11 +179,12 @@ export function KpisMetrics() {
               <KpiInput
                 key={field.key}
                 label={field.label}
-                value={data.targets[field.key]}
+                value={displayData.targets[field.key]}
                 onChange={(value) => updateTarget(field.key, value)}
                 prefix={field.prefix}
                 suffix={field.suffix}
                 isPercentage={field.isPercentage}
+                readOnly={isPreview}
               />
             ))}
           </div>
@@ -188,14 +203,16 @@ export function KpisMetrics() {
                 Track real performance numbers against your targets.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={toggleActuals}>
-              {showActuals ? (
-                <ChevronDown className="size-4" />
-              ) : (
-                <ChevronRight className="size-4" />
-              )}
-              {showActuals ? 'Collapse' : 'Expand'}
-            </Button>
+            {!isPreview && (
+              <Button variant="outline" size="sm" onClick={toggleActuals}>
+                {showActuals ? (
+                  <ChevronDown className="size-4" />
+                ) : (
+                  <ChevronRight className="size-4" />
+                )}
+                {showActuals ? 'Collapse' : 'Expand'}
+              </Button>
+            )}
           </div>
         </CardHeader>
         {showActuals && (
@@ -205,11 +222,12 @@ export function KpisMetrics() {
                 <KpiInput
                   key={field.key}
                   label={field.label}
-                  value={data.actuals?.[field.key] ?? 0}
+                  value={displayData.actuals?.[field.key] ?? 0}
                   onChange={(value) => updateActual(field.key, value)}
                   prefix={field.prefix}
                   suffix={field.suffix}
                   isPercentage={field.isPercentage}
+                  readOnly={isPreview}
                 />
               ))}
             </div>
@@ -231,8 +249,8 @@ export function KpisMetrics() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {KPI_FIELDS.map((field) => {
-                  const target = data.targets[field.key];
-                  const actual = data.actuals?.[field.key] ?? 0;
+                  const target = displayData.targets[field.key];
+                  const actual = displayData.actuals?.[field.key] ?? 0;
 
                   // For CAC fields, lower is better (invert comparison)
                   const isCostField = field.key === 'cacPerLead' || field.key === 'cacPerBooking';
@@ -255,6 +273,28 @@ export function KpisMetrics() {
           </Card>
         </>
       )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">KPIs & Metrics</h1>
+        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+      </div>
+
+      {aiSuggestion.state.status === 'error' && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+          <AlertCircle className="size-4 shrink-0" /><span className="flex-1">{aiSuggestion.state.error}</span>
+          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
+        </div>
+      )}
+
+      {aiSuggestion.state.status === 'loading' && <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading><div /></AiSuggestionPreview>}
+
+      {aiSuggestion.state.status === 'preview' ? (
+        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>{sectionContent}</AiSuggestionPreview>
+      ) : aiSuggestion.state.status !== 'loading' && sectionContent}
     </div>
   );
 }
