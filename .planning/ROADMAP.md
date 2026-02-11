@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Firestore Data Model** - New multi-business data structure, TypeScript types, Firestore service layer
 - [x] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
-- [ ] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
+- [x] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
 - [ ] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
 - [ ] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
 - [ ] **Phase 6: Variable Library** - Predefined business variables organized by business type
@@ -62,7 +62,7 @@ Plans:
 
 Plans:
 - [x] 03-01: Refactor store atoms and hooks to use dynamic business ID (plan-atoms, scenario-atoms, useSection, useScenarioSync)
-- [ ] 03-02: Update routing and layout to include business context (URL structure, breadcrumbs, sidebar)
+- [x] 03-02: Update routing and layout to include business context (URL structure, breadcrumbs, sidebar)
 
 ### Phase 4: Strip Hardcoded Content
 **Goal**: Remove all Fun Box-specific content from 12+ files. Create a generic defaults system that loads business-context-aware defaults instead of hardcoded values.
@@ -172,7 +172,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 |-------|---------------|--------|-----------|
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
 | 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
-| 3. Dynamic Business Context | 1/2 | In progress | - |
+| 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
 | 4. Strip Hardcoded Content | 0/3 | Not started | - |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |
 | 6. Variable Library | 0/3 | Not started | - |
