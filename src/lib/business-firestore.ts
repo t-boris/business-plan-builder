@@ -25,6 +25,7 @@ import type {
   BusinessSection,
   BusinessScenario,
   BusinessRole,
+  Scenario,
 } from "@/types";
 
 // =============================================================================
@@ -390,4 +391,134 @@ export async function removeBusinessRole(
     [`roles.${uid}`]: deleteField(),
     updatedAt: new Date().toISOString(),
   });
+}
+
+// =============================================================================
+// Section Data (raw format for useSection hook)
+// =============================================================================
+
+// Stores raw section data directly at businesses/{businessId}/sections/{sectionKey}
+// Phase 5 will migrate to full BusinessSection format with schema/order/label wrapper.
+
+/**
+ * Get raw section data for the useSection hook.
+ */
+export async function getSectionData<T>(
+  businessId: string,
+  sectionKey: string
+): Promise<T | null> {
+  // Firestore path: businesses/{businessId}/sections/{sectionKey}
+  const snap = await getDoc(
+    doc(db, "businesses", businessId, "sections", sectionKey)
+  );
+  if (!snap.exists()) return null;
+  return snap.data() as T;
+}
+
+/**
+ * Save raw section data for the useSection hook (merge update).
+ */
+export async function saveSectionData(
+  businessId: string,
+  sectionKey: string,
+  data: object
+): Promise<void> {
+  // Firestore path: businesses/{businessId}/sections/{sectionKey}
+  await setDoc(
+    doc(db, "businesses", businessId, "sections", sectionKey),
+    data,
+    { merge: true }
+  );
+}
+
+// =============================================================================
+// Scenario Data (legacy Scenario type for useScenarioSync)
+// =============================================================================
+
+// Uses existing Scenario type at businesses/{businessId}/scenarios/{scenarioId}
+// Phase 7 will migrate to BusinessScenario with dynamic VariableDefinition variables.
+
+/**
+ * Get a scenario by ID using the legacy Scenario type.
+ */
+export async function getScenarioData(
+  businessId: string,
+  scenarioId: string
+): Promise<Scenario | null> {
+  // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
+  const snap = await getDoc(
+    doc(db, "businesses", businessId, "scenarios", scenarioId)
+  );
+  if (!snap.exists()) return null;
+  return snap.data() as Scenario;
+}
+
+/**
+ * Save a scenario using the legacy Scenario type (merge update).
+ */
+export async function saveScenarioData(
+  businessId: string,
+  scenario: Scenario
+): Promise<void> {
+  // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
+  await setDoc(
+    doc(db, "businesses", businessId, "scenarios", scenario.metadata.id),
+    scenario,
+    { merge: true }
+  );
+}
+
+/**
+ * List all scenarios for a business using the legacy Scenario type.
+ */
+export async function listScenarioData(
+  businessId: string
+): Promise<Scenario[]> {
+  // Firestore path: businesses/{businessId}/scenarios
+  const snap = await getDocs(
+    collection(db, "businesses", businessId, "scenarios")
+  );
+  return snap.docs.map((d) => d.data() as Scenario);
+}
+
+/**
+ * Delete a scenario from a business.
+ */
+export async function deleteScenarioData(
+  businessId: string,
+  scenarioId: string
+): Promise<void> {
+  // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
+  await deleteDoc(
+    doc(db, "businesses", businessId, "scenarios", scenarioId)
+  );
+}
+
+/**
+ * Get scenario preferences (active scenario ID) for a business.
+ */
+export async function getScenarioPreferences(
+  businessId: string
+): Promise<{ activeScenarioId: string } | null> {
+  // Firestore path: businesses/{businessId}/state/preferences
+  const snap = await getDoc(
+    doc(db, "businesses", businessId, "state", "preferences")
+  );
+  if (!snap.exists()) return null;
+  return snap.data() as { activeScenarioId: string };
+}
+
+/**
+ * Save scenario preferences (active scenario ID) for a business.
+ */
+export async function saveScenarioPreferences(
+  businessId: string,
+  state: { activeScenarioId: string }
+): Promise<void> {
+  // Firestore path: businesses/{businessId}/state/preferences
+  await setDoc(
+    doc(db, "businesses", businessId, "state", "preferences"),
+    state,
+    { merge: true }
+  );
 }
