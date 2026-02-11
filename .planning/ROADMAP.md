@@ -51,7 +51,7 @@ Plans:
 - [x] 02-01: Business state atoms, operations hook, and template definitions
 - [x] 02-02: Create business page with template picker UI
 - [x] 02-03: Business list page, empty state, and delete dialog
-- [ ] 02-04: Sidebar business switcher dropdown and breadcrumbs
+- [x] 02-04: Sidebar business switcher dropdown and breadcrumbs
 - [ ] 02-05: Router and provider integration for business features
 
 ### Phase 3: Dynamic Business Context
@@ -171,7 +171,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
-| 2. Business CRUD | 3/5 | In progress | - |
+| 2. Business CRUD | 4/5 | In progress | - |
 | 3. Dynamic Business Context | 0/2 | Not started | - |
 | 4. Strip Hardcoded Content | 0/3 | Not started | - |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |
