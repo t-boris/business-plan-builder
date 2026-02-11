@@ -2,6 +2,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   onSnapshot,
   collection,
   getDocs,
@@ -79,4 +80,11 @@ export async function saveScenario(
 export async function listScenarios(planId: string): Promise<Scenario[]> {
   const snap = await getDocs(scenariosCollectionRef(planId));
   return snap.docs.map((d) => d.data() as Scenario);
+}
+
+export async function deleteScenario(
+  planId: string,
+  scenarioId: string
+): Promise<void> {
+  await deleteDoc(scenarioRef(planId, scenarioId));
 }

@@ -3,6 +3,7 @@ import { scenarioNameAtom } from '@/store/scenario-atoms.ts';
 import { Input } from '@/components/ui/input';
 import { ScenarioControls } from './scenario-controls.tsx';
 import { ScenarioDashboard } from './scenario-dashboard.tsx';
+import { ScenarioManager } from './scenario-manager.tsx';
 
 export function Scenarios() {
   const [scenarioName, setScenarioName] = useAtom(scenarioNameAtom);
@@ -23,8 +24,8 @@ export function Scenarios() {
         </div>
       </div>
 
-      {/* Placeholder for Scenario Manager (built in Task 2) */}
-      <div id="scenario-manager-placeholder" />
+      {/* Scenario Manager: save, load, switch, delete */}
+      <ScenarioManager />
 
       {/* Two-column layout: controls left (40%), dashboard right (60%) */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6">
