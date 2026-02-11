@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 2 — Business CRUD (In progress)
+**Current focus:** Phase 2 — Business CRUD (Complete)
 
 ## Current Position
 
 Phase: 2 of 12 (Business CRUD)
-Plan: 4 of 5 in current phase
-Status: In progress
-Last activity: 2026-02-11 — Completed 02-04-PLAN.md
+Plan: 5 of 5 in current phase
+Status: Phase complete
+Last activity: 2026-02-11 — Completed 02-05-PLAN.md
 
-Progress: ██░░░░░░░░ 20%
+Progress: ██░░░░░░░░ 23%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 2 min
-- Total execution time: 14 min
+- Total execution time: 15 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-firestore-data-model | 2/2 | 4 min | 2 min |
-| 02-business-crud | 4/5 | 10 min | 3 min |
+| 02-business-crud | 5/5 | 11 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3 min), 02-02 (1 min), 02-03 (1 min), 02-04 (5 min)
+- Last 5 plans: 02-01 (3 min), 02-02 (1 min), 02-03 (1 min), 02-04 (5 min), 02-05 (1 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -54,6 +54,8 @@ Progress: ██░░░░░░░░ 20%
 | 02-03 | Inline formatRelativeTime helper (no date library) | Simple Date.now() comparison sufficient; avoids dependency |
 | 02-03 | Delete dialog delegates deletion via onConfirm prop | Keeps dialog reusable and decoupled from state management |
 | 02-04 | getTemplateName helper colocated in app-sidebar.tsx | Private to component; not reusable enough to extract |
+| 02-05 | BusinessLoader placed before ScenarioSync in provider tree | Phase 3 dependency order: scenario loading will depend on active business |
+| 02-05 | Conditional Route element prop for active business guard | Cleaner than wrapper component; handles loading/redirect/layout in one expression |
 
 ### Deferred Issues
 
@@ -66,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-04-PLAN.md (Phase 2 in progress)
+Stopped at: Completed 02-05-PLAN.md (Phase 2 complete)
 Resume file: None

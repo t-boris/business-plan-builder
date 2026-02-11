@@ -17,7 +17,7 @@ None
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Firestore Data Model** - New multi-business data structure, TypeScript types, Firestore service layer
-- [ ] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
+- [x] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
 - [ ] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
 - [ ] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
 - [ ] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
@@ -52,7 +52,7 @@ Plans:
 - [x] 02-02: Create business page with template picker UI
 - [x] 02-03: Business list page, empty state, and delete dialog
 - [x] 02-04: Sidebar business switcher dropdown and breadcrumbs
-- [ ] 02-05: Router and provider integration for business features
+- [x] 02-05: Router and provider integration for business features
 
 ### Phase 3: Dynamic Business Context
 **Goal**: Replace the hardcoded `'default-plan'` ID with the dynamically selected business ID. All atoms, hooks, and routes become business-aware.
@@ -171,7 +171,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
-| 2. Business CRUD | 4/5 | In progress | - |
+| 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
 | 3. Dynamic Business Context | 0/2 | Not started | - |
 | 4. Strip Hardcoded Content | 0/3 | Not started | - |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |
