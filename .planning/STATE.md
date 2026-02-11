@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 2 of 12 (Business CRUD)
-Plan: 2 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-11 — Completed 02-02-PLAN.md
+Last activity: 2026-02-11 — Completed 02-03-PLAN.md
 
-Progress: █░░░░░░░░░ 13%
+Progress: ██░░░░░░░░ 17%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 2 min
-- Total execution time: 8 min
+- Total execution time: 9 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-firestore-data-model | 2/2 | 4 min | 2 min |
-| 02-business-crud | 2/5 | 4 min | 2 min |
+| 02-business-crud | 3/5 | 5 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (3 min), 02-01 (3 min), 02-02 (1 min)
+- Last 5 plans: 01-02 (3 min), 02-01 (3 min), 02-02 (1 min), 02-03 (1 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -51,6 +51,8 @@ Progress: █░░░░░░░░░ 13%
 | 02-01 | Client-side template definitions separate from Firestore templates | UI picker data now; Firestore templates deferred to Phase 6 |
 | 02-02 | Static iconMap Record for Lucide icon resolution | All 7 icons known at build time; simpler than dynamic imports |
 | 02-02 | Two-step inline flow (not wizard/stepper) | Low-friction creation per context vision |
+| 02-03 | Inline formatRelativeTime helper (no date library) | Simple Date.now() comparison sufficient; avoids dependency |
+| 02-03 | Delete dialog delegates deletion via onConfirm prop | Keeps dialog reusable and decoupled from state management |
 
 ### Deferred Issues
 
@@ -63,5 +65,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-02-PLAN.md (Phase 2 in progress)
+Stopped at: Completed 02-03-PLAN.md (Phase 2 in progress)
 Resume file: None
