@@ -11,6 +11,51 @@ import {
   costPerEventAtom,
 } from './scenario-atoms.ts';
 import { CREW_HOURLY_RATE, AVG_HOURS_PER_EVENT } from '@/lib/constants.ts';
+import type { ScenarioVariables } from '@/types';
+
+// ---- Pure function for computing derived metrics (used in comparison view) ----
+
+export interface ComputedMetrics {
+  monthlyBookings: number;
+  avgCheck: number;
+  monthlyRevenue: number;
+  totalMonthlyAdSpend: number;
+  cacPerBooking: number;
+  monthlyCosts: number;
+  monthlyProfit: number;
+  annualRevenue: number;
+  annualProfit: number;
+  profitMargin: number;
+}
+
+/** Compute all derived metrics from scenario variables (pure function, no atoms). */
+export function computeDerivedMetrics(v: ScenarioVariables): ComputedMetrics {
+  const monthlyBookings = Math.round(v.monthlyLeads * v.conversionRate);
+  const avgCheck = (v.priceStarter + v.priceExplorer + v.priceVIP) / 3;
+  const monthlyRevenue = monthlyBookings * avgCheck;
+  const totalMonthlyAdSpend = v.monthlyAdBudgetMeta + v.monthlyAdBudgetGoogle;
+  const cacPerBooking = monthlyBookings === 0 ? 0 : totalMonthlyAdSpend / monthlyBookings;
+  const laborCost = v.crewCount * CREW_HOURLY_RATE * AVG_HOURS_PER_EVENT * monthlyBookings;
+  const eventCosts = v.costPerEvent * monthlyBookings;
+  const monthlyCosts = laborCost + totalMonthlyAdSpend + eventCosts;
+  const monthlyProfit = monthlyRevenue - monthlyCosts;
+  const annualRevenue = monthlyRevenue * 12;
+  const annualProfit = monthlyProfit * 12;
+  const profitMargin = monthlyRevenue === 0 ? 0 : monthlyProfit / monthlyRevenue;
+
+  return {
+    monthlyBookings,
+    avgCheck,
+    monthlyRevenue,
+    totalMonthlyAdSpend,
+    cacPerBooking,
+    monthlyCosts,
+    monthlyProfit,
+    annualRevenue,
+    annualProfit,
+    profitMargin,
+  };
+}
 
 // monthlyBookings = monthlyLeads * conversionRate
 export const monthlyBookingsAtom = atom((get) =>
