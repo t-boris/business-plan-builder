@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Interactive what-if scenario modeling that lets the owner see how changing any business variable ripples through the entire business plan in real time.
-**Current focus:** Phase 3 — What-If Engine
+**Current focus:** Phase 3 complete, ready for Phase 4 — AI + Export
 
 ## Current Position
 
 Phase: 3 of 4 (What-If Engine)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-11 — Completed 03-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-11 — Completed 03-02-PLAN.md
 
-Progress: ███████░░░ 70%
+Progress: ████████░░ 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 3 min
-- Total execution time: 24 min
+- Total execution time: 27 min
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: ███████░░░ 70%
 |-------|-------|-------|----------|
 | 1. Foundation | 3/3 | 12 min | 4 min |
 | 2. Business Plan Sections | 3/3 | 9 min | 3 min |
-| 3. What-If Engine | 1/2 | 3 min | 3 min |
+| 3. What-If Engine | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 3 min, 3 min, 3 min, 3 min
+- Last 5 plans: 3 min, 3 min, 3 min, 3 min, 3 min
 - Trend: Stable (~3 min)
 
 ## Accumulated Context
@@ -62,6 +62,9 @@ Progress: ███████░░░ 70%
 | 03-01 | Explicit atom<number> type annotations | as const defaults cause literal type inference, breaking SetStateAction compatibility |
 | 03-01 | Ramp-pattern 12-month projection | 40%-100% over 4 months more realistic than flat-line |
 | 03-01 | Offline-first Firestore with amber indicator | Graceful degradation allows full in-memory scenario functionality |
+| 03-02 | ComputedMetrics separate from DerivedMetrics | Comparison needs profitMargin and totalMonthlyAdSpend not in original type |
+| 03-02 | Flat-line dashboard projection vs ramp editor | Dashboard steady-state, scenario editor shows growth trajectory |
+| 03-02 | Blue/emerald winner badge coloring | Matches scenario A/B header colors for visual consistency |
 
 ### Deferred Issues
 
@@ -74,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-01-PLAN.md — Phase 3 in progress, ready for 03-02
+Stopped at: Completed 03-02-PLAN.md — Phase 3 complete, ready for Phase 4
 Resume file: None
