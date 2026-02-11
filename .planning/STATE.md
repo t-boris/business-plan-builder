@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Interactive what-if scenario modeling that lets the owner see how changing any business variable ripples through the entire business plan in real time.
-**Current focus:** Phase 2 complete — ready for Phase 3
+**Current focus:** Phase 3 — What-If Engine
 
 ## Current Position
 
