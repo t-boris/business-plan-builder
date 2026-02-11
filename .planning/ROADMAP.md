@@ -17,7 +17,7 @@ None
 - [x] **Phase 1: Foundation** — React + TS + Firebase setup, dashboard shell, routing, Firestore data model
 - [x] **Phase 2: Business Plan Sections** — All 9 section UIs with forms, pre-populated data, deep research integration
 - [x] **Phase 3: What-If Engine** — Scenario modeling with real-time calculation propagation and comparison
-- [ ] **Phase 4: AI + Export** — Gemini 2.5 Pro per-section AI, business plan view, PDF export
+- [x] **Phase 4: AI + Export** — Gemini 2.5 Pro per-section AI, business plan view, PDF export
 
 ## Phase Details
 
@@ -62,8 +62,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Gemini 2.5 Pro integration (API setup, per-section "Ask AI" with contextual prompts, inline response display)
-- [ ] 04-02: Business plan read-only view (polished layout), PDF export (professional formatting, all sections + selected scenario)
+- [x] 04-01: Gemini 2.5 Pro integration (API setup, per-section "Ask AI" with contextual prompts, inline response display)
+- [x] 04-02: Business plan read-only view (polished layout), PDF export (professional formatting, all sections + selected scenario)
 
 ## Progress
 
@@ -75,4 +75,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 3/3 | Complete | 2026-02-11 |
 | 2. Business Plan Sections | 3/3 | Complete | 2026-02-11 |
 | 3. What-If Engine | 2/2 | Complete | 2026-02-11 |
-| 4. AI + Export | 0/2 | Not started | - |
+| 4. AI + Export | 2/2 | Complete | 2026-02-11 |

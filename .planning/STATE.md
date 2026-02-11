@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Interactive what-if scenario modeling that lets the owner see how changing any business variable ripples through the entire business plan in real time.
-**Current focus:** Phase 4 — AI + Export
+**Current focus:** Phase 4 — AI + Export (complete)
 
 ## Current Position
 
-Phase: 3 of 4 (What-If Engine)
+Phase: 4 of 4 (AI + Export)
 Plan: 2 of 2 in current phase
 Status: Phase complete
-Last activity: 2026-02-11 — Completed 03-02-PLAN.md
+Last activity: 2026-02-11 — Completed 04-02-PLAN.md
 
-Progress: ████████░░ 80%
+Progress: ██████████ 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 3 min
-- Total execution time: 27 min
+- Total plans completed: 10
+- Average duration: 4 min
+- Total execution time: 35 min
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: ████████░░ 80%
 | 1. Foundation | 3/3 | 12 min | 4 min |
 | 2. Business Plan Sections | 3/3 | 9 min | 3 min |
 | 3. What-If Engine | 2/2 | 6 min | 3 min |
+| 4. AI + Export | 2/2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 3 min, 3 min, 3 min, 3 min
-- Trend: Stable (~3 min)
+- Last 5 plans: 3 min, 3 min, 3 min, 3 min, 8 min
+- Trend: Stable (~3-4 min), last plan slightly longer due to PDF library integration
 
 ## Accumulated Context
 
@@ -65,17 +66,20 @@ Progress: ████████░░ 80%
 | 03-02 | ComputedMetrics separate from DerivedMetrics | Comparison needs profitMargin and totalMonthlyAdSpend not in original type |
 | 03-02 | Flat-line dashboard projection vs ramp editor | Dashboard steady-state, scenario editor shows growth trajectory |
 | 03-02 | Blue/emerald winner badge coloring | Matches scenario A/B header colors for visual consistency |
+| 04-02 | html2canvas for chart capture | More reliable than recharts-to-png with Recharts v3, is the underlying dependency anyway |
+| 04-02 | Dynamic import for PDF dependencies | Keeps ~1.8MB of PDF libs out of initial bundle, loaded only on demand |
+| 04-02 | Chart ref passed via BusinessPlanView props | Enables chart capture from visible chart without hidden duplicate |
 
 ### Deferred Issues
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-02-PLAN.md — Phase 3 complete, ready for Phase 4
+Stopped at: Completed 04-02-PLAN.md — Phase 4 complete, all phases done
 Resume file: None
