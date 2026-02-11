@@ -51,7 +51,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Calculation engine (dependency graph between variables, real-time propagation), scenario CRUD (create, save, load, delete)
+- [x] 03-01: Calculation engine (dependency graph between variables, real-time propagation), scenario CRUD (create, save, load, delete)
 - [ ] 03-02: Side-by-side scenario comparison UI, variable sliders/inputs per section, visual diff highlighting
 
 ### Phase 4: AI + Export
@@ -74,5 +74,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|---------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-02-11 |
 | 2. Business Plan Sections | 3/3 | Complete | 2026-02-11 |
-| 3. What-If Engine | 0/2 | Not started | - |
+| 3. What-If Engine | 1/2 | In progress | - |
 | 4. AI + Export | 0/2 | Not started | - |
