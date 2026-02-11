@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router";
+import { Outlet, useLocation, useParams } from "react-router";
 import { useAtomValue } from "jotai";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -16,27 +16,34 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { activeBusinessAtom } from "@/store/business-atoms";
 
-const routeTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/businesses": "Your Businesses",
-  "/businesses/new": "New Business",
-  "/executive-summary": "Executive Summary",
-  "/market-analysis": "Market Analysis",
-  "/product-service": "Product & Service",
-  "/marketing-strategy": "Marketing Strategy",
-  "/operations": "Operations",
-  "/financial-projections": "Financial Projections",
-  "/risks-due-diligence": "Risks & Due Diligence",
-  "/kpis-metrics": "KPIs & Metrics",
-  "/launch-plan": "Launch Plan",
-  "/scenarios": "Scenarios",
-  "/export": "Export",
+// Slug-to-title mapping for business-scoped sections
+const sectionTitles: Record<string, string> = {
+  "executive-summary": "Executive Summary",
+  "market-analysis": "Market Analysis",
+  "product-service": "Product & Service",
+  "marketing-strategy": "Marketing Strategy",
+  "operations": "Operations",
+  "financial-projections": "Financial Projections",
+  "risks-due-diligence": "Risks & Due Diligence",
+  "kpis-metrics": "KPIs & Metrics",
+  "launch-plan": "Launch Plan",
+  "scenarios": "Scenarios",
+  "export": "Export",
 };
 
 export function DashboardLayout() {
   const location = useLocation();
+  const { businessId } = useParams<{ businessId: string }>();
   const activeBusiness = useAtomValue(activeBusinessAtom);
-  const pageTitle = routeTitles[location.pathname] ?? "Page";
+
+  // Extract section slug from URL by stripping the /business/:id/ prefix
+  const prefix = `/business/${businessId}`;
+  const remainder = location.pathname.startsWith(prefix)
+    ? location.pathname.slice(prefix.length).replace(/^\//, "")
+    : "";
+  const pageTitle = remainder
+    ? sectionTitles[remainder] ?? "Page"
+    : "Dashboard";
 
   return (
     <SidebarProvider>

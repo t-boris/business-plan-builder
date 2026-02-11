@@ -1,5 +1,5 @@
-import { Link, useLocation } from "react-router";
-import { useCallback, useSyncExternalStore } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -20,6 +20,7 @@ import {
   Plus,
   LayoutList,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useBusinesses } from "@/hooks/use-businesses";
@@ -63,25 +64,27 @@ function toggleTheme() {
   localStorage.setItem("theme", isDark ? "dark" : "light");
 }
 
-const overviewItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+interface NavItem {
+  title: string;
+  slug: string;
+  icon: LucideIcon;
+}
+
+const businessPlanItemDefs: NavItem[] = [
+  { title: "Executive Summary", slug: "executive-summary", icon: FileText },
+  { title: "Market Analysis", slug: "market-analysis", icon: TrendingUp },
+  { title: "Product & Service", slug: "product-service", icon: Package },
+  { title: "Marketing Strategy", slug: "marketing-strategy", icon: Megaphone },
+  { title: "Operations", slug: "operations", icon: Settings },
+  { title: "Financial Projections", slug: "financial-projections", icon: DollarSign },
+  { title: "Risks & Due Diligence", slug: "risks-due-diligence", icon: ShieldAlert },
+  { title: "KPIs & Metrics", slug: "kpis-metrics", icon: BarChart3 },
+  { title: "Launch Plan", slug: "launch-plan", icon: Rocket },
 ];
 
-const businessPlanItems = [
-  { title: "Executive Summary", url: "/executive-summary", icon: FileText },
-  { title: "Market Analysis", url: "/market-analysis", icon: TrendingUp },
-  { title: "Product & Service", url: "/product-service", icon: Package },
-  { title: "Marketing Strategy", url: "/marketing-strategy", icon: Megaphone },
-  { title: "Operations", url: "/operations", icon: Settings },
-  { title: "Financial Projections", url: "/financial-projections", icon: DollarSign },
-  { title: "Risks & Due Diligence", url: "/risks-due-diligence", icon: ShieldAlert },
-  { title: "KPIs & Metrics", url: "/kpis-metrics", icon: BarChart3 },
-  { title: "Launch Plan", url: "/launch-plan", icon: Rocket },
-];
-
-const toolsItems = [
-  { title: "Scenarios", url: "/scenarios", icon: GitBranch },
-  { title: "Export", url: "/export", icon: Download },
+const toolsItemDefs: NavItem[] = [
+  { title: "Scenarios", slug: "scenarios", icon: GitBranch },
+  { title: "Export", slug: "export", icon: Download },
 ];
 
 function getTemplateName(type: BusinessType): string {
@@ -91,18 +94,31 @@ function getTemplateName(type: BusinessType): string {
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { businessId } = useParams<{ businessId: string }>();
   const isDark = useIsDark();
   const { user, signOut } = useAuth();
-  const { businesses, activeBusiness, switchBusiness } = useBusinesses();
+  const { businesses, activeBusiness } = useBusinesses();
   const templateName = activeBusiness
     ? getTemplateName(activeBusiness.profile.type)
     : "";
 
-  const isActive = (url: string) => {
-    if (url === "/") {
-      return location.pathname === "/";
+  // Filter business plan items by enabledSections
+  const filteredBusinessPlanItems = useMemo(() => {
+    if (!activeBusiness) return businessPlanItemDefs;
+    const enabled = activeBusiness.enabledSections;
+    return businessPlanItemDefs.filter((item) => enabled.includes(item.slug));
+  }, [activeBusiness]);
+
+  // Build URLs with business prefix
+  const dashboardUrl = `/business/${businessId}`;
+
+  const isActive = (slug: string | null) => {
+    if (slug === null) {
+      // Dashboard: exact match on /business/:id
+      return location.pathname === `/business/${businessId}`;
     }
-    return location.pathname === url;
+    return location.pathname === `/business/${businessId}/${slug}`;
   };
 
   return (
@@ -131,7 +147,9 @@ export function AppSidebar() {
                 {businesses.map((business) => (
                   <DropdownMenuItem
                     key={business.id}
-                    onClick={() => switchBusiness(business.id)}
+                    onClick={() => {
+                      navigate(`/business/${business.id}`);
+                    }}
                     className={cn(activeBusiness?.id === business.id && "bg-accent")}
                   >
                     <div className="flex items-center gap-2">
@@ -171,20 +189,18 @@ export function AppSidebar() {
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {overviewItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(null)}
+                  tooltip="Dashboard"
+                >
+                  <Link to={dashboardUrl}>
+                    <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -193,14 +209,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Business Plan</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {businessPlanItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {filteredBusinessPlanItems.map((item) => (
+                <SidebarMenuItem key={item.slug}>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive(item.url)}
+                    isActive={isActive(item.slug)}
                     tooltip={item.title}
                   >
-                    <Link to={item.url}>
+                    <Link to={`/business/${businessId}/${item.slug}`}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -215,14 +231,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {toolsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {toolsItemDefs.map((item) => (
+                <SidebarMenuItem key={item.slug}>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive(item.url)}
+                    isActive={isActive(item.slug)}
                     tooltip={item.title}
                   >
-                    <Link to={item.url}>
+                    <Link to={`/business/${businessId}/${item.slug}`}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
