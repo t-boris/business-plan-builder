@@ -38,7 +38,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Define TypeScript types and interfaces for multi-business data model (Business, BusinessConfig, BusinessProfile)
+- [x] 01-01: Define TypeScript types and interfaces for multi-business data model (Business, BusinessConfig, BusinessProfile)
 - [ ] 01-02: Implement new Firestore service layer (business CRUD operations, section/scenario paths scoped to business)
 
 ### Phase 2: Business CRUD
@@ -168,7 +168,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Firestore Data Model | 0/2 | Not started | - |
+| 1. Firestore Data Model | 1/2 | In progress | - |
 | 2. Business CRUD | 0/3 | Not started | - |
 | 3. Dynamic Business Context | 0/2 | Not started | - |
 | 4. Strip Hardcoded Content | 0/3 | Not started | - |

@@ -100,7 +100,7 @@ my-business-planning/
 
 **src/types/**
 - Purpose: TypeScript type definitions for all business domains
-- Contains: `index.ts` (re-exports), `plan.ts` (9 section types), `scenario.ts` (scenario + metrics types)
+- Contains: `index.ts` (re-exports), `plan.ts` (9 section types), `scenario.ts` (scenario + metrics types), `business.ts` (multi-business data model types)
 
 ## Key File Locations
 
