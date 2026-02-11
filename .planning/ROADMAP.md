@@ -45,12 +45,14 @@ Plans:
 **Goal**: Users can create new businesses, see a list of their businesses, switch between them, and delete businesses. Business selector appears in UI.
 **Depends on**: Phase 1
 **Research**: Unlikely (standard CRUD with existing Firebase patterns)
-**Plans**: 3 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 02-01: Create business flow (form with name, type, description, location)
-- [ ] 02-02: Business list and selector UI (sidebar or header component for switching)
-- [ ] 02-03: Delete business with confirmation and data cleanup
+- [x] 02-01: Business state atoms, operations hook, and template definitions
+- [ ] 02-02: Create business page with template picker UI
+- [ ] 02-03: Business list page, empty state, and delete dialog
+- [ ] 02-04: Sidebar business switcher dropdown and breadcrumbs
+- [ ] 02-05: Router and provider integration for business features
 
 ### Phase 3: Dynamic Business Context
 **Goal**: Replace the hardcoded `'default-plan'` ID with the dynamically selected business ID. All atoms, hooks, and routes become business-aware.
@@ -169,7 +171,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
-| 2. Business CRUD | 0/3 | Not started | - |
+| 2. Business CRUD | 1/5 | In progress | - |
 | 3. Dynamic Business Context | 0/2 | Not started | - |
 | 4. Strip Hardcoded Content | 0/3 | Not started | - |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |

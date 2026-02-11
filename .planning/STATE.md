@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 1 — Firestore Data Model (COMPLETE)
+**Current focus:** Phase 2 — Business CRUD (In progress)
 
 ## Current Position
 
-Phase: 1 of 12 (Firestore Data Model)
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 1 complete
-Last activity: 2026-02-11 — Completed 01-02-PLAN.md
+Phase: 2 of 12 (Business CRUD)
+Plan: 1 of 5 in current phase
+Status: In progress
+Last activity: 2026-02-11 — Completed 02-01-PLAN.md
 
-Progress: █░░░░░░░░░ 8%
+Progress: █░░░░░░░░░ 11%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 2 min
-- Total execution time: 4 min
+- Total execution time: 7 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-firestore-data-model | 2/2 | 4 min | 2 min |
+| 02-business-crud | 1/5 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (3 min)
-- Trend: Starting
+- Last 5 plans: 01-01 (1 min), 01-02 (3 min), 02-01 (3 min)
+- Trend: Consistent
 
 ## Accumulated Context
 
@@ -46,6 +47,8 @@ Progress: █░░░░░░░░░ 8%
 | 01-02 | snap.id spread into returned objects | Populate id field from Firestore document ID rather than stored data |
 | 01-02 | Subcollection rules use get() for parent roles | 1 get call per access, within Firestore's 10-call limit |
 | 01-02 | sectionKey as document ID, auto-ID for scenarios | Deterministic section paths vs flexible scenario creation |
+| 02-01 | localStorage read/write in hook, not atom | Atoms stay pure; side effects belong in hooks |
+| 02-01 | Client-side template definitions separate from Firestore templates | UI picker data now; Firestore templates deferred to Phase 6 |
 
 ### Deferred Issues
 
@@ -58,5 +61,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 01-02-PLAN.md (Phase 1 complete)
+Stopped at: Completed 02-01-PLAN.md (Phase 2 in progress)
 Resume file: None
