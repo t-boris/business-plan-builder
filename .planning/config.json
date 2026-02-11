@@ -1,6 +1,6 @@
 {
   "mode": "yolo",
-  "depth": "quick",
+  "depth": "comprehensive",
   "parallelization": {
     "enabled": true,
     "plan_level": true,
@@ -16,7 +16,7 @@
     "confirm_breakdown": false,
     "confirm_plan": false,
     "execute_next_plan": false,
-    "issues_review": false,
+    "issues_review": true,
     "confirm_transition": false
   },
   "safety": {

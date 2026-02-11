@@ -1,101 +1,85 @@
-# Fun Box Planning
+# Business Planning Platform
 
 ## What This Is
 
-A Firebase-hosted web application (React + TypeScript) that helps organize, model, and plan the "Fun Box" kids birthday party business in Miami. It provides a structured business plan with interactive UI for each section, what-if scenario modeling across financial/marketing/operational dimensions, AI-powered assistance via Gemini 2.5 Pro for filling knowledge gaps, and generates a polished business plan (in-app view + PDF export).
+A multi-business planning and scenario calculator web app. Users create multiple businesses, each with configurable plan sections, financial scenario modeling with custom variables, and AI-powered content generation. The app emphasizes financial calculations and what-if scenarios as its core — it's a business calculator first, document editor second.
 
 ## Core Value
 
-Interactive what-if scenario modeling that lets the owner see how changing any business variable (pricing, CAC, conversion, capacity, costs) ripples through the entire business plan in real time.
+Financial scenario modeling across multiple businesses with real-time derived metrics — users must be able to create a business, configure its variables, and instantly see how changes to inputs affect revenue, costs, and profitability.
 
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ React SPA with Tailwind + shadcn UI — existing
+- ✓ Firebase Auth (Google OAuth + email/password) — existing
+- ✓ Firestore data persistence with debounced auto-save — existing
+- ✓ Jotai atomic state management with derived computations — existing
+- ✓ 9 business plan section editors (executive-summary, market-analysis, product-service, marketing-strategy, operations, financial-projections, risks-due-diligence, kpis-metrics, launch-plan) — existing
+- ✓ Scenario engine with variables, derived metrics, scenario comparison — existing
+- ✓ AI content generation via Gemini (generate/improve/expand per section) — existing
+- ✓ Market research via Perplexity API — existing
+- ✓ PDF export with @react-pdf/renderer — existing
+- ✓ Dashboard with KPI cards and 12-month projection chart — existing
 
 ### Active
 
-- [ ] Dashboard-style UI with sidebar navigation across business plan sections
-- [ ] Business plan structure with dedicated UI for each section:
-  - Executive Summary
-  - Market Analysis (Miami demographics, competitive landscape, pricing benchmarks)
-  - Product/Service (3 packages: Ocean Starter $800, Ocean Explorer $980, Ocean VIP $1,200)
-  - Marketing Strategy (Meta Ads, Google Ads, organic social, partnerships)
-  - Operations (crew, capacity, travel radius, scheduling, safety protocols)
-  - Financial Projections (unit economics, revenue, costs, P&L)
-  - Risks & Due Diligence (regulatory, parking, compliance, liability — from deep research)
-  - KPIs & Metrics (leads, conversion, CAC, average check)
-  - Launch Plan (3 stages: preparation, soft launch, scale)
-- [ ] What-if scenario engine:
-  - Financial scenarios: change pricing, costs, ticket economics, crew size → see P&L impact
-  - Marketing scenarios: adjust ad budgets per channel, CAC, conversion rates → see lead/booking projections
-  - Operational scenarios: bookings/month, capacity ceiling, travel radius, weekend slot constraints
-  - Side-by-side scenario comparison
-  - Scenarios update all dependent sections in real time
-- [ ] AI assistance via Gemini 2.5 Pro:
-  - Per-section "Ask AI" to generate content, suggest numbers, fill gaps
-  - Contextual — AI sees the current section data and business context
-  - Works inline within each business plan section
-- [ ] Business plan generation:
-  - Polished in-app read-only view of complete business plan
-  - PDF export with professional formatting
-  - Pulls all data from filled sections + selected scenario
-- [ ] Data persistence in Firebase (Firestore) — all inputs saved automatically
-- [ ] Deep research integration: regulatory risks, competitive benchmarks, compliance checklist, safety concerns integrated into relevant sections as warnings/context
-- [ ] Pre-populated with known business data (packages, KPI targets, marketing channels, partnership details, AI sales agent specs)
+- [ ] Multi-business CRUD — create, switch, delete businesses under one user account
+- [ ] New Firestore data model — `users/{uid}/businesses/{businessId}/` with sections, scenarios, state nested per business
+- [ ] Business profile/config — name, type, description, location, enabled sections, custom settings per business
+- [ ] Configurable sections per business — user picks which of the 9 sections are relevant when creating a business
+- [ ] Generic section defaults — remove all Fun Box hardcoded content from 12+ files, replace with business-context-aware defaults
+- [ ] Predefined variable library — library of common business variables (revenue drivers, cost categories) organized by business type; user picks what applies to their business
+- [ ] Hybrid scenario engine — start with variable template based on business type, allow add/remove/customize variables
+- [ ] Business-aware AI system prompt — dynamically build system prompt from business profile (name, type, location, context) instead of hardcoded Fun Box
+- [ ] Shareable business access — generate share URL; any authenticated user who opens it gets full edit access added to their account
+- [ ] Business selector UI — sidebar/header component to switch between businesses
+- [ ] Dynamic plan ID — replace hardcoded `'default-plan'` with selected business ID throughout the app
 
 ### Out of Scope
 
-- CRM or booking system — this is a planning tool, not operational software
-- Landing page builder — planning only, not building the actual marketing site
-- Multi-user or sharing — solo tool for the business owner
-- AI sales agent implementation — the app documents the agent's design, it doesn't build the agent
-- Instagram/WhatsApp integration — planning and documentation only
-- Actual ad campaign management — the app models ad spend, doesn't run ads
+- Multi-user roles/permissions beyond owner + full-edit sharing — complexity not justified for v1
+- Real-time collaborative editing (Firestore listeners for multi-user sync) — not needed yet, debounced saves sufficient
+- Business templates marketplace — predefined variable library is enough for v1
+- Custom formula builder UI — users pick from predefined variables, no visual formula editor
+- PDF export enhancements — existing PDF works, not a priority for this transformation
+- Testing infrastructure — focus on functionality first, add tests as separate initiative
+- Mobile-native app — responsive web is sufficient
+- Payment/billing — this is a personal tool, no monetization layer
 
 ## Context
 
-**The Business:** "Fun Box" is a premium mobile kids birthday party service in Miami. Ocean-themed workshops + Jellyfish Museum tours. Three packages ($800–$1,200) for 15 participants each. Target: parents 28–50 in Miami metro, 15–25 mile radius.
+**Brownfield transformation:** The app currently works fully for a single hardcoded business ("Fun Box" — Miami kids party/ocean workshop company). All 9 sections, scenario engine, AI generation, and PDF export are functional but deeply tied to Fun Box-specific data, defaults, and terminology.
 
-**Marketing Stack:** Meta Ads (primary — leads + messages), Google Ads (hot traffic search), organic TikTok/Instagram Reels (3–5x/week), partnerships (schools, after-school centers, Jellyfish Museum).
+**Core transformation challenge:** 12+ files contain hardcoded business-specific content (see `.planning/codebase/CONCERNS.md`). The Firestore data model assumes a single plan (`'default-plan'`). The scenario engine atoms are hardcoded for Fun Box variables (pricing tiers, crew costs, museum fees).
 
-**Key Business Numbers:**
-- Packages: $800 / $980 / $1,200
-- Target: 100–150 leads/month, 15–25% conversion
-- CAC target: $10–30 per lead, $50–120 per booking
-- Launch: March 2026 (soft launch March 1–14, scale from March 15)
+**What works well and should be preserved:**
+- Feature-based architecture with `useSection()` generic hook pattern
+- Jotai atoms + derived computations pattern for scenario engine
+- AI integration pattern (section prompts + Zod schemas + Gemini structured generation)
+- UI framework (Tailwind + shadcn + Radix)
 
-**AI Sales Agent (documented, not built):** Gemini-powered agent for Instagram/WhatsApp that follows structured sales scripts, handles objections, and escalates to humans. State machine architecture with strict sales logic.
-
-**Deep Research Findings (from investment review):**
-- Miami-Dade parking regulations may restrict large trailers in residential zones
-- Jellyfish Museum opening Feb 2026 — contract terms needed before underwriting "15 tickets included"
-- FTSA compliance required for any automated texting/messaging
-- Slime/chemical activities carry documented dermatitis/burn risk — safety protocols required
-- Museum pricing benchmarks: $575–$1,250 range validates pricing band
-- 75.3% of Miami-Dade speaks non-English at home — bilingual marketing opportunity
-- Party bus hourly rates $150–$350 validate mobile venue concept
-- Labor costs: recreation workers ~$18/hr, photographers ~$25.50/hr in Miami metro
+**Key insight from user:** The app is fundamentally a **financial calculator** that also produces business plan documents. Numbers and scenario modeling are the primary value; text sections are secondary. This should drive prioritization.
 
 ## Constraints
 
-- **Tech Stack**: React + TypeScript, Firebase (Hosting + Firestore), Gemini 2.5 Pro API — chosen by owner
-- **Deployment**: Firebase Hosting — must be SPA-compatible
-- **AI Model**: Gemini 2.5 Pro specifically — not OpenAI, not Claude
-- **Language**: UI in English (business operates in multilingual Miami market)
-- **Solo User**: No auth system needed beyond basic Firebase setup — single user tool
+- **Tech stack**: Must stay on Firebase (Auth + Firestore) and React + Tailwind + shadcn — no database or UI framework migration
+- **API keys**: Gemini and Perplexity API keys remain client-side for now (server proxy is a future improvement)
+- **Firestore structure**: New data model must support many businesses per user efficiently; design for Firestore's document/collection model (not relational)
+- **Fresh start OK**: No need to migrate existing Fun Box data; can start clean with the new multi-business architecture
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| React + TypeScript | Owner preference, strong Firebase integration | — Pending |
-| Firebase (Hosting + Firestore) | Owner requirement, simple deployment, real-time data | — Pending |
-| Gemini 2.5 Pro for AI | Owner preference for Google ecosystem | — Pending |
-| Dashboard UI (not wizard) | Owner prefers overview with drill-down over step-by-step | — Pending |
-| All-in-one planning tool | What-if + business plan + AI equally important, not phased | — Pending |
-| Deep research integrated | Risk/compliance data embedded in relevant sections, not separate | — Pending |
+| Per-user multi-business (not per-deployment) | User needs multiple businesses in one account without redeployment | — Pending |
+| Predefined variable library (not custom formulas) | Simpler UX, covers 90% of use cases, avoids formula builder complexity | — Pending |
+| Shareable link with full edit access | Simplest sharing model, no role management overhead | — Pending |
+| Configurable sections per business | Different businesses need different sections (seasonality, local marketing, etc.) | — Pending |
+| Business-aware AI prompts | AI must know business context to generate relevant content | — Pending |
+| Fresh start (no Fun Box migration) | Cleaner implementation, no legacy data constraints | — Pending |
+| PDF export is nice-to-have | May break during refactoring, fix after core features work | — Pending |
 
 ---
 *Last updated: 2026-02-11 after initialization*
