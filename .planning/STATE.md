@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 3 — Dynamic Business Context (Planned)
+**Current focus:** Phase 3 — Dynamic Business Context (In progress)
 
 ## Current Position
 
 Phase: 3 of 12 (Dynamic Business Context)
-Plan: 0 of 2 in current phase
-Status: Plans created, ready for execution
-Last activity: 2026-02-11 — Created 03-01-PLAN.md and 03-02-PLAN.md
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-11 — Completed 03-01-PLAN.md
 
-Progress: ██░░░░░░░░ 23%
+Progress: ██░░░░░░░░ 27%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 2 min
-- Total execution time: 15 min
+- Total execution time: 18 min
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: ██░░░░░░░░ 23%
 |-------|-------|-------|----------|
 | 01-firestore-data-model | 2/2 | 4 min | 2 min |
 | 02-business-crud | 5/5 | 11 min | 2 min |
+| 03-dynamic-business-context | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3 min), 02-02 (1 min), 02-03 (1 min), 02-04 (5 min), 02-05 (1 min)
+- Last 5 plans: 02-02 (1 min), 02-03 (1 min), 02-04 (5 min), 02-05 (1 min), 03-01 (3 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -56,6 +57,9 @@ Progress: ██░░░░░░░░ 23%
 | 02-04 | getTemplateName helper colocated in app-sidebar.tsx | Private to component; not reusable enough to extract |
 | 02-05 | BusinessLoader placed before ScenarioSync in provider tree | Phase 3 dependency order: scenario loading will depend on active business |
 | 02-05 | Conditional Route element prop for active business guard | Cleaner than wrapper component; handles loading/redirect/layout in one expression |
+| 03-01 | Raw section data format for useSection (not full BusinessSection wrapper) | Phase 5 will migrate to full format; avoids premature schema dependency |
+| 03-01 | Legacy Scenario type for scenario operations (not BusinessScenario) | Phase 7 will migrate to dynamic VariableDefinition variables |
+| 03-01 | prevBusinessIdRef pattern for ScenarioSync business change detection | Avoids restructuring component; cleanly resets loaded state on switch |
 
 ### Deferred Issues
 
@@ -68,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Created Phase 3 plans (03-01, 03-02)
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None

@@ -61,7 +61,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Refactor store atoms and hooks to use dynamic business ID (plan-atoms, scenario-atoms, useSection, useScenarioSync)
+- [x] 03-01: Refactor store atoms and hooks to use dynamic business ID (plan-atoms, scenario-atoms, useSection, useScenarioSync)
 - [ ] 03-02: Update routing and layout to include business context (URL structure, breadcrumbs, sidebar)
 
 ### Phase 4: Strip Hardcoded Content
@@ -172,7 +172,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 |-------|---------------|--------|-----------|
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
 | 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
-| 3. Dynamic Business Context | 0/2 | Not started | - |
+| 3. Dynamic Business Context | 1/2 | In progress | - |
 | 4. Strip Hardcoded Content | 0/3 | Not started | - |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |
 | 6. Variable Library | 0/3 | Not started | - |
