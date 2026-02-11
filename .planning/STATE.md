@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 2 of 12 (Business CRUD)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-11 — Completed 02-01-PLAN.md
+Last activity: 2026-02-11 — Completed 02-02-PLAN.md
 
-Progress: █░░░░░░░░░ 11%
+Progress: █░░░░░░░░░ 13%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 2 min
-- Total execution time: 7 min
+- Total execution time: 8 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-firestore-data-model | 2/2 | 4 min | 2 min |
-| 02-business-crud | 1/5 | 3 min | 3 min |
+| 02-business-crud | 2/5 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (1 min), 01-02 (3 min), 02-01 (3 min)
+- Last 5 plans: 01-01 (1 min), 01-02 (3 min), 02-01 (3 min), 02-02 (1 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -49,6 +49,8 @@ Progress: █░░░░░░░░░ 11%
 | 01-02 | sectionKey as document ID, auto-ID for scenarios | Deterministic section paths vs flexible scenario creation |
 | 02-01 | localStorage read/write in hook, not atom | Atoms stay pure; side effects belong in hooks |
 | 02-01 | Client-side template definitions separate from Firestore templates | UI picker data now; Firestore templates deferred to Phase 6 |
+| 02-02 | Static iconMap Record for Lucide icon resolution | All 7 icons known at build time; simpler than dynamic imports |
+| 02-02 | Two-step inline flow (not wizard/stepper) | Low-friction creation per context vision |
 
 ### Deferred Issues
 
@@ -61,5 +63,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-01-PLAN.md (Phase 2 in progress)
+Stopped at: Completed 02-02-PLAN.md (Phase 2 in progress)
 Resume file: None
