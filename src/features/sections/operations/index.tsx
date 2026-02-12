@@ -3,12 +3,13 @@ import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
+import { PageHeader } from '@/components/page-header';
+import { StatCard } from '@/components/stat-card';
+import { EmptyState } from '@/components/empty-state';
 import type { Operations as OperationsType, CrewMember, CostBreakdown } from '@/types';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, AlertTriangle, AlertCircle, Calculator, Users, Monitor, Car, Megaphone } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, AlertCircle, Users, Monitor, Car, Megaphone, Package, ShieldAlert, Wrench } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -108,8 +109,8 @@ function computeCosts(ops: OperationsType) {
   };
 }
 
-const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#22c55e', '#ef4444', '#06b6d4'];
-const FIXED_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#22c55e', '#ef4444'];
+const PIE_COLORS = ['var(--chart-profit)', 'var(--chart-accent-1)', 'var(--chart-cost)', 'var(--chart-revenue)', 'var(--chart-accent-2)', '#06b6d4'];
+const FIXED_COLORS = ['var(--chart-profit)', 'var(--chart-accent-1)', 'var(--chart-cost)', 'var(--chart-revenue)', 'var(--chart-accent-2)'];
 
 function CostInput({ label, value, onChange, readOnly, step }: { label: string; value: number; onChange: (v: number) => void; readOnly: boolean; step?: number }) {
   return (
@@ -117,17 +118,38 @@ function CostInput({ label, value, onChange, readOnly, step }: { label: string; 
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-        <Input type="number" className="pl-7" value={value} onChange={(e) => onChange(Number(e.target.value))} step={step} readOnly={readOnly} />
+        <Input type="number" className="pl-7 tabular-nums" value={value} onChange={(e) => onChange(Number(e.target.value))} step={step} readOnly={readOnly} />
       </div>
+    </div>
+  );
+}
+
+function CategoryCard({ icon: Icon, iconColor, title, children }: { icon: React.ElementType; iconColor: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="card-elevated rounded-lg">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+        <Icon className={`size-4 ${iconColor}`} />
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <div className="px-4 pb-4 space-y-3">{children}</div>
     </div>
   );
 }
 
 function SubtotalRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between bg-muted rounded-md px-3 py-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold">{fmt(value)}</span>
+    <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold tabular-nums">{fmt(value)}</span>
+    </div>
+  );
+}
+
+function SummaryLine({ label, value, bold, indent, colorClass }: { label: string; value: string; bold?: boolean; indent?: boolean; colorClass?: string }) {
+  return (
+    <div className={`flex justify-between ${indent ? 'pl-4' : ''} ${bold ? 'font-semibold' : 'text-sm'}`}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`tabular-nums ${colorClass ?? ''}`}>{value}</span>
     </div>
   );
 }
@@ -138,9 +160,8 @@ export function Operations() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Operations</h1>
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="page-container">
+        <PageHeader title="Operations" description="Loading..." />
       </div>
     );
   }
@@ -203,54 +224,32 @@ export function Operations() {
 
   const monthlyBarData = [
     { name: 'Per Event', value: costs.totalCostPerEvent },
-    { name: `Events\n(${costs.bookings})`, value: costs.monthlyVariableTotal },
+    { name: `Events (${costs.bookings})`, value: costs.monthlyVariableTotal },
     { name: 'Fixed', value: costs.monthlyFixed },
     { name: 'Total', value: costs.monthlyTotalCosts },
   ];
 
   const sectionContent = (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
-          <CardContent className="pt-4 pb-3 px-4">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Cost Per Event</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{fmtS(costs.totalCostPerEvent)}</p>
-            <p className="text-xs text-muted-foreground mt-1">labor + materials + transport</p>
-          </CardContent>
-        </Card>
-        <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/30">
-          <CardContent className="pt-4 pb-3 px-4">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Monthly Fixed</p>
-            <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{fmtS(costs.monthlyFixed)}</p>
-            <p className="text-xs text-muted-foreground mt-1">team + vehicle + IT + overhead</p>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
-          <CardContent className="pt-4 pb-3 px-4">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Monthly Total ({costs.bookings} events)</p>
-            <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{fmtS(costs.monthlyTotalCosts)}</p>
-            <p className="text-xs text-muted-foreground mt-1">all costs combined</p>
-          </CardContent>
-        </Card>
-        <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30">
-          <CardContent className="pt-4 pb-3 px-4">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Team Salaries</p>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-300">{fmtS(costs.teamCosts)}</p>
-            <p className="text-xs text-muted-foreground mt-1">owner + marketing + coordinator</p>
-          </CardContent>
-        </Card>
+    <div className="page-container">
+      {/* Summary Stats */}
+      <div className="stat-grid">
+        <StatCard label="Cost Per Event" value={fmtS(costs.totalCostPerEvent)} sublabel="labor + materials + transport" />
+        <StatCard label="Monthly Fixed" value={fmtS(costs.monthlyFixed)} sublabel="team + vehicle + IT + overhead" />
+        <StatCard label={`Monthly Total (${costs.bookings} events)`} value={fmtS(costs.monthlyTotalCosts)} sublabel="all costs combined" />
+        <StatCard label="Team Salaries" value={fmtS(costs.teamCosts)} sublabel="owner + marketing + coordinator" />
       </div>
 
       {/* Crew & Labor */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Event Crew (per-event labor)</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Event Crew</h2>
           {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addCrewMember}><Plus className="size-4" />Add Crew Member</Button>}
         </div>
-        <Card>
-          <CardContent>
-            <div className="space-y-3">
+        {displayData.crew.length === 0 ? (
+          <EmptyState icon={Users} title="No crew members" description="Add crew members to calculate per-event labor costs." action={canEdit && !isPreview ? { label: 'Add Crew Member', onClick: addCrewMember } : undefined} />
+        ) : (
+          <div className="card-elevated rounded-lg overflow-hidden">
+            <div className="p-4 space-y-3">
               <div className="hidden sm:grid grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-center">
                 <span className="text-xs font-medium text-muted-foreground">Role</span>
                 <span className="text-xs font-medium text-muted-foreground">Hourly Rate</span>
@@ -259,100 +258,108 @@ export function Operations() {
                 <span />
               </div>
               {displayData.crew.map((member, index) => (
-                <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
+                <div key={index} className="group grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
                   <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Role</span><Input value={member.role} onChange={(e) => updateCrewMember(index, 'role', e.target.value)} placeholder="Role name" readOnly={!canEdit || isPreview} /></div>
-                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">$/hr</span><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={member.hourlyRate} onChange={(e) => updateCrewMember(index, 'hourlyRate', Number(e.target.value))} step="0.5" readOnly={!canEdit || isPreview} /></div></div>
-                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Count</span><Input type="number" value={member.count} onChange={(e) => updateCrewMember(index, 'count', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
-                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Per Event</span><div className="flex h-9 items-center rounded-md bg-muted px-3 text-sm font-medium">{fmt(member.hourlyRate * member.count * displayData.hoursPerEvent)}</div></div>
-                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="mt-1 sm:mt-0" onClick={() => removeCrewMember(index)}><Trash2 className="size-3" /></Button>}
+                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">$/hr</span><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7 tabular-nums" value={member.hourlyRate} onChange={(e) => updateCrewMember(index, 'hourlyRate', Number(e.target.value))} step="0.5" readOnly={!canEdit || isPreview} /></div></div>
+                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Count</span><Input type="number" className="tabular-nums" value={member.count} onChange={(e) => updateCrewMember(index, 'count', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
+                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Per Event</span><div className="flex h-9 items-center rounded-md bg-muted px-3 text-sm font-medium tabular-nums">{fmt(member.hourlyRate * member.count * displayData.hoursPerEvent)}</div></div>
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="mt-1 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeCrewMember(index)}><Trash2 className="size-3" /></Button>}
                 </div>
               ))}
-              {displayData.crew.length === 0 && <p className="text-sm text-muted-foreground py-2">No crew members.</p>}
               {displayData.crew.length > 0 && (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-center border-t pt-3">
-                    <div className="sm:col-span-3 text-sm font-semibold text-right">Hours per event:</div>
-                    <div><Input type="number" value={displayData.hoursPerEvent} onChange={(e) => updateData((prev) => ({ ...prev, hoursPerEvent: Number(e.target.value) }))} min={1} step={0.5} readOnly={!canEdit || isPreview} /></div>
+                <div className="border-t pt-3 space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-center">
+                    <div className="sm:col-span-3 text-sm font-medium text-right">Hours per event:</div>
+                    <div><Input type="number" className="tabular-nums" value={displayData.hoursPerEvent} onChange={(e) => updateData((prev) => ({ ...prev, hoursPerEvent: Number(e.target.value) }))} min={1} step={0.5} readOnly={!canEdit || isPreview} /></div>
                     <div />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-center border-t pt-3">
-                    <div className="sm:col-span-3 text-sm font-bold text-right">Total labor per event:</div>
-                    <div className="flex h-9 items-center rounded-md bg-blue-100 dark:bg-blue-900 px-3 text-sm font-bold text-blue-800 dark:text-blue-200">{fmt(costs.laborCost)}</div>
-                    <div />
-                  </div>
-                </>
+                  <SubtotalRow label={`Total labor per event (${displayData.crew.length} crew x ${displayData.hoursPerEvent}h)`} value={costs.laborCost} />
+                </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
 
-      <Separator />
+      {/* Capacity */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Capacity & Travel</h2>
+        <div className="stat-grid">
+          <div className="card-elevated rounded-lg p-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Max / Day</label>
+            <Input type="number" className="mt-1 tabular-nums" value={displayData.capacity.maxBookingsPerDay} onChange={(e) => updateCapacity('maxBookingsPerDay', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} />
+          </div>
+          <div className="card-elevated rounded-lg p-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Max / Week</label>
+            <Input type="number" className="mt-1 tabular-nums" value={displayData.capacity.maxBookingsPerWeek} onChange={(e) => updateCapacity('maxBookingsPerWeek', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} />
+          </div>
+          <div className="card-elevated rounded-lg p-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Max / Month</label>
+            <Input type="number" className="mt-1 tabular-nums" value={displayData.capacity.maxBookingsPerMonth} onChange={(e) => updateCapacity('maxBookingsPerMonth', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} />
+          </div>
+          <div className="card-elevated rounded-lg p-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Travel Radius</label>
+            <div className="relative mt-1">
+              <Input type="number" className="tabular-nums pr-14" value={displayData.travelRadius} onChange={(e) => updateData((prev) => ({ ...prev, travelRadius: Number(e.target.value) }))} min={0} readOnly={!canEdit || isPreview} />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">miles</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Per-Event Variable Costs */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Calculator className="size-5 text-blue-600" />
-          <h2 className="text-xl font-semibold">Per-Event Variable Costs</h2>
-        </div>
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Per-Event Variable Costs</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader><CardTitle>Supplies & Materials</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <CostInput label="Cost per child" value={cb.suppliesPerChild} onChange={(v) => uc('suppliesPerChild', v)} readOnly={!canEdit || isPreview} step={0.5} />
-                <div><label className="text-xs font-medium text-muted-foreground">Participants</label><Input type="number" value={cb.participantsPerEvent} onChange={(e) => uc('participantsPerEvent', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
-              </div>
-              <SubtotalRow label="Supplies total" value={costs.suppliesCost} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Venue / Tickets</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <CostInput label="Ticket/Venue price" value={cb.museumTicketPrice} onChange={(v) => uc('museumTicketPrice', v)} readOnly={!canEdit || isPreview} step={0.5} />
-                <div><label className="text-xs font-medium text-muted-foreground">Tickets per event</label><Input type="number" value={cb.ticketsPerEvent} onChange={(e) => uc('ticketsPerEvent', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
-              </div>
-              <SubtotalRow label="Venue/Tickets total" value={costs.museumCost} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Fuel / Transportation</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <CostInput label="Gas $/gal" value={cb.fuelPricePerGallon} onChange={(v) => uc('fuelPricePerGallon', v)} readOnly={!canEdit || isPreview} step={0.1} />
-                <div><label className="text-xs font-medium text-muted-foreground">Vehicle MPG</label><Input type="number" value={cb.vehicleMPG} onChange={(e) => uc('vehicleMPG', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
-                <div><label className="text-xs font-medium text-muted-foreground">Round trip mi</label><Input type="number" value={cb.avgRoundTripMiles} onChange={(e) => uc('avgRoundTripMiles', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
-              </div>
-              <CostInput label="Parking per event" value={cb.parkingPerEvent} onChange={(v) => uc('parkingPerEvent', v)} readOnly={!canEdit || isPreview} />
-              <SubtotalRow label={`Fuel (${(cb.avgRoundTripMiles / Math.max(cb.vehicleMPG, 1)).toFixed(1)} gal) + parking`} value={costs.fuelCost + cb.parkingPerEvent} />
-            </CardContent>
-          </Card>
-          <Card className="border-blue-200 dark:border-blue-800">
-            <CardHeader><CardTitle>Per-Event Cost Summary</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Labor ({displayData.crew.length} crew x {displayData.hoursPerEvent}h)</span><span>{fmt(costs.laborCost)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Supplies ({cb.participantsPerEvent} x {fmt(cb.suppliesPerChild)})</span><span>{fmt(costs.suppliesCost)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Venue/Tickets ({cb.ticketsPerEvent} x {fmt(cb.museumTicketPrice)})</span><span>{fmt(costs.museumCost)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fuel + Parking</span><span>{fmt(costs.fuelCost + cb.parkingPerEvent)}</span></div>
-                {costs.customPerEvent > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Custom per-event</span><span>{fmt(costs.customPerEvent)}</span></div>}
-                <Separator />
-                <div className="flex justify-between font-bold"><span>Total per event</span><span className="text-blue-700 dark:text-blue-300">{fmt(costs.totalCostPerEvent)}</span></div>
-              </div>
-            </CardContent>
-          </Card>
+          <CategoryCard icon={Package} iconColor="text-blue-600" title="Supplies & Materials">
+            <div className="form-grid">
+              <CostInput label="Cost per child" value={cb.suppliesPerChild} onChange={(v) => uc('suppliesPerChild', v)} readOnly={!canEdit || isPreview} step={0.5} />
+              <div><label className="text-xs font-medium text-muted-foreground">Participants</label><Input type="number" className="tabular-nums" value={cb.participantsPerEvent} onChange={(e) => uc('participantsPerEvent', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
+            </div>
+            <SubtotalRow label="Supplies total" value={costs.suppliesCost} />
+          </CategoryCard>
+
+          <CategoryCard icon={Wrench} iconColor="text-purple-600" title="Venue / Tickets">
+            <div className="form-grid">
+              <CostInput label="Ticket/Venue price" value={cb.museumTicketPrice} onChange={(v) => uc('museumTicketPrice', v)} readOnly={!canEdit || isPreview} step={0.5} />
+              <div><label className="text-xs font-medium text-muted-foreground">Tickets per event</label><Input type="number" className="tabular-nums" value={cb.ticketsPerEvent} onChange={(e) => uc('ticketsPerEvent', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
+            </div>
+            <SubtotalRow label="Venue/Tickets total" value={costs.museumCost} />
+          </CategoryCard>
+
+          <CategoryCard icon={Car} iconColor="text-emerald-600" title="Fuel / Transportation">
+            <div className="grid grid-cols-3 gap-3">
+              <CostInput label="Gas $/gal" value={cb.fuelPricePerGallon} onChange={(v) => uc('fuelPricePerGallon', v)} readOnly={!canEdit || isPreview} step={0.1} />
+              <div><label className="text-xs font-medium text-muted-foreground">Vehicle MPG</label><Input type="number" className="tabular-nums" value={cb.vehicleMPG} onChange={(e) => uc('vehicleMPG', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Round trip mi</label><Input type="number" className="tabular-nums" value={cb.avgRoundTripMiles} onChange={(e) => uc('avgRoundTripMiles', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
+            </div>
+            <CostInput label="Parking per event" value={cb.parkingPerEvent} onChange={(v) => uc('parkingPerEvent', v)} readOnly={!canEdit || isPreview} />
+            <SubtotalRow label={`Fuel (${(cb.avgRoundTripMiles / Math.max(cb.vehicleMPG, 1)).toFixed(1)} gal) + parking`} value={costs.fuelCost + cb.parkingPerEvent} />
+          </CategoryCard>
+
+          {/* Per-Event Summary */}
+          <div className="card-elevated rounded-lg p-4 space-y-2">
+            <h3 className="text-sm font-semibold">Per-Event Cost Summary</h3>
+            <SummaryLine label={`Labor (${displayData.crew.length} crew x ${displayData.hoursPerEvent}h)`} value={fmt(costs.laborCost)} />
+            <SummaryLine label={`Supplies (${cb.participantsPerEvent} x ${fmt(cb.suppliesPerChild)})`} value={fmt(costs.suppliesCost)} />
+            <SummaryLine label={`Venue/Tickets (${cb.ticketsPerEvent} x ${fmt(cb.museumTicketPrice)})`} value={fmt(costs.museumCost)} />
+            <SummaryLine label="Fuel + Parking" value={fmt(costs.fuelCost + cb.parkingPerEvent)} />
+            {costs.customPerEvent > 0 && <SummaryLine label="Custom per-event" value={fmt(costs.customPerEvent)} />}
+            <div className="border-t pt-2">
+              <SummaryLine label="Total per event" value={fmt(costs.totalCostPerEvent)} bold colorClass="text-blue-700 dark:text-blue-300" />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Per-Event Chart */}
-      <Card>
-        <CardHeader><CardTitle>Per-Event Cost Breakdown</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-[260px] w-full">
+      {perEventPieData.length > 0 && (
+        <div className="card-elevated rounded-lg p-4">
+          <h3 className="text-sm font-semibold mb-3">Per-Event Cost Breakdown</h3>
+          <div className="h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={perEventPieData} cx="50%" cy="50%" outerRadius={95} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
+                <Pie data={perEventPieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
                   {perEventPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(v) => fmt(Number(v))} />
@@ -360,134 +367,119 @@ export function Operations() {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </CardContent>
-      </Card>
-
-      <Separator />
+        </div>
+      )}
 
       {/* Monthly Fixed Costs */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Monthly Fixed Costs</h2>
-
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Monthly Fixed Costs</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Team Salaries */}
-          <Card>
-            <CardHeader><div className="flex items-center gap-2"><Users className="size-4 text-blue-600" /><CardTitle>Core Team</CardTitle></div></CardHeader>
-            <CardContent className="space-y-3">
+          <CategoryCard icon={Users} iconColor="text-blue-600" title="Core Team">
+            <div className="form-grid">
               <CostInput label="Owner / Founder salary" value={cb.ownerSalary} onChange={(v) => uc('ownerSalary', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Marketing / Social Media manager" value={cb.marketingPerson} onChange={(v) => uc('marketingPerson', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Event coordinator / Sales" value={cb.eventCoordinator} onChange={(v) => uc('eventCoordinator', v)} readOnly={!canEdit || isPreview} />
-              <SubtotalRow label="Team subtotal" value={costs.teamCosts} />
-            </CardContent>
-          </Card>
+              <CostInput label="Marketing / Social Media" value={cb.marketingPerson} onChange={(v) => uc('marketingPerson', v)} readOnly={!canEdit || isPreview} />
+            </div>
+            <CostInput label="Event coordinator / Sales" value={cb.eventCoordinator} onChange={(v) => uc('eventCoordinator', v)} readOnly={!canEdit || isPreview} />
+            <SubtotalRow label="Team subtotal" value={costs.teamCosts} />
+          </CategoryCard>
 
-          {/* Vehicle */}
-          <Card>
-            <CardHeader><div className="flex items-center gap-2"><Car className="size-4 text-purple-600" /><CardTitle>Vehicle</CardTitle></div></CardHeader>
-            <CardContent className="space-y-3">
-              <CostInput label="Loan / Lease payment" value={cb.vehiclePayment} onChange={(v) => uc('vehiclePayment', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Insurance" value={cb.vehicleInsurance} onChange={(v) => uc('vehicleInsurance', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Maintenance reserve" value={cb.vehicleMaintenance} onChange={(v) => uc('vehicleMaintenance', v)} readOnly={!canEdit || isPreview} />
-              <SubtotalRow label="Vehicle subtotal" value={costs.vehicleCosts} />
-            </CardContent>
-          </Card>
+          <CategoryCard icon={Car} iconColor="text-purple-600" title="Vehicle">
+            <CostInput label="Loan / Lease payment" value={cb.vehiclePayment} onChange={(v) => uc('vehiclePayment', v)} readOnly={!canEdit || isPreview} />
+            <CostInput label="Insurance" value={cb.vehicleInsurance} onChange={(v) => uc('vehicleInsurance', v)} readOnly={!canEdit || isPreview} />
+            <CostInput label="Maintenance reserve" value={cb.vehicleMaintenance} onChange={(v) => uc('vehicleMaintenance', v)} readOnly={!canEdit || isPreview} />
+            <SubtotalRow label="Vehicle subtotal" value={costs.vehicleCosts} />
+          </CategoryCard>
 
-          {/* IT & Software */}
-          <Card>
-            <CardHeader><div className="flex items-center gap-2"><Monitor className="size-4 text-emerald-600" /><CardTitle>IT & Software</CardTitle></div></CardHeader>
-            <CardContent className="space-y-3">
-              <CostInput label="CRM + Booking platform" value={cb.crmSoftware} onChange={(v) => uc('crmSoftware', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Website hosting + domain" value={cb.websiteHosting} onChange={(v) => uc('websiteHosting', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="AI chatbot (Gemini API, Instagram bot)" value={cb.aiChatbot} onChange={(v) => uc('aiChatbot', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Cloud services (Firebase, storage)" value={cb.cloudServices} onChange={(v) => uc('cloudServices', v)} readOnly={!canEdit || isPreview} />
+          <CategoryCard icon={Monitor} iconColor="text-emerald-600" title="IT & Software">
+            <CostInput label="CRM + Booking platform" value={cb.crmSoftware} onChange={(v) => uc('crmSoftware', v)} readOnly={!canEdit || isPreview} />
+            <CostInput label="Website hosting + domain" value={cb.websiteHosting} onChange={(v) => uc('websiteHosting', v)} readOnly={!canEdit || isPreview} />
+            <CostInput label="AI chatbot / API costs" value={cb.aiChatbot} onChange={(v) => uc('aiChatbot', v)} readOnly={!canEdit || isPreview} />
+            <div className="form-grid">
+              <CostInput label="Cloud services" value={cb.cloudServices} onChange={(v) => uc('cloudServices', v)} readOnly={!canEdit || isPreview} />
               <CostInput label="Business phone plan" value={cb.phonePlan} onChange={(v) => uc('phonePlan', v)} readOnly={!canEdit || isPreview} />
-              <SubtotalRow label="IT subtotal" value={costs.itCosts} />
-            </CardContent>
-          </Card>
+            </div>
+            <SubtotalRow label="IT subtotal" value={costs.itCosts} />
+          </CategoryCard>
 
-          {/* Marketing Overhead */}
-          <Card>
-            <CardHeader><div className="flex items-center gap-2"><Megaphone className="size-4 text-amber-600" /><CardTitle>Marketing Overhead</CardTitle></div></CardHeader>
-            <CardContent className="space-y-3">
-              <CostInput label="Content creation (video, photo)" value={cb.contentCreation} onChange={(v) => uc('contentCreation', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Graphic design (Canva Pro, freelance)" value={cb.graphicDesign} onChange={(v) => uc('graphicDesign', v)} readOnly={!canEdit || isPreview} />
-              <SubtotalRow label="Marketing overhead subtotal" value={costs.marketingOverhead} />
-              <p className="text-[10px] text-muted-foreground">This is production cost, not ad spend. Ad spend is in Marketing Strategy.</p>
-            </CardContent>
-          </Card>
+          <CategoryCard icon={Megaphone} iconColor="text-amber-600" title="Marketing Overhead">
+            <CostInput label="Content creation (video, photo)" value={cb.contentCreation} onChange={(v) => uc('contentCreation', v)} readOnly={!canEdit || isPreview} />
+            <CostInput label="Graphic design (Canva Pro, freelance)" value={cb.graphicDesign} onChange={(v) => uc('graphicDesign', v)} readOnly={!canEdit || isPreview} />
+            <SubtotalRow label="Marketing overhead subtotal" value={costs.marketingOverhead} />
+            <p className="text-[10px] text-muted-foreground">Production cost only, not ad spend.</p>
+          </CategoryCard>
 
           {/* Other Overhead */}
-          <Card>
-            <CardHeader><CardTitle>Other Overhead</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <CostInput label="Storage / warehouse rent" value={cb.storageRent} onChange={(v) => uc('storageRent', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Equipment amortization (monthly)" value={cb.equipmentAmortization} onChange={(v) => uc('equipmentAmortization', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Business licenses (amortized)" value={cb.businessLicenses} onChange={(v) => uc('businessLicenses', v)} readOnly={!canEdit || isPreview} />
-              <CostInput label="Miscellaneous / buffer" value={cb.miscFixed} onChange={(v) => uc('miscFixed', v)} readOnly={!canEdit || isPreview} />
+          <div className="card-elevated rounded-lg">
+            <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+              <h3 className="text-sm font-semibold">Other Overhead</h3>
+            </div>
+            <div className="px-4 pb-4 space-y-3">
+              <div className="form-grid">
+                <CostInput label="Storage / warehouse rent" value={cb.storageRent} onChange={(v) => uc('storageRent', v)} readOnly={!canEdit || isPreview} />
+                <CostInput label="Equipment amortization" value={cb.equipmentAmortization} onChange={(v) => uc('equipmentAmortization', v)} readOnly={!canEdit || isPreview} />
+              </div>
+              <div className="form-grid">
+                <CostInput label="Business licenses (amortized)" value={cb.businessLicenses} onChange={(v) => uc('businessLicenses', v)} readOnly={!canEdit || isPreview} />
+                <CostInput label="Miscellaneous / buffer" value={cb.miscFixed} onChange={(v) => uc('miscFixed', v)} readOnly={!canEdit || isPreview} />
+              </div>
               <SubtotalRow label="Other subtotal" value={costs.otherOverhead} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Custom Expenses */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Custom Expenses</CardTitle>
-                {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addCustomExpense}><Plus className="size-4" />Add Expense</Button>}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {(cb.customExpenses || []).length === 0 && <p className="text-sm text-muted-foreground py-2">No custom expenses. Add any cost not covered above.</p>}
-                {(cb.customExpenses || []).map((exp, index) => (
-                  <div key={index} className="grid grid-cols-[1fr_100px_120px_32px] gap-2 items-end">
-                    <div><label className="text-xs font-medium text-muted-foreground">Name</label><Input value={exp.name} onChange={(e) => updateCustomExpense(index, 'name', e.target.value)} placeholder="Expense name" readOnly={!canEdit || isPreview} /></div>
-                    <div><label className="text-xs font-medium text-muted-foreground">Amount</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={exp.amount} onChange={(e) => updateCustomExpense(index, 'amount', Number(e.target.value))} readOnly={!canEdit || isPreview} /></div></div>
-                    <div><label className="text-xs font-medium text-muted-foreground">Type</label>
-                      <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={exp.type} onChange={(e) => updateCustomExpense(index, 'type', e.target.value)} disabled={!canEdit || isPreview}>
-                        <option value="monthly">Monthly</option>
-                        <option value="per-event">Per Event</option>
-                      </select>
-                    </div>
-                    {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="mb-0.5" onClick={() => removeCustomExpense(index)}><Trash2 className="size-3" /></Button>}
+          <div className="card-elevated rounded-lg">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <h3 className="text-sm font-semibold">Custom Expenses</h3>
+              {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addCustomExpense}><Plus className="size-3" />Add</Button>}
+            </div>
+            <div className="px-4 pb-4 space-y-3">
+              {(cb.customExpenses || []).length === 0 && <p className="text-xs text-muted-foreground py-2">No custom expenses. Add any cost not covered above.</p>}
+              {(cb.customExpenses || []).map((exp, index) => (
+                <div key={index} className="group grid grid-cols-[1fr_100px_120px_32px] gap-2 items-end">
+                  <div><label className="text-xs font-medium text-muted-foreground">Name</label><Input value={exp.name} onChange={(e) => updateCustomExpense(index, 'name', e.target.value)} placeholder="Expense name" readOnly={!canEdit || isPreview} /></div>
+                  <div><label className="text-xs font-medium text-muted-foreground">Amount</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7 tabular-nums" value={exp.amount} onChange={(e) => updateCustomExpense(index, 'amount', Number(e.target.value))} readOnly={!canEdit || isPreview} /></div></div>
+                  <div><label className="text-xs font-medium text-muted-foreground">Type</label>
+                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={exp.type} onChange={(e) => updateCustomExpense(index, 'type', e.target.value)} disabled={!canEdit || isPreview}>
+                      <option value="monthly">Monthly</option>
+                      <option value="per-event">Per Event</option>
+                    </select>
                   </div>
-                ))}
-                {((cb.customExpenses || []).length > 0) && (
-                  <div className="space-y-1 pt-2 border-t">
-                    {costs.customPerEvent > 0 && <SubtotalRow label="Custom per-event total" value={costs.customPerEvent} />}
-                    {costs.customMonthly > 0 && <SubtotalRow label="Custom monthly total" value={costs.customMonthly} />}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="mb-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeCustomExpense(index)}><Trash2 className="size-3" /></Button>}
+                </div>
+              ))}
+              {((cb.customExpenses || []).length > 0) && (
+                <div className="space-y-1 pt-2 border-t">
+                  {costs.customPerEvent > 0 && <SubtotalRow label="Custom per-event total" value={costs.customPerEvent} />}
+                  {costs.customMonthly > 0 && <SubtotalRow label="Custom monthly total" value={costs.customMonthly} />}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Fixed Summary */}
-          <Card className="border-purple-200 dark:border-purple-800">
-            <CardHeader><CardTitle>Monthly Fixed Summary</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Team salaries</span><span>{fmtS(costs.teamCosts)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Vehicle</span><span>{fmtS(costs.vehicleCosts)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">IT & Software</span><span>{fmtS(costs.itCosts)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Marketing overhead</span><span>{fmtS(costs.marketingOverhead)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Other overhead</span><span>{fmtS(costs.otherOverhead)}</span></div>
-                <Separator />
-                <div className="flex justify-between font-bold"><span>Total monthly fixed</span><span className="text-purple-700 dark:text-purple-300">{fmtS(costs.monthlyFixed)}</span></div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="card-elevated rounded-lg p-4 space-y-2 md:col-span-2">
+            <h3 className="text-sm font-semibold">Monthly Fixed Summary</h3>
+            <SummaryLine label="Team salaries" value={fmtS(costs.teamCosts)} />
+            <SummaryLine label="Vehicle" value={fmtS(costs.vehicleCosts)} />
+            <SummaryLine label="IT & Software" value={fmtS(costs.itCosts)} />
+            <SummaryLine label="Marketing overhead" value={fmtS(costs.marketingOverhead)} />
+            <SummaryLine label="Other overhead" value={fmtS(costs.otherOverhead)} />
+            {costs.customMonthly > 0 && <SummaryLine label="Custom monthly" value={fmtS(costs.customMonthly)} />}
+            <div className="border-t pt-2">
+              <SummaryLine label="Total monthly fixed" value={fmtS(costs.monthlyFixed)} bold colorClass="text-purple-700 dark:text-purple-300" />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Fixed Costs Chart */}
-      <Card>
-        <CardHeader><CardTitle>Monthly Fixed Costs Breakdown</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-[260px] w-full">
+      {fixedPieData.length > 0 && (
+        <div className="card-elevated rounded-lg p-4">
+          <h3 className="text-sm font-semibold mb-3">Monthly Fixed Costs Breakdown</h3>
+          <div className="h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={fixedPieData} cx="50%" cy="50%" outerRadius={95} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
+                <Pie data={fixedPieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
                   {fixedPieData.map((_, i) => <Cell key={i} fill={FIXED_COLORS[i % FIXED_COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(v) => fmtS(Number(v))} />
@@ -495,136 +487,104 @@ export function Operations() {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </CardContent>
-      </Card>
-
-      <Separator />
+        </div>
+      )}
 
       {/* Monthly Total Overview */}
-      <Card className="border-amber-200 dark:border-amber-800">
-        <CardHeader><CardTitle>Monthly Operations Total ({costs.bookings} events/month)</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Variable ({costs.bookings} events x {fmtS(costs.totalCostPerEvent)})</span><span>{fmtS(costs.monthlyVariableTotal)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Labor</span><span>{fmtS(costs.laborCost * costs.bookings)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Supplies</span><span>{fmtS(costs.suppliesCost * costs.bookings)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Venue/Tickets</span><span>{fmtS(costs.museumCost * costs.bookings)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Fuel + parking</span><span>{fmtS((costs.fuelCost + cb.parkingPerEvent) * costs.bookings)}</span></div>
-              <Separator />
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fixed costs</span><span>{fmtS(costs.monthlyFixed)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Team</span><span>{fmtS(costs.teamCosts)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Vehicle</span><span>{fmtS(costs.vehicleCosts)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">IT</span><span>{fmtS(costs.itCosts)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Marketing prod.</span><span>{fmtS(costs.marketingOverhead)}</span></div>
-              <div className="flex justify-between text-sm pl-4 text-xs"><span className="text-muted-foreground">Other</span><span>{fmtS(costs.otherOverhead)}</span></div>
-              <Separator />
-              <div className="flex justify-between font-bold text-base"><span>Total Monthly</span><span className="text-amber-700 dark:text-amber-300">{fmtS(costs.monthlyTotalCosts)}</span></div>
+      <div className="card-elevated rounded-lg p-4">
+        <h3 className="text-sm font-semibold mb-3">Monthly Operations Total ({costs.bookings} events/month)</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <SummaryLine label={`Variable (${costs.bookings} events x ${fmtS(costs.totalCostPerEvent)})`} value={fmtS(costs.monthlyVariableTotal)} />
+            <SummaryLine label="Labor" value={fmtS(costs.laborCost * costs.bookings)} indent />
+            <SummaryLine label="Supplies" value={fmtS(costs.suppliesCost * costs.bookings)} indent />
+            <SummaryLine label="Venue/Tickets" value={fmtS(costs.museumCost * costs.bookings)} indent />
+            <SummaryLine label="Fuel + parking" value={fmtS((costs.fuelCost + cb.parkingPerEvent) * costs.bookings)} indent />
+            <div className="border-t pt-2">
+              <SummaryLine label="Fixed costs" value={fmtS(costs.monthlyFixed)} />
             </div>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyBarData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
-                  <Tooltip formatter={(v) => fmtS(Number(v))} />
-                  <Bar dataKey="value" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <SummaryLine label="Team" value={fmtS(costs.teamCosts)} indent />
+            <SummaryLine label="Vehicle" value={fmtS(costs.vehicleCosts)} indent />
+            <SummaryLine label="IT" value={fmtS(costs.itCosts)} indent />
+            <SummaryLine label="Marketing prod." value={fmtS(costs.marketingOverhead)} indent />
+            <SummaryLine label="Other" value={fmtS(costs.otherOverhead)} indent />
+            <div className="border-t pt-2">
+              <SummaryLine label="Total Monthly" value={fmtS(costs.monthlyTotalCosts)} bold colorClass="text-amber-700 dark:text-amber-300" />
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      {/* Capacity + Travel */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle>Capacity</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-3">
-              <div><label className="text-xs font-medium text-muted-foreground">Per Day</label><Input type="number" value={displayData.capacity.maxBookingsPerDay} onChange={(e) => updateCapacity('maxBookingsPerDay', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Per Week</label><Input type="number" value={displayData.capacity.maxBookingsPerWeek} onChange={(e) => updateCapacity('maxBookingsPerWeek', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Per Month</label><Input type="number" value={displayData.capacity.maxBookingsPerMonth} onChange={(e) => updateCapacity('maxBookingsPerMonth', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Travel Radius</CardTitle></CardHeader>
-          <CardContent>
-            <div className="relative">
-              <Input type="number" value={displayData.travelRadius} onChange={(e) => updateData((prev) => ({ ...prev, travelRadius: Number(e.target.value) }))} min={0} readOnly={!canEdit || isPreview} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">miles</span>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="h-[240px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyBarData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                <Tooltip formatter={(v) => fmtS(Number(v))} />
+                <Bar dataKey="value" fill="var(--chart-cost)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
-
-      <Separator />
 
       {/* Equipment */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Equipment</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Equipment</h2>
           {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addEquipment}><Plus className="size-4" />Add Item</Button>}
         </div>
-        <Card>
-          <CardContent>
-            <div className="space-y-3">
-              {displayData.equipment.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input value={item} onChange={(e) => updateEquipment(index, e.target.value)} placeholder="Equipment item" readOnly={!canEdit || isPreview} />
-                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeEquipment(index)}><Trash2 className="size-3" /></Button>}
-                </div>
-              ))}
-              {displayData.equipment.length === 0 && <p className="text-sm text-muted-foreground py-2">No equipment listed.</p>}
-            </div>
-          </CardContent>
-        </Card>
+        {displayData.equipment.length === 0 ? (
+          <EmptyState icon={Package} title="No equipment listed" description="Add equipment and tools used in your operations." action={canEdit && !isPreview ? { label: 'Add Equipment', onClick: addEquipment } : undefined} />
+        ) : (
+          <div className="grid gap-2">
+            {displayData.equipment.map((item, index) => (
+              <div key={index} className="group card-elevated rounded-lg px-4 py-2 flex items-center gap-2">
+                <Input value={item} onChange={(e) => updateEquipment(index, e.target.value)} placeholder="Equipment item" className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0" readOnly={!canEdit || isPreview} />
+                {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEquipment(index)}><Trash2 className="size-3" /></Button>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <Separator />
-
       {/* Safety */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Safety Protocols</h2>
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/50">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Safety Protocols</h2>
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <div>
             <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Safety Notice</p>
-            <p className="text-sm text-amber-800 dark:text-amber-200">Define safety protocols relevant to your business operations.</p>
+            <p className="text-xs text-amber-800 dark:text-amber-200">Define safety protocols relevant to your business operations.</p>
           </div>
         </div>
-        <div className="flex items-center justify-end">
-          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addSafetyProtocol}><Plus className="size-4" />Add Protocol</Button>}
-        </div>
-        <Card>
-          <CardContent>
-            <div className="space-y-3">
-              {displayData.safetyProtocols.map((protocol, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="inline-flex shrink-0 items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">#{index + 1}</span>
-                  <Input value={protocol} onChange={(e) => updateSafetyProtocol(index, e.target.value)} placeholder="Safety protocol" readOnly={!canEdit || isPreview} />
-                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeSafetyProtocol(index)}><Trash2 className="size-3" /></Button>}
-                </div>
-              ))}
-              {displayData.safetyProtocols.length === 0 && <p className="text-sm text-muted-foreground py-2">No safety protocols defined.</p>}
-            </div>
-          </CardContent>
-        </Card>
+        {displayData.safetyProtocols.length === 0 ? (
+          <EmptyState icon={ShieldAlert} title="No safety protocols" description="Define safety protocols relevant to your operations." action={canEdit && !isPreview ? { label: 'Add Protocol', onClick: addSafetyProtocol } : undefined} />
+        ) : (
+          <div className="space-y-2">
+            {canEdit && !isPreview && (
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={addSafetyProtocol}><Plus className="size-4" />Add Protocol</Button>
+              </div>
+            )}
+            {displayData.safetyProtocols.map((protocol, index) => (
+              <div key={index} className="group flex items-center gap-2">
+                <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">#{index + 1}</span>
+                <Input value={protocol} onChange={(e) => updateSafetyProtocol(index, e.target.value)} placeholder="Safety protocol" readOnly={!canEdit || isPreview} />
+                {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeSafetyProtocol(index)}><Trash2 className="size-3" /></Button>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Operations</h1>
+    <div className="page-container">
+      <PageHeader title="Operations" description="Cost structure, crew, capacity, and operational details">
         {canEdit && (
           <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
         )}
-      </div>
+      </PageHeader>
 
       {aiSuggestion.state.status === 'error' && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
