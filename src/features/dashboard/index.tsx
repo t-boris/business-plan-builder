@@ -241,6 +241,14 @@ export function Dashboard() {
     });
   }, [showChart, chartSeries, evaluated]);
 
+  // Filter section links by enabled sections
+  const enabledLinks = useMemo(() => {
+    if (!business) return SECTION_LINKS;
+    return SECTION_LINKS.filter((s) =>
+      business.enabledSections.includes(s.url.replace('/', ''))
+    );
+  }, [business]);
+
   // Empty state: no computed variables
   const hasNoVariables = !definitions || sortedComputed.length === 0;
 
@@ -250,7 +258,7 @@ export function Dashboard() {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold tracking-tight">Business Planning Dashboard</h1>
         <Link
-          to="/scenarios"
+          to={`/business/${businessId}/scenarios`}
           className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/20 transition-colors"
         >
           {scenarioName}
@@ -347,30 +355,32 @@ export function Dashboard() {
       )}
 
       {/* Section Links Grid */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Business Plan Sections</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {SECTION_LINKS.map((section) => (
-            <Link key={section.url} to={section.url} className="group">
-              <Card className="h-full transition-colors group-hover:border-primary/40 group-hover:bg-muted/30">
-                <CardContent className="pt-4 pb-3 px-4 flex items-start gap-3">
-                  <div className="mt-0.5 rounded-md bg-muted p-2 group-hover:bg-primary/10 transition-colors">
-                    <section.icon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium group-hover:text-primary transition-colors">
-                      {section.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {section.description}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+      {enabledLinks.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Business Plan Sections</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {enabledLinks.map((section) => (
+              <Link key={section.url} to={`/business/${businessId}${section.url}`} className="group">
+                <Card className="h-full transition-colors group-hover:border-primary/40 group-hover:bg-muted/30">
+                  <CardContent className="pt-4 pb-3 px-4 flex items-start gap-3">
+                    <div className="mt-0.5 rounded-md bg-muted p-2 group-hover:bg-primary/10 transition-colors">
+                      <section.icon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                        {section.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {section.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
