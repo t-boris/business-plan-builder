@@ -1,18 +1,29 @@
 import { useAtom } from 'jotai';
-import {
-  priceTier1Atom,
-  priceTier2Atom,
-  priceTier3Atom,
-  monthlyLeadsAtom,
-  conversionRateAtom,
-  cacPerLeadAtom,
-  monthlyAdBudgetMetaAtom,
-  monthlyAdBudgetGoogleAtom,
-  staffCountAtom,
-  costPerUnitAtom,
-} from '@/store/scenario-atoms.ts';
+import { useAtomValue } from 'jotai';
+import { businessVariablesAtom } from '@/store/business-atoms.ts';
+import { scenarioValuesAtom } from '@/store/scenario-atoms.ts';
+import { VARIABLE_CATEGORIES, type VariableCategory } from '@/lib/variable-templates/types';
+import type { VariableDefinition } from '@/types';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+
+// --- Category ordering ---
+
+const CATEGORY_ORDER: VariableCategory[] = (
+  Object.entries(VARIABLE_CATEGORIES) as [VariableCategory, { label: string; order: number }][]
+)
+  .sort(([, a], [, b]) => a.order - b.order)
+  .map(([key]) => key);
+
+const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(VARIABLE_CATEGORIES).map(([key, val]) => [key, val.label])
+);
+
+function getCategoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+// --- Helper components ---
 
 interface SliderInputProps {
   label: string;
@@ -114,132 +125,128 @@ function NumberInput({ label, value, onChange, prefix, min, max }: NumberInputPr
   );
 }
 
-export function ScenarioControls() {
-  const [priceTier1, setPriceTier1] = useAtom(priceTier1Atom);
-  const [priceTier2, setPriceTier2] = useAtom(priceTier2Atom);
-  const [priceTier3, setPriceTier3] = useAtom(priceTier3Atom);
-  const [monthlyLeads, setMonthlyLeads] = useAtom(monthlyLeadsAtom);
-  const [conversionRate, setConversionRate] = useAtom(conversionRateAtom);
-  const [cacPerLead, setCacPerLead] = useAtom(cacPerLeadAtom);
-  const [adBudgetMeta, setAdBudgetMeta] = useAtom(monthlyAdBudgetMetaAtom);
-  const [adBudgetGoogle, setAdBudgetGoogle] = useAtom(monthlyAdBudgetGoogleAtom);
-  const [staffCount, setStaffCount] = useAtom(staffCountAtom);
-  const [costPerUnit, setCostPerUnit] = useAtom(costPerUnitAtom);
+// --- Render the appropriate control for a variable ---
+
+function renderVariableControl(
+  variable: VariableDefinition,
+  value: number,
+  onChange: (value: number) => void
+) {
+  switch (variable.unit) {
+    case 'currency':
+      return (
+        <NumberInput
+          key={variable.id}
+          label={variable.label}
+          value={value}
+          onChange={onChange}
+          prefix="$"
+          min={variable.min ?? 0}
+          max={variable.max}
+        />
+      );
+    case 'percent':
+      return (
+        <SliderInput
+          key={variable.id}
+          label={variable.label}
+          value={value}
+          onChange={onChange}
+          suffix="%"
+          displayMultiplier={100}
+          min={variable.min ?? 0}
+          max={variable.max ?? 1}
+          step={variable.step ?? 0.01}
+        />
+      );
+    case 'count':
+      return (
+        <SliderInput
+          key={variable.id}
+          label={variable.label}
+          value={value}
+          onChange={onChange}
+          min={variable.min ?? 0}
+          max={variable.max ?? 100}
+          step={variable.step ?? 1}
+        />
+      );
+    default:
+      return (
+        <NumberInput
+          key={variable.id}
+          label={variable.label}
+          value={value}
+          onChange={onChange}
+          min={variable.min}
+          max={variable.max}
+        />
+      );
+  }
+}
+
+// --- Main Dynamic Component ---
+
+export function DynamicScenarioControls() {
+  const definitions = useAtomValue(businessVariablesAtom);
+  const [values, setValues] = useAtom(scenarioValuesAtom);
+
+  if (!definitions) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        <p>No variables defined. Add variables in the Variables tab.</p>
+      </div>
+    );
+  }
+
+  // Filter to input variables only
+  const inputVariables = Object.values(definitions).filter((v) => v.type === 'input');
+
+  if (inputVariables.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        <p>No input variables defined. Add variables in the Variables tab.</p>
+      </div>
+    );
+  }
+
+  // Group by category
+  const groups: Record<string, VariableDefinition[]> = {};
+  for (const v of inputVariables) {
+    const cat = v.category || 'operations';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(v);
+  }
+
+  // Ordered categories (known categories first, then any unknowns)
+  const knownCategories = CATEGORY_ORDER.filter((cat) => groups[cat] && groups[cat].length > 0);
+  const unknownCategories = Object.keys(groups)
+    .filter((cat) => !CATEGORY_ORDER.includes(cat as VariableCategory))
+    .sort();
+  const orderedCategories = [...knownCategories, ...unknownCategories];
+
+  function handleChange(variableId: string, newValue: number) {
+    setValues((prev) => ({ ...prev, [variableId]: newValue }));
+  }
 
   return (
     <div className="space-y-4">
-      {/* Pricing */}
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="text-sm font-semibold">Pricing</h3>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <NumberInput
-            label="Price Tier 1"
-            value={priceTier1}
-            onChange={setPriceTier1}
-            prefix="$"
-            min={0}
-          />
-          <NumberInput
-            label="Price Tier 2"
-            value={priceTier2}
-            onChange={setPriceTier2}
-            prefix="$"
-            min={0}
-          />
-          <NumberInput
-            label="Price Tier 3"
-            value={priceTier3}
-            onChange={setPriceTier3}
-            prefix="$"
-            min={0}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Leads & Conversion */}
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="text-sm font-semibold">Leads & Conversion</h3>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SliderInput
-            label="Monthly Leads"
-            value={monthlyLeads}
-            onChange={setMonthlyLeads}
-            min={50}
-            max={300}
-            step={5}
-          />
-          <SliderInput
-            label="Conversion Rate"
-            value={conversionRate}
-            onChange={setConversionRate}
-            min={0.05}
-            max={0.5}
-            step={0.01}
-            suffix="%"
-            displayMultiplier={100}
-          />
-          <SliderInput
-            label="CAC per Lead"
-            value={cacPerLead}
-            onChange={setCacPerLead}
-            min={5}
-            max={100}
-            step={1}
-            prefix="$"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Marketing Budgets */}
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="text-sm font-semibold">Marketing Budgets</h3>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <NumberInput
-            label="Meta Ads (monthly)"
-            value={adBudgetMeta}
-            onChange={setAdBudgetMeta}
-            prefix="$"
-            min={0}
-          />
-          <NumberInput
-            label="Google Ads (monthly)"
-            value={adBudgetGoogle}
-            onChange={setAdBudgetGoogle}
-            prefix="$"
-            min={0}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Operations */}
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="text-sm font-semibold">Operations</h3>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SliderInput
-            label="Staff Count"
-            value={staffCount}
-            onChange={setStaffCount}
-            min={1}
-            max={10}
-            step={1}
-          />
-          <NumberInput
-            label="Cost per Unit"
-            value={costPerUnit}
-            onChange={setCostPerUnit}
-            prefix="$"
-            min={0}
-          />
-        </CardContent>
-      </Card>
+      {orderedCategories.map((category) => (
+        <Card key={category}>
+          <CardHeader className="pb-3">
+            <h3 className="text-sm font-semibold">{getCategoryLabel(category)}</h3>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {groups[category].map((variable) =>
+              renderVariableControl(
+                variable,
+                values[variable.id] ?? variable.value,
+                (newValue) => handleChange(variable.id, newValue)
+              )
+            )}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
