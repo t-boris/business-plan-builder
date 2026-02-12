@@ -46,3 +46,9 @@ export interface DerivedMetrics {
   annualRevenue: number;
   annualProfit: number;
 }
+
+// Dynamic scenario for Phase 7 generic scenario engine
+export interface DynamicScenario {
+  metadata: ScenarioMetadata;
+  values: Record<string, number>; // only input variable values, keyed by variable ID
+}

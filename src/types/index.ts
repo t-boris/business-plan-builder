@@ -41,6 +41,7 @@ export type {
   ScenarioMetadata,
   Scenario,
   DerivedMetrics,
+  DynamicScenario,
 } from './scenario.ts';
 
 export type {
