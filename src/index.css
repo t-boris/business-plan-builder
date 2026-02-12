@@ -47,6 +47,21 @@
 
 :root {
   --radius: 0.625rem;
+
+  /* Shadow & elevation tokens (Stripe-style soft shadows) */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+
+  /* Semantic chart colors */
+  --chart-revenue: #22c55e;
+  --chart-cost: #f97316;
+  --chart-profit: #3b82f6;
+  --chart-neutral: #64748b;
+  --chart-accent-1: #8b5cf6;
+  --chart-accent-2: #ec4899;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -81,6 +96,20 @@
 }
 
 .dark {
+  /* Dark mode shadow tokens (slightly stronger opacity) */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.15), 0 1px 2px -1px rgb(0 0 0 / 0.15);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.15);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.12), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+
+  /* Dark mode semantic chart colors (slightly brighter for contrast) */
+  --chart-revenue: #4ade80;
+  --chart-cost: #fb923c;
+  --chart-profit: #60a5fa;
+  --chart-neutral: #94a3b8;
+  --chart-accent-1: #a78bfa;
+  --chart-accent-2: #f472b6;
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -118,7 +147,58 @@
   * {
     @apply border-border outline-ring/50;
   }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background transition-shadow;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-variant-numeric: tabular-nums;
   }
+}
+
+/* Data-density utility classes */
+@layer utilities {
+  .page-container {
+    @apply space-y-6 pb-8;
+  }
+  .section-grid {
+    @apply grid gap-4;
+  }
+  .stat-grid {
+    @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3;
+  }
+  .form-grid {
+    @apply grid gap-4 sm:grid-cols-2;
+  }
+}
+
+/* Card elevation styles */
+.card-elevated {
+  @apply border bg-card transition-shadow;
+  box-shadow: var(--shadow-card);
+}
+.card-elevated:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Recharts dark mode compatibility */
+.dark .recharts-cartesian-grid line {
+  stroke: oklch(1 0 0 / 10%);
+}
+.dark .recharts-cartesian-axis-tick text {
+  fill: oklch(0.708 0 0);
+}
+.dark .recharts-legend-item-text {
+  color: oklch(0.85 0 0) !important;
+}
+.dark .recharts-default-tooltip {
+  background-color: oklch(0.205 0 0) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+}
+.dark .recharts-tooltip-label {
+  color: oklch(0.985 0 0) !important;
+}
+.dark .recharts-tooltip-item {
+  color: oklch(0.85 0 0) !important;
 }
