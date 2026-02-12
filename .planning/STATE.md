@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 8 in progress -- business-aware AI infrastructure
+**Current focus:** Phase 8 complete -- ready for Phase 9
 
 ## Current Position
 
 Phase: 8 of 12 (Business-Aware AI)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-12 -- Completed 08-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-12 -- Completed 08-02-PLAN.md
 
-Progress: ███████░░░ 72%
+Progress: ████████░░ 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: 3 min
-- Total execution time: 66 min
+- Total execution time: 69 min
 
 **By Phase:**
 
@@ -34,10 +34,10 @@ Progress: ███████░░░ 72%
 | 05-business-profile-section-config | 2/2 | 3 min | 2 min |
 | 06-variable-library | 4/4 | 9 min | 2 min |
 | 07-generic-scenario-engine | 4/4 | 12 min | 3 min |
-| 08-business-aware-ai | 1/2 | 2 min | 2 min |
+| 08-business-aware-ai | 2/2 | 5 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-02 (2 min), 07-03 (2 min), 07-04 (6 min), 08-01 (2 min)
+- Last 5 plans: 07-03 (2 min), 07-04 (6 min), 08-01 (2 min), 08-02 (3 min)
 - Trend: Consistent execution velocity
 
 ## Accumulated Context
@@ -109,6 +109,9 @@ Progress: ███████░░░ 72%
 | 08-01 | Backwards-compatible SYSTEM_INSTRUCTION via buildSystemPrompt with empty custom profile | Prevents consumer breaks before 08-02 wires real BusinessProfile |
 | 08-01 | buildPrompt profile parameter is BusinessProfile or null | Graceful fallback during transition; null returns "Business profile not configured" |
 | 08-01 | Metric formatting by VariableUnit: currency->$, percent->*100+%, count->rounded | Human-readable values in AI prompts instead of raw numbers |
+| 08-02 | Only generate action gets industry overlays; improve/expand unchanged | Improve/expand work on existing data and don't need business-type-specific guidance |
+| 08-02 | Custom business type has no overlays | Base prompts already generic; overlays only needed for specialized types |
+| 08-02 | Fallback empty profile (type: custom, currency: USD) when no business active | Graceful degradation when AI used without configured business |
 
 ### Deferred Issues
 
@@ -121,5 +124,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-02-PLAN.md (Phase 8 complete)
 Resume file: None

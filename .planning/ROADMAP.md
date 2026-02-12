@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
 - [x] **Phase 6: Variable Library** - Predefined business variables organized by business type
 - [x] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
-- [ ] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
+- [x] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
 - [ ] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
 - [ ] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
 - [ ] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
@@ -119,7 +119,7 @@ Plans:
 
 Plans:
 - [x] 08-01: Dynamic system prompt builder (construct prompt from business profile, active variables, scenario data)
-- [ ] 08-02: Section prompt adaptation (section-specific prompts that reference business context and relevant variables)
+- [x] 08-02: Section prompt adaptation (section-specific prompts that reference business context and relevant variables)
 
 ### Phase 9: Sharing & Access
 **Goal**: Business owner generates a shareable URL. Any authenticated user who opens the link gets full edit access. The shared business appears in their business list.
@@ -179,7 +179,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
 | 6. Variable Library | 4/4 | Complete | 2026-02-12 |
 | 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
-| 8. Business-Aware AI | 1/2 | In progress | - |
+| 8. Business-Aware AI | 2/2 | Complete | 2026-02-12 |
 | 9. Sharing & Access | 0/2 | Not started | - |
 | 10. Dashboard & Navigation | 0/2 | Not started | - |
 | 11. Export Updates | 0/2 | Not started | - |
