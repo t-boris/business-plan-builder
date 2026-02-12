@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
 - [x] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
 - [x] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
-- [ ] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
+- [x] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
 
 ## Phase Details
 
@@ -161,9 +161,9 @@ Plans:
 Plans:
 - [x] 12-01: Design system foundation — global CSS tokens, reusable PageHeader/EmptyState/StatCard components
 - [x] 12-02: Auth & business management polish — premium login, polished business cards, refined create flow
-- [ ] 12-03: Dashboard & navigation polish — KPI cards, chart framing, sidebar refinement, layout shell
-- [ ] 12-04: Section editors part 1 — Executive Summary, Market Analysis, Product/Service, Marketing Strategy
-- [ ] 12-05: Section editors part 2 — Operations, Financial Projections, Risks, KPIs, Launch Plan
+- [x] 12-03: Dashboard & navigation polish — KPI cards, chart framing, sidebar refinement, layout shell
+- [x] 12-04: Section editors part 1 — Executive Summary, Market Analysis, Product/Service, Marketing Strategy
+- [x] 12-05: Section editors part 2 — Operations, Financial Projections, Risks, KPIs, Launch Plan
 - [x] 12-06: Scenario engine & export polish — scenario modeling tool, business plan view, AI components
 
 ## Progress
@@ -187,4 +187,4 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
 | 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
 | 11. Export Updates | 2/2 | Complete | 2026-02-12 |
-| 12. Integration & Polish | 5/6 | In progress | - |
+| 12. Integration & Polish | 6/6 | Complete | 2026-02-12 |
