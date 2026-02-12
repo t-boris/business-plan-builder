@@ -12,8 +12,10 @@ import {
   createBusiness,
   deleteBusiness,
   updateBusiness,
+  saveBusinessVariables,
 } from '@/lib/business-firestore';
 import { BUSINESS_TYPE_TEMPLATES } from '@/lib/business-templates';
+import { getDefaultVariables } from '@/lib/variable-templates';
 import type { BusinessType, BusinessProfile } from '@/types';
 
 export function useBusinesses() {
@@ -76,6 +78,10 @@ export function useBusinesses() {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Auto-populate variables from business type template
+    const defaultVars = getDefaultVariables(type);
+    await saveBusinessVariables(businessId, defaultVars);
 
     // Refresh list (caller navigates to /business/${businessId})
     const updatedList = await getUserBusinesses(user.uid);

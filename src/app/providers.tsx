@@ -4,14 +4,18 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { BrowserRouter } from 'react-router';
 import { auth } from '@/lib/firebase';
 import { authStateAtom, authStatusAtom, ALLOWED_EMAILS } from '@/store/auth-atoms';
-import { activeBusinessIdAtom } from '@/store/business-atoms';
+import {
+  activeBusinessIdAtom,
+  businessVariablesAtom,
+  businessVariablesLoadedAtom,
+} from '@/store/business-atoms';
 import {
   scenarioListAtom,
   loadScenarioAtom,
   scenarioSyncReadyAtom,
 } from '@/store/scenario-atoms';
 import { DEFAULT_SCENARIO_VARIABLES } from '@/lib/constants';
-import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences } from '@/lib/business-firestore';
+import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables } from '@/lib/business-firestore';
 import { useScenarioSync } from '@/hooks/use-scenario-sync';
 import { useBusinesses } from '@/hooks/use-businesses';
 import type { Scenario } from '@/types';
@@ -51,6 +55,41 @@ function BusinessLoader() {
     loadedRef.current = true;
     loadBusinesses();
   }, [authStatus, loadBusinesses]);
+
+  return null;
+}
+
+function VariableLoader() {
+  const authStatus = useAtomValue(authStatusAtom);
+  const businessId = useAtomValue(activeBusinessIdAtom);
+  const setVariables = useSetAtom(businessVariablesAtom);
+  const setLoaded = useSetAtom(businessVariablesLoadedAtom);
+  const prevBusinessIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Reset on business change
+    if (prevBusinessIdRef.current !== businessId) {
+      if (prevBusinessIdRef.current !== null) {
+        setVariables(null);
+        setLoaded(false);
+      }
+      prevBusinessIdRef.current = businessId;
+    }
+
+    if (authStatus !== 'authenticated' || !businessId) return;
+
+    async function init() {
+      try {
+        const vars = await getBusinessVariables(businessId!);
+        setVariables(vars);
+      } catch {
+        // Silent fail — variables may not exist yet
+      } finally {
+        setLoaded(true);
+      }
+    }
+    init();
+  }, [authStatus, businessId, setVariables, setLoaded]);
 
   return null;
 }
@@ -140,6 +179,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <JotaiProvider>
       <AuthListener>
         <BusinessLoader />
+        <VariableLoader />
         <ScenarioSync />
         <BrowserRouter>
           {children}
