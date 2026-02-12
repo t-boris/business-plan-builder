@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { useBusinesses } from "@/hooks/use-businesses";
 import { SECTION_SLUGS, SECTION_LABELS } from "@/lib/constants";
@@ -23,6 +23,8 @@ import type { BusinessType } from "@/types";
 export function BusinessHeaderBar() {
   const { activeBusiness, updateProfile, toggleSection } = useBusinesses();
   const [isOpen, setIsOpen] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Local state for profile fields (controlled inputs)
   const [localName, setLocalName] = useState("");
@@ -64,88 +66,122 @@ export function BusinessHeaderBar() {
         location: localLocation,
         description: localDescription,
       });
+      // Show "Saved" indicator briefly
+      setShowSaved(true);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => setShowSaved(false), 2000);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [localName, localType, localIndustry, localLocation, localDescription]);
 
+  // Cleanup save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
   if (!activeBusiness) return null;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className={`border-b ${isOpen ? "border rounded-b-md" : ""}`}>
+      <div className={`border-b transition-colors ${isOpen ? "bg-muted/30" : ""}`}>
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="flex h-10 w-full items-center justify-between px-4 text-sm hover:bg-muted/50 transition-colors"
+            className="flex h-10 w-full items-center justify-between px-6 text-sm hover:bg-muted/50 transition-colors"
           >
-            <span className="font-medium truncate">
-              {activeBusiness.profile.name}
-            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-medium truncate">
+                {activeBusiness.profile.name}
+              </span>
+              {showSaved && (
+                <span className="text-xs text-muted-foreground animate-in fade-in duration-200">
+                  Saved
+                </span>
+              )}
+            </div>
             <ChevronDown
-              className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 data-[state=open]:rotate-180"
+              className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 data-[state=open]:rotate-180"
               data-state={isOpen ? "open" : "closed"}
             />
           </button>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="grid gap-6 p-4 md:grid-cols-2">
+          <div className="grid gap-6 px-6 py-4 md:grid-cols-2">
             {/* Left column: Profile fields */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Business Name</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Business Name
+                </label>
                 <Input
                   value={localName}
                   onChange={(e) => setLocalName(e.target.value)}
                   placeholder="Enter business name"
+                  className="h-9"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Business Type</label>
-                <Select
-                  value={localType}
-                  onValueChange={(value: BusinessType) => setLocalType(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select business type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BUSINESS_TYPE_TEMPLATES.map((template) => (
-                      <SelectItem key={template.type} value={template.type}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Business Type
+                  </label>
+                  <Select
+                    value={localType}
+                    onValueChange={(value: BusinessType) => setLocalType(value)}
+                  >
+                    <SelectTrigger className="w-full h-9">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BUSINESS_TYPE_TEMPLATES.map((template) => (
+                        <SelectItem key={template.type} value={template.type}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Industry
+                  </label>
+                  <Input
+                    value={localIndustry}
+                    onChange={(e) => setLocalIndustry(e.target.value)}
+                    placeholder="e.g., Technology"
+                    className="h-9"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Industry</label>
-                <Input
-                  value={localIndustry}
-                  onChange={(e) => setLocalIndustry(e.target.value)}
-                  placeholder="e.g., Technology, Healthcare, Food & Beverage"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Location</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Location
+                </label>
                 <Input
                   value={localLocation}
                   onChange={(e) => setLocalLocation(e.target.value)}
                   placeholder="e.g., New York, NY"
+                  className="h-9"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Description</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Description
+                </label>
                 <Textarea
                   value={localDescription}
                   onChange={(e) => setLocalDescription(e.target.value)}
                   placeholder="Brief description of your business"
-                  rows={3}
+                  rows={2}
+                  className="resize-none"
                 />
               </div>
             </div>
@@ -153,19 +189,24 @@ export function BusinessHeaderBar() {
             {/* Right column: Section toggles */}
             <div className="space-y-3">
               <div>
-                <h3 className="text-sm font-medium">Sections</h3>
-                <p className="text-xs text-muted-foreground">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Sections
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Toggle sections for this business
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1">
                 {SECTION_SLUGS.map((slug) => (
                   <div
                     key={slug}
-                    className="flex items-center justify-between py-1"
+                    className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors"
                   >
-                    <label className="text-sm" htmlFor={`section-${slug}`}>
+                    <label
+                      className="text-sm cursor-pointer"
+                      htmlFor={`section-${slug}`}
+                    >
                       {SECTION_LABELS[slug]}
                     </label>
                     <Switch

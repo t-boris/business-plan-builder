@@ -133,7 +133,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg">
+                <SidebarMenuButton size="lg" className="transition-colors duration-150">
                   <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-sm font-semibold">
                     {activeBusiness?.profile.name?.[0]?.toUpperCase() ?? "?"}
                   </div>
@@ -145,7 +145,7 @@ export function AppSidebar() {
                       {activeBusiness ? templateName : "No business selected"}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
+                  <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="bottom" align="start" className="w-64">
@@ -191,7 +191,9 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Overview
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -199,10 +201,11 @@ export function AppSidebar() {
                   asChild
                   isActive={isActive(null)}
                   tooltip="Dashboard"
+                  className="transition-colors duration-150"
                 >
                   <Link to={dashboardUrl}>
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
+                    <LayoutDashboard className="size-4" />
+                    <span className="font-medium">Dashboard</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -211,7 +214,9 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Business Plan</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Business Plan
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredBusinessPlanItems.map((item) => (
@@ -220,10 +225,11 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.slug)}
                     tooltip={item.title}
+                    className="transition-colors duration-150"
                   >
                     <Link to={`/business/${businessId}/${item.slug}`}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="size-4" />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -233,7 +239,9 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Tools
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {toolsItemDefs.map((item) => (
@@ -242,10 +250,11 @@ export function AppSidebar() {
                     asChild
                     isActive={isActive(item.slug)}
                     tooltip={item.title}
+                    className="transition-colors duration-150"
                   >
                     <Link to={`/business/${businessId}/${item.slug}`}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="size-4" />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -253,9 +262,9 @@ export function AppSidebar() {
               {userRole === "owner" && (
                 <SidebarMenuItem>
                   <ShareDialog>
-                    <SidebarMenuButton tooltip="Share">
-                      <Share2 />
-                      <span>Share</span>
+                    <SidebarMenuButton tooltip="Share" className="transition-colors duration-150">
+                      <Share2 className="size-4" />
+                      <span className="font-medium">Share</span>
                     </SidebarMenuButton>
                   </ShareDialog>
                 </SidebarMenuItem>
@@ -273,8 +282,9 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   tooltip={user?.displayName ?? user?.email ?? "Account"}
+                  className="transition-colors duration-150"
                 >
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-medium">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
                     {(user?.displayName?.[0] ?? user?.email?.[0] ?? "?").toUpperCase()}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -285,32 +295,25 @@ export function AppSidebar() {
                       {user?.email}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
+                  <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-medium">{user?.displayName ?? "User"}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleTheme}>
+                  {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                  {isDark ? "Light Mode" : "Dark Mode"}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="size-4" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={toggleTheme} tooltip={isDark ? "Light mode" : "Dark mode"}>
-              {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton disabled className="cursor-default opacity-60">
-              <span className="text-xs text-muted-foreground">v1.0.0</span>
-            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

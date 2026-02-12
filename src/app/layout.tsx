@@ -50,27 +50,29 @@ export function DashboardLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-6">
+          <SidebarTrigger className="-ml-1 size-7" />
           <Separator orientation="vertical" className="mr-2 !h-4" />
           <Breadcrumb>
-            <BreadcrumbList>
+            <BreadcrumbList className="text-sm">
               {activeBusiness && (
                 <>
                   <BreadcrumbItem>
-                    <span className="text-muted-foreground">{activeBusiness.profile.name}</span>
+                    <span className="text-muted-foreground font-normal">
+                      {activeBusiness.profile.name}
+                    </span>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator />
+                  <BreadcrumbSeparator className="text-muted-foreground/50" />
                 </>
               )}
               <BreadcrumbItem>
-                <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium">{pageTitle}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
         <BusinessHeaderBar />
-        <div className="flex-1 p-6">
+        <div className="flex-1 px-6 py-5">
           <Outlet />
         </div>
       </SidebarInset>
