@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAtomValue } from 'jotai';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { getSectionData, saveSectionData } from '@/lib/business-firestore';
+import { useCanEdit } from '@/hooks/use-business-role';
 import type { SectionSlug, BusinessPlanSection } from '@/types';
 
 /** Shallow-merge each nested object so new fields from defaults are preserved. */
@@ -22,6 +23,7 @@ interface UseSectionReturn<T> {
   updateField: <K extends keyof T>(field: K, value: T[K]) => void;
   updateData: (updater: (prev: T) => T) => void;
   isLoading: boolean;
+  canEdit: boolean;
 }
 
 export function useSection<T extends BusinessPlanSection>(
@@ -29,6 +31,7 @@ export function useSection<T extends BusinessPlanSection>(
   defaultData: T
 ): UseSectionReturn<T> {
   const businessId = useAtomValue(activeBusinessIdAtom);
+  const canEdit = useCanEdit();
   const [data, setData] = useState<T>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,7 +82,7 @@ export function useSection<T extends BusinessPlanSection>(
   // Debounced save to Firestore
   const debounceSave = useCallback(
     (newData: T) => {
-      if (!businessId) return;
+      if (!businessId || !canEdit) return;
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -91,7 +94,7 @@ export function useSection<T extends BusinessPlanSection>(
         }
       }, 500);
     },
-    [businessId, sectionSlug]
+    [businessId, sectionSlug, canEdit]
   );
 
   // Flush pending save on unmount (don't lose unsaved changes on tab switch)
@@ -135,5 +138,5 @@ export function useSection<T extends BusinessPlanSection>(
     [debounceSave]
   );
 
-  return { data, updateField, updateData, isLoading };
+  return { data, updateField, updateData, isLoading, canEdit };
 }
