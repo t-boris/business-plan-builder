@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Firestore Data Model** - New multi-business data structure, TypeScript types, Firestore service layer
 - [x] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
 - [x] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
-- [ ] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
+- [x] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
 - [ ] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
 - [ ] **Phase 6: Variable Library** - Predefined business variables organized by business type
 - [ ] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
@@ -71,9 +71,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Extract constants and defaults into configurable structure (constants.ts, system-prompt.ts, default section data)
-- [ ] 04-02: Clean section components (executive-summary, market-analysis, product-service, marketing-strategy, operations, financial-projections)
-- [ ] 04-03: Clean remaining files (risks-due-diligence, kpis-metrics, launch-plan, dashboard, auth login-page, PDF CoverPage)
+- [x] 04-01: Extract constants and defaults into configurable structure (constants.ts, system-prompt.ts, default section data)
+- [x] 04-02: Clean section components (executive-summary, market-analysis, product-service, marketing-strategy, operations, financial-projections)
+- [x] 04-03: Clean remaining files (risks-due-diligence, kpis-metrics, launch-plan, dashboard, auth login-page, PDF CoverPage)
 
 ### Phase 5: Business Profile & Section Config
 **Goal**: Business profile editor where users set name, type, location, description. Section configurator where users pick which of the 9 sections are relevant for their business.
@@ -173,7 +173,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
 | 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
 | 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
-| 4. Strip Hardcoded Content | 2/3 | In progress | - |
+| 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |
 | 6. Variable Library | 0/3 | Not started | - |
 | 7. Generic Scenario Engine | 0/3 | Not started | - |

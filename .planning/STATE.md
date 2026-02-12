@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 4 — Strip Hardcoded Content (In progress)
+**Current focus:** Phase 4 — Strip Hardcoded Content (Complete)
 
 ## Current Position
 
 Phase: 4 of 12 (Strip Hardcoded Content)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-12 — Completed 04-02-PLAN.md
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-12 — Completed 04-03-PLAN.md
 
-Progress: ████░░░░░░ 40%
+Progress: ████░░░░░░ 43%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 3 min
-- Total execution time: 32 min
+- Total execution time: 40 min
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: ████░░░░░░ 40%
 | 01-firestore-data-model | 2/2 | 4 min | 2 min |
 | 02-business-crud | 5/5 | 11 min | 2 min |
 | 03-dynamic-business-context | 2/2 | 6 min | 3 min |
+| 04-strip-hardcoded-content | 3/3 | 19 min | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-05 (1 min), 03-01 (3 min), 03-02 (3 min), 04-01 (5 min), 04-02 (6 min)
+- Last 5 plans: 03-01 (3 min), 03-02 (3 min), 04-01 (5 min), 04-02 (6 min), 04-03 (8 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -71,6 +72,10 @@ Progress: ████░░░░░░ 40%
 | 04-02 | Break-even uses first month's overhead as proxy | Data-driven; falls back to 0 if no months exist |
 | 04-02 | Operations cost breakdown defaults all zeroed | Form structure preserved; empty state shows zeros |
 | 04-02 | "Venue / Tickets" replaces "Museum Tickets" | Generic label for operations cost category |
+| 04-03 | Flat season coefficients as dashboard default | Avoids importing from financial-projections (being cleaned by 04-02) |
+| 04-03 | Calendar months Jan-Dec in dashboard | Standard calendar order replaces Fun Box fiscal year Mar-Feb |
+| 04-03 | Briefcase Lucide icon for login branding | Generic business tool aesthetic, replaces hardcoded "F" letter |
+| 04-03 | CoverPage accepts optional businessName prop | Future Phase 11 will pass dynamic name; falls back to "Business Plan" |
 
 ### Deferred Issues
 
@@ -83,5 +88,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 04-02-PLAN.md
+Stopped at: Completed 04-03-PLAN.md (Phase 4 complete)
 Resume file: None
