@@ -15,20 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2, AlertCircle } from 'lucide-react';
 
 const defaultSummary: ExecutiveSummaryType = {
-  summary:
-    'Fun Box is a premium mobile kids birthday party service operating in the Miami metropolitan area. We combine ocean-themed interactive workshops with guided Jellyfish Museum experiences, offering three all-inclusive packages ($800-$1,200) for groups of up to 15 participants.',
-  mission:
-    'To create unforgettable, hassle-free birthday celebrations that combine education and entertainment through immersive ocean-themed experiences.',
-  vision:
-    "To become Miami's leading premium kids birthday party service, known for unique museum-integrated experiences and exceptional customer satisfaction.",
-  keyHighlights: [
-    'Three packages: $800 / $980 / $1,200',
-    '15 participants per event, all-inclusive',
-    'Jellyfish Museum partnership with included tickets',
-    'Target: 100-150 leads/month, 15-25% conversion',
-    'Launch: March 2026 (soft launch → scale)',
-    'Bilingual marketing opportunity (75% non-English at home)',
-  ],
+  summary: '',
+  mission: '',
+  vision: '',
+  keyHighlights: [],
 };
 
 export function ExecutiveSummary() {

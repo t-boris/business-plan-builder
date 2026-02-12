@@ -3,26 +3,20 @@ import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
-import { DEFAULT_PACKAGES } from '@/lib/constants';
 import type { ProductService as ProductServiceType, Package, AddOn } from '@/types';
 import {
   Card,
-  CardHeader,
   CardContent,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Star, Crown, Sparkles, Users, Clock, Check } from 'lucide-react';
 
 const defaultProductService: ProductServiceType = {
-  packages: DEFAULT_PACKAGES,
-  addOns: [
-    { name: 'Extra 30 minutes', price: 150 },
-    { name: 'Face painting', price: 100 },
-    { name: 'Balloon artist', price: 120 },
-  ],
+  packages: [],
+  addOns: [],
 };
 
 export function ProductService() {
@@ -111,17 +105,65 @@ export function ProductService() {
     }));
   }
 
+  function addPackage() {
+    updateData((prev) => ({
+      ...prev,
+      packages: [...prev.packages, { name: '', price: 0, duration: '', maxParticipants: 0, includes: [], description: '' }],
+    }));
+  }
+
+  function removePackage(index: number) {
+    updateData((prev) => ({
+      ...prev,
+      packages: prev.packages.filter((_, i) => i !== index),
+    }));
+  }
+
+  // Tier styling: accent colors per package index
+  const tierStyles = [
+    { border: 'border-blue-200 dark:border-blue-800', accent: 'bg-blue-50 dark:bg-blue-950/40', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300', icon: Star, label: 'Starter' },
+    { border: 'border-purple-200 dark:border-purple-800', accent: 'bg-purple-50 dark:bg-purple-950/40', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300', icon: Sparkles, label: 'Popular' },
+    { border: 'border-amber-200 dark:border-amber-800', accent: 'bg-amber-50 dark:bg-amber-950/40', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300', icon: Crown, label: 'Premium' },
+  ];
+
   const sectionContent = (
     <div className="space-y-6">
       {/* Packages Section */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Packages</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Packages</h2>
+          {!isPreview && (
+            <Button variant="outline" size="sm" onClick={addPackage}>
+              <Plus className="size-4" />
+              Add Package
+            </Button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {displayData.packages.map((pkg, pkgIndex) => (
-            <Card key={pkgIndex}>
-              <CardHeader>
-                <div className="space-y-3">
-                  <div>
+          {displayData.packages.map((pkg, pkgIndex) => {
+            const tier = tierStyles[pkgIndex % tierStyles.length];
+            const TierIcon = tier.icon;
+            return (
+            <Card key={pkgIndex} className={`${tier.border} overflow-hidden`}>
+              {/* Colored header strip */}
+              <div className={`${tier.accent} px-5 pt-4 pb-3`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${tier.badge}`}>
+                    <TierIcon className="size-3" />
+                    {tier.label}
+                  </span>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1"><Clock className="size-3" />{pkg.duration}</span>
+                    <span className="inline-flex items-center gap-1"><Users className="size-3" />{pkg.maxParticipants}</span>
+                    {!isPreview && (
+                      <Button variant="ghost" size="icon-xs" onClick={() => removePackage(pkgIndex)}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-end justify-between gap-3">
+                  <div className="flex-1">
                     <label className="text-xs font-medium text-muted-foreground">Package Name</label>
                     <Input
                       value={pkg.name}
@@ -129,6 +171,14 @@ export function ProductService() {
                       readOnly={isPreview}
                     />
                   </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-3xl font-bold tracking-tight">${pkg.price.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="space-y-4 pt-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Price</label>
                     <div className="relative">
@@ -142,10 +192,6 @@ export function ProductService() {
                       />
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Duration</label>
                     <Input
@@ -155,7 +201,7 @@ export function ProductService() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Max Participants</label>
+                    <label className="text-xs font-medium text-muted-foreground">Max Guests</label>
                     <Input
                       type="number"
                       value={pkg.maxParticipants}
@@ -189,6 +235,7 @@ export function ProductService() {
                   </div>
                   {pkg.includes.map((item, includeIndex) => (
                     <div key={includeIndex} className="flex items-center gap-2">
+                      <Check className="size-3 shrink-0 text-green-500" />
                       <Input
                         value={item}
                         onChange={(e) => updatePackageInclude(pkgIndex, includeIndex, e.target.value)}
@@ -205,8 +252,12 @@ export function ProductService() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
+        {displayData.packages.length === 0 && (
+          <p className="text-sm text-muted-foreground py-2">No packages yet. Use AI Generate to create initial packages, or add them manually.</p>
+        )}
       </div>
 
       <Separator />
