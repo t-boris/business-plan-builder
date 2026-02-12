@@ -129,7 +129,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 09-01: Data model, security rules, and auth cleanup (viewer role, invite CRUD, rewrite Firestore rules, remove ALLOWED_EMAILS)
+- [x] 09-01: Data model, security rules, and auth cleanup (viewer role, invite CRUD, rewrite Firestore rules, remove ALLOWED_EMAILS)
 - [ ] 09-02: Accept invite flow and share dialog UI (AcceptInvite page, /invite route, ShareDialog with role picker and member management)
 - [ ] 09-03: Read-only viewer enforcement (useBusinessRole hook, disable editing for viewers across all sections/scenarios/AI)
 
@@ -181,7 +181,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 6. Variable Library | 4/4 | Complete | 2026-02-12 |
 | 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
 | 8. Business-Aware AI | 2/2 | Complete | 2026-02-12 |
-| 9. Sharing & Access | 0/2 | Not started | - |
+| 9. Sharing & Access | 1/3 | In progress | - |
 | 10. Dashboard & Navigation | 0/2 | Not started | - |
 | 11. Export Updates | 0/2 | Not started | - |
 | 12. Integration & Polish | 0/2 | Not started | - |

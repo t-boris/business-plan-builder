@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 8 complete -- ready for Phase 9
+**Current focus:** Phase 9 in progress -- sharing and access control
 
 ## Current Position
 
-Phase: 8 of 12 (Business-Aware AI)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-12 -- Completed 08-02-PLAN.md
+Phase: 9 of 12 (Sharing & Access)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-12 -- Completed 09-01-PLAN.md
 
-Progress: ████████░░ 75%
+Progress: ████████░░ 76%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 24
+- Total plans completed: 25
 - Average duration: 3 min
-- Total execution time: 69 min
+- Total execution time: 71 min
 
 **By Phase:**
 
@@ -35,9 +35,10 @@ Progress: ████████░░ 75%
 | 06-variable-library | 4/4 | 9 min | 2 min |
 | 07-generic-scenario-engine | 4/4 | 12 min | 3 min |
 | 08-business-aware-ai | 2/2 | 5 min | 3 min |
+| 09-sharing-access | 1/3 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-03 (2 min), 07-04 (6 min), 08-01 (2 min), 08-02 (3 min)
+- Last 5 plans: 07-04 (6 min), 08-01 (2 min), 08-02 (3 min), 09-01 (2 min)
 - Trend: Consistent execution velocity
 
 ## Accumulated Context
@@ -112,6 +113,10 @@ Progress: ████████░░ 75%
 | 08-02 | Only generate action gets industry overlays; improve/expand unchanged | Improve/expand work on existing data and don't need business-type-specific guidance |
 | 08-02 | Custom business type has no overlays | Base prompts already generic; overlays only needed for specialized types |
 | 08-02 | Fallback empty profile (type: custom, currency: USD) when no business active | Graceful degradation when AI used without configured business |
+| 09-01 | Reusable invite links: invite stays active after acceptance | Multiple users can accept same link; no single-use fields needed |
+| 09-01 | Doc ID is the token: crypto.randomUUID() for invite IDs | No separate token field; simplifies data model |
+| 09-01 | No invite expiration for reusable links | Removes expiresAt field; owner can revoke instead |
+| 09-01 | ALLOWED_EMAILS removed: Firestore roles as sole access control | Any authenticated user can use app; business access via roles map |
 
 ### Deferred Issues
 
@@ -124,5 +129,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 08-02-PLAN.md (Phase 8 complete)
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
