@@ -1,22 +1,10 @@
 import { Link } from 'react-router';
 import { useAtomValue } from 'jotai';
 import { scenarioNameAtom } from '@/store/scenario-atoms.ts';
-import {
-  monthlyBookingsAtom,
-  monthlyRevenueAtom,
-  monthlyCostsAtom,
-  monthlyProfitAtom,
-  profitMarginAtom,
-  annualRevenueAtom,
-  annualProfitAtom,
-  totalMonthlyAdSpendAtom,
-  cacPerBookingAtom,
-} from '@/store/derived-atoms.ts';
-import { useSection } from '@/hooks/use-section';
-import type { FinancialProjections } from '@/types';
+import { evaluatedValuesAtom } from '@/store/derived-atoms.ts';
+import { businessVariablesAtom } from '@/store/business-atoms.ts';
+import type { VariableUnit } from '@/types';
 
-// Flat seasonal coefficients (no seasonal adjustment by default)
-const FLAT_SEASON_COEFFICIENTS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   AreaChart,
@@ -40,6 +28,8 @@ import {
   Rocket,
 } from 'lucide-react';
 
+// --- Formatting helpers ---
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -52,6 +42,15 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatValue(value: number, unit: VariableUnit): string {
+  if (unit === 'currency') return formatCurrency(value);
+  if (unit === 'percent') return formatPercent(value);
+  if (unit === 'ratio') return value.toFixed(2);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
+}
+
+// --- Semantic color helpers ---
+
 function getMarginColor(margin: number): string {
   if (margin >= 0.2) return 'text-green-600';
   if (margin >= 0.1) return 'text-amber-600';
@@ -61,6 +60,17 @@ function getMarginColor(margin: number): string {
 function getProfitColor(profit: number): string {
   return profit >= 0 ? 'text-green-600' : 'text-red-600';
 }
+
+function getSemanticColor(label: string, value: number): string {
+  const lower = label.toLowerCase();
+  if (lower.includes('profit')) return getProfitColor(value);
+  if (lower.includes('margin')) return getMarginColor(value);
+  if (lower.includes('cost') || lower.includes('spend')) return 'text-amber-600';
+  if (lower.includes('revenue')) return 'text-green-600';
+  return 'text-foreground';
+}
+
+// --- KPI Card ---
 
 interface KpiCardProps {
   label: string;
@@ -80,6 +90,8 @@ function KpiCard({ label, value, colorClass = 'text-foreground', size = 'lg' }: 
     </Card>
   );
 }
+
+// --- Section Links ---
 
 const SECTION_LINKS = [
   {
@@ -138,42 +150,50 @@ const SECTION_LINKS = [
   },
 ];
 
-// Minimal default for useSection fallback (only needs seasonCoefficients)
-const dashboardFinancialsDefault: FinancialProjections = {
-  months: [],
-  unitEconomics: { avgCheck: 0, costPerEvent: 0, profitPerEvent: 0, breakEvenEvents: 0 },
-  seasonCoefficients: FLAT_SEASON_COEFFICIENTS,
-};
+// --- Main Dashboard Component ---
 
 export function Dashboard() {
   const scenarioName = useAtomValue(scenarioNameAtom);
-  const monthlyBookings = useAtomValue(monthlyBookingsAtom);
-  const monthlyRevenue = useAtomValue(monthlyRevenueAtom);
-  const monthlyCosts = useAtomValue(monthlyCostsAtom);
-  const monthlyProfit = useAtomValue(monthlyProfitAtom);
-  const profitMargin = useAtomValue(profitMarginAtom);
-  const annualRevenue = useAtomValue(annualRevenueAtom);
-  const annualProfit = useAtomValue(annualProfitAtom);
-  const totalAdSpend = useAtomValue(totalMonthlyAdSpendAtom);
-  const cacPerBooking = useAtomValue(cacPerBookingAtom);
+  const definitions = useAtomValue(businessVariablesAtom);
+  const evaluated = useAtomValue(evaluatedValuesAtom);
 
-  // Load stored season coefficients from Financial Projections section
-  const { data: financials } = useSection<FinancialProjections>('financial-projections', dashboardFinancialsDefault);
-  const coefficients = financials.seasonCoefficients?.length === 12
-    ? financials.seasonCoefficients
-    : FLAT_SEASON_COEFFICIENTS;
+  // Get computed variables for KPI cards
+  const computedVariables = definitions
+    ? Object.values(definitions).filter((v) => v.type === 'computed')
+    : [];
 
-  // 12-month projection driven by stored seasonal coefficients
+  const primaryKpis = computedVariables.slice(0, 4);
+  const secondaryKpis = computedVariables.slice(4, 8);
+
+  // Find monthly revenue and monthly costs for chart
+  const allVariables = definitions ? Object.values(definitions) : [];
+  const revenueVar = allVariables.find(
+    (v) => v.id === 'monthly_revenue' || v.label.toLowerCase() === 'monthly revenue'
+  );
+  const costsVar = allVariables.find(
+    (v) => v.id === 'monthly_costs' || v.label.toLowerCase() === 'monthly costs'
+  );
+
+  const monthlyRevenue = revenueVar ? (evaluated[revenueVar.id] ?? 0) : null;
+  const monthlyCosts = costsVar ? (evaluated[costsVar.id] ?? 0) : null;
+
+  // 12-month flat projection data
   const monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
-  const projectionData = monthNames.map((month, i) => ({
-    month,
-    Revenue: Math.round(monthlyRevenue * coefficients[i]),
-    Costs: Math.round(monthlyCosts * coefficients[i]),
-    Profit: Math.round(monthlyRevenue * coefficients[i]) - Math.round(monthlyCosts * coefficients[i]),
-  }));
+  const showChart = monthlyRevenue !== null || monthlyCosts !== null;
+  const projectionData = showChart
+    ? monthNames.map((month) => {
+        const data: Record<string, unknown> = { month };
+        if (monthlyRevenue !== null) data.Revenue = Math.round(monthlyRevenue);
+        if (monthlyCosts !== null) data.Costs = Math.round(monthlyCosts);
+        if (monthlyRevenue !== null && monthlyCosts !== null) {
+          data.Profit = Math.round(monthlyRevenue) - Math.round(monthlyCosts);
+        }
+        return data;
+      })
+    : [];
 
   return (
     <div className="space-y-6">
@@ -189,103 +209,96 @@ export function Dashboard() {
       </div>
 
       {/* KPI Summary Cards - Primary row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          label="Monthly Revenue"
-          value={formatCurrency(monthlyRevenue)}
-          colorClass="text-green-600"
-        />
-        <KpiCard
-          label="Monthly Profit"
-          value={formatCurrency(monthlyProfit)}
-          colorClass={getProfitColor(monthlyProfit)}
-        />
-        <KpiCard
-          label="Monthly Bookings"
-          value={String(monthlyBookings)}
-        />
-        <KpiCard
-          label="Profit Margin"
-          value={formatPercent(profitMargin)}
-          colorClass={getMarginColor(profitMargin)}
-        />
-      </div>
+      {primaryKpis.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {primaryKpis.map((variable) => {
+            const value = evaluated[variable.id] ?? 0;
+            return (
+              <KpiCard
+                key={variable.id}
+                label={variable.label}
+                value={formatValue(value, variable.unit)}
+                colorClass={getSemanticColor(variable.label, value)}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Secondary Metrics row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          label="Annual Revenue"
-          value={formatCurrency(annualRevenue)}
-          colorClass="text-green-600"
-          size="sm"
-        />
-        <KpiCard
-          label="Annual Profit"
-          value={formatCurrency(annualProfit)}
-          colorClass={getProfitColor(annualProfit)}
-          size="sm"
-        />
-        <KpiCard
-          label="Total Ad Spend"
-          value={formatCurrency(totalAdSpend)}
-          colorClass="text-amber-600"
-          size="sm"
-        />
-        <KpiCard
-          label="CAC per Booking"
-          value={formatCurrency(cacPerBooking)}
-          size="sm"
-        />
-      </div>
+      {secondaryKpis.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {secondaryKpis.map((variable) => {
+            const value = evaluated[variable.id] ?? 0;
+            return (
+              <KpiCard
+                key={variable.id}
+                label={variable.label}
+                value={formatValue(value, variable.unit)}
+                colorClass={getSemanticColor(variable.label, value)}
+                size="sm"
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Revenue Projection Chart */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">
-            12-Month Revenue Projection
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={projectionData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis
-                  tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
-                  tick={{ fontSize: 11 }}
-                />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="Revenue"
-                  stroke="#22c55e"
-                  fill="#22c55e"
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Costs"
-                  stroke="#f97316"
-                  fill="#f97316"
-                  fillOpacity={0.1}
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Profit"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
-                  fillOpacity={0.1}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {showChart && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">
+              12-Month Revenue Projection
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={projectionData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Legend />
+                  {monthlyRevenue !== null && (
+                    <Area
+                      type="monotone"
+                      dataKey="Revenue"
+                      stroke="#22c55e"
+                      fill="#22c55e"
+                      fillOpacity={0.15}
+                      strokeWidth={2}
+                    />
+                  )}
+                  {monthlyCosts !== null && (
+                    <Area
+                      type="monotone"
+                      dataKey="Costs"
+                      stroke="#f97316"
+                      fill="#f97316"
+                      fillOpacity={0.1}
+                      strokeWidth={2}
+                    />
+                  )}
+                  {monthlyRevenue !== null && monthlyCosts !== null && (
+                    <Area
+                      type="monotone"
+                      dataKey="Profit"
+                      stroke="#3b82f6"
+                      fill="#3b82f6"
+                      fillOpacity={0.1}
+                      strokeWidth={2}
+                    />
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Section Links Grid */}
       <div>

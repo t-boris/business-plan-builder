@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAtomValue } from 'jotai';
-import { computeDerivedMetrics, type ComputedMetrics } from '@/store/derived-atoms.ts';
 import { listScenarioData } from '@/lib/business-firestore.ts';
-import { activeBusinessIdAtom } from '@/store/business-atoms.ts';
-import type { Scenario, ScenarioVariables } from '@/types';
+import { activeBusinessIdAtom, businessVariablesAtom } from '@/store/business-atoms.ts';
+import { evaluateVariables } from '@/lib/formula-engine.ts';
+import type { DynamicScenario, VariableDefinition, VariableUnit } from '@/types';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import {
   Select,
@@ -23,6 +23,8 @@ import {
   Legend,
 } from 'recharts';
 
+// --- Formatting helpers ---
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -35,47 +37,17 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-// Variable display config for the inputs table
-const VARIABLE_ROWS: {
-  key: keyof ScenarioVariables;
-  label: string;
-  format: (v: number) => string;
-  lowerIsBetter?: boolean;
-}[] = [
-  { key: 'priceTier1', label: 'Price Tier 1', format: formatCurrency },
-  { key: 'priceTier2', label: 'Price Tier 2', format: formatCurrency },
-  { key: 'priceTier3', label: 'Price Tier 3', format: formatCurrency },
-  { key: 'monthlyLeads', label: 'Monthly Leads', format: (v) => String(v) },
-  { key: 'conversionRate', label: 'Conversion Rate', format: formatPercent },
-  { key: 'cacPerLead', label: 'CAC per Lead', format: formatCurrency, lowerIsBetter: true },
-  { key: 'monthlyAdBudgetMeta', label: 'Meta Ads Budget', format: formatCurrency },
-  { key: 'monthlyAdBudgetGoogle', label: 'Google Ads Budget', format: formatCurrency },
-  { key: 'staffCount', label: 'Staff Count', format: (v) => String(v) },
-  { key: 'costPerUnit', label: 'Cost per Unit', format: formatCurrency, lowerIsBetter: true },
-];
+function formatValue(value: number, unit: VariableUnit): string {
+  if (unit === 'currency') return formatCurrency(value);
+  if (unit === 'percent') return formatPercent(value);
+  if (unit === 'ratio') return value.toFixed(2);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
+}
 
-// Metric display config for the derived metrics table
-const METRIC_ROWS: {
-  key: keyof ComputedMetrics;
-  label: string;
-  format: (v: number) => string;
-  lowerIsBetter?: boolean;
-}[] = [
-  { key: 'monthlyBookings', label: 'Monthly Bookings', format: (v) => String(v) },
-  { key: 'avgCheck', label: 'Avg Check', format: formatCurrency },
-  { key: 'monthlyRevenue', label: 'Monthly Revenue', format: formatCurrency },
-  { key: 'monthlyCosts', label: 'Monthly Costs', format: formatCurrency, lowerIsBetter: true },
-  { key: 'monthlyProfit', label: 'Monthly Profit', format: formatCurrency },
-  { key: 'profitMargin', label: 'Profit Margin', format: formatPercent },
-  { key: 'totalMonthlyAdSpend', label: 'Total Ad Spend', format: formatCurrency, lowerIsBetter: true },
-  { key: 'cacPerBooking', label: 'CAC per Booking', format: formatCurrency, lowerIsBetter: true },
-  { key: 'annualRevenue', label: 'Annual Revenue', format: formatCurrency },
-  { key: 'annualProfit', label: 'Annual Profit', format: formatCurrency },
-];
+// --- Reusable comparison UI helpers ---
 
 function DiffCell({ diff, formatted, lowerIsBetter }: { diff: number; formatted: string; lowerIsBetter?: boolean }) {
   if (diff === 0) return <span className="text-muted-foreground">--</span>;
-  // For "lower is better" metrics, a positive diff is bad (costs went up)
   const isImprovement = lowerIsBetter ? diff < 0 : diff > 0;
   const sign = diff > 0 ? '+' : '';
   return (
@@ -108,11 +80,43 @@ function isSignificantDiff(a: number, b: number): boolean {
   return Math.abs(a - b) / avg > 0.1;
 }
 
+// --- Evaluation helper ---
+
+function evaluateScenario(
+  scenario: DynamicScenario,
+  definitions: Record<string, VariableDefinition>
+): Record<string, number> {
+  const merged: Record<string, VariableDefinition> = {};
+  for (const [id, def] of Object.entries(definitions)) {
+    if (def.type === 'input') {
+      merged[id] = { ...def, value: scenario.values[id] ?? def.value };
+    } else {
+      merged[id] = def;
+    }
+  }
+  try {
+    return evaluateVariables(merged);
+  } catch {
+    const fallback: Record<string, number> = {};
+    for (const [id, def] of Object.entries(merged)) {
+      fallback[id] = def.value;
+    }
+    return fallback;
+  }
+}
+
+// --- Row config builders ---
+
+function isCostCategory(category: string): boolean {
+  return category === 'costs';
+}
+
 export function ScenarioComparison() {
   const businessId = useAtomValue(activeBusinessIdAtom);
+  const definitions = useAtomValue(businessVariablesAtom);
   const [scenarioAId, setScenarioAId] = useState<string>('');
   const [scenarioBId, setScenarioBId] = useState<string>('');
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [scenarios, setScenarios] = useState<DynamicScenario[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -126,7 +130,6 @@ export function ScenarioComparison() {
       .then((list) => {
         if (!mounted) return;
         setScenarios(list);
-        // Auto-select first two if available
         if (list.length >= 2) {
           setScenarioAId(list[0].metadata.id);
           setScenarioBId(list[1].metadata.id);
@@ -148,25 +151,57 @@ export function ScenarioComparison() {
   const scenarioA = scenarios.find((s) => s.metadata.id === scenarioAId);
   const scenarioB = scenarios.find((s) => s.metadata.id === scenarioBId);
 
-  const metricsA = useMemo(
-    () => (scenarioA ? computeDerivedMetrics(scenarioA.variables) : null),
-    [scenarioA]
+  // Evaluate each scenario using the formula engine
+  const evaluatedA = useMemo(
+    () => (scenarioA && definitions ? evaluateScenario(scenarioA, definitions) : null),
+    [scenarioA, definitions]
   );
-  const metricsB = useMemo(
-    () => (scenarioB ? computeDerivedMetrics(scenarioB.variables) : null),
-    [scenarioB]
+  const evaluatedB = useMemo(
+    () => (scenarioB && definitions ? evaluateScenario(scenarioB, definitions) : null),
+    [scenarioB, definitions]
   );
 
-  // Bar chart data
+  // Build input variable rows dynamically
+  const inputRows = useMemo(() => {
+    if (!definitions) return [];
+    return Object.values(definitions)
+      .filter((v) => v.type === 'input')
+      .map((v) => ({
+        id: v.id,
+        label: v.label,
+        unit: v.unit,
+        lowerIsBetter: isCostCategory(v.category),
+      }));
+  }, [definitions]);
+
+  // Build computed variable rows dynamically
+  const computedRows = useMemo(() => {
+    if (!definitions) return [];
+    return Object.values(definitions)
+      .filter((v) => v.type === 'computed')
+      .map((v) => ({
+        id: v.id,
+        label: v.label,
+        unit: v.unit,
+        lowerIsBetter: isCostCategory(v.category),
+      }));
+  }, [definitions]);
+
+  // Bar chart data - build from computed variables with recognizable labels
   const chartData = useMemo(() => {
-    if (!metricsA || !metricsB) return [];
-    return [
-      { category: 'Revenue', A: metricsA.monthlyRevenue, B: metricsB.monthlyRevenue },
-      { category: 'Costs', A: metricsA.monthlyCosts, B: metricsB.monthlyCosts },
-      { category: 'Profit', A: metricsA.monthlyProfit, B: metricsB.monthlyProfit },
-      { category: 'Ad Spend', A: metricsA.totalMonthlyAdSpend, B: metricsB.totalMonthlyAdSpend },
-    ];
-  }, [metricsA, metricsB]);
+    if (!evaluatedA || !evaluatedB || !definitions) return [];
+    const chartVars = Object.values(definitions).filter((v) => {
+      if (v.type !== 'computed') return false;
+      const lower = v.label.toLowerCase();
+      return lower.includes('revenue') || lower.includes('cost') || lower.includes('profit') || lower.includes('spend');
+    });
+    if (chartVars.length === 0) return [];
+    return chartVars.map((v) => ({
+      category: v.label,
+      A: evaluatedA[v.id] ?? 0,
+      B: evaluatedB[v.id] ?? 0,
+    }));
+  }, [evaluatedA, evaluatedB, definitions]);
 
   if (!businessId) {
     return (
@@ -243,7 +278,7 @@ export function ScenarioComparison() {
         </div>
       </div>
 
-      {scenarioA && scenarioB && metricsA && metricsB && (
+      {scenarioA && scenarioB && evaluatedA && evaluatedB && (
         <>
           {/* Input Variables Comparison Table */}
           <Card>
@@ -266,19 +301,19 @@ export function ScenarioComparison() {
                     </tr>
                   </thead>
                   <tbody>
-                    {VARIABLE_ROWS.map((row) => {
-                      const valA = scenarioA.variables[row.key];
-                      const valB = scenarioB.variables[row.key];
+                    {inputRows.map((row) => {
+                      const valA = scenarioA.values[row.id] ?? 0;
+                      const valB = scenarioB.values[row.id] ?? 0;
                       const diff = valB - valA;
                       return (
-                        <tr key={row.key} className="border-b last:border-0">
+                        <tr key={row.id} className="border-b last:border-0">
                           <td className="py-2 pr-4">{row.label}</td>
-                          <td className="text-right py-2 px-4">{row.format(valA)}</td>
-                          <td className="text-right py-2 px-4">{row.format(valB)}</td>
+                          <td className="text-right py-2 px-4">{formatValue(valA, row.unit)}</td>
+                          <td className="text-right py-2 px-4">{formatValue(valB, row.unit)}</td>
                           <td className="text-right py-2 pl-4">
                             <DiffCell
                               diff={diff}
-                              formatted={row.format(Math.abs(diff))}
+                              formatted={formatValue(Math.abs(diff), row.unit)}
                               lowerIsBetter={row.lowerIsBetter}
                             />
                           </td>
@@ -313,9 +348,9 @@ export function ScenarioComparison() {
                     </tr>
                   </thead>
                   <tbody>
-                    {METRIC_ROWS.map((row) => {
-                      const valA = metricsA[row.key];
-                      const valB = metricsB[row.key];
+                    {computedRows.map((row) => {
+                      const valA = evaluatedA[row.id] ?? 0;
+                      const valB = evaluatedB[row.id] ?? 0;
                       const diff = valB - valA;
                       const significant = isSignificantDiff(valA, valB);
                       const aWins = row.lowerIsBetter ? valA < valB : valA > valB;
@@ -325,14 +360,14 @@ export function ScenarioComparison() {
                           : 'bg-emerald-50/50'
                         : '';
                       return (
-                        <tr key={row.key} className={`border-b last:border-0 ${rowBg}`}>
+                        <tr key={row.id} className={`border-b last:border-0 ${rowBg}`}>
                           <td className="py-2 pr-4 font-medium">{row.label}</td>
-                          <td className="text-right py-2 px-4">{row.format(valA)}</td>
-                          <td className="text-right py-2 px-4">{row.format(valB)}</td>
+                          <td className="text-right py-2 px-4">{formatValue(valA, row.unit)}</td>
+                          <td className="text-right py-2 px-4">{formatValue(valB, row.unit)}</td>
                           <td className="text-right py-2 px-4">
                             <DiffCell
                               diff={diff}
-                              formatted={row.format(Math.abs(diff))}
+                              formatted={formatValue(Math.abs(diff), row.unit)}
                               lowerIsBetter={row.lowerIsBetter}
                             />
                           </td>
@@ -349,36 +384,38 @@ export function ScenarioComparison() {
           </Card>
 
           {/* Comparison Bar Chart */}
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-sm font-semibold">Visual Comparison</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Legend />
-                    <Bar
-                      dataKey="A"
-                      name={scenarioA.metadata.name}
-                      fill="#3b82f6"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="B"
-                      name={scenarioB.metadata.name}
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          {chartData.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <h3 className="text-sm font-semibold">Visual Comparison</h3>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+                      <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Legend />
+                      <Bar
+                        dataKey="A"
+                        name={scenarioA.metadata.name}
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="B"
+                        name={scenarioB.metadata.name}
+                        fill="#10b981"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>
