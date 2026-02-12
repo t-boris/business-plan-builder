@@ -137,11 +137,10 @@ Plans:
 **Goal**: Dashboard shows business-specific KPIs and projections based on that business's variables and scenarios. Sidebar navigation reflects enabled sections. Breadcrumbs include business name.
 **Depends on**: Phase 7, Phase 5
 **Research**: Unlikely (UI work with established patterns)
-**Plans**: 2 plans
+**Plans**: 1 plan
 
 Plans:
-- [ ] 10-01: Multi-business dashboard (KPI cards and charts driven by business's active variables and derived metrics)
-- [ ] 10-02: Sidebar and navigation updates (business name in header, section list from business config, breadcrumbs)
+- [ ] 10-01: Smart dashboard rewrite (priority-sorted KPIs, dynamic chart from currency variables, filtered section links with business-scoped URLs)
 
 ### Phase 11: Export Updates
 **Goal**: PDF export and business plan view work with generic businesses. Cover page shows business name/info. Section rendering adapts to enabled sections and business-specific data.
