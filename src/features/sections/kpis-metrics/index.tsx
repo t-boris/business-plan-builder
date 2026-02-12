@@ -4,18 +4,11 @@ import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
+import { PageHeader } from '@/components/page-header';
 import type { KpisMetrics as KpisMetricsType, KpiTargets } from '@/types';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertCircle, CheckCircle2, ArrowDown } from 'lucide-react';
 
 const defaultKpis: KpisMetricsType = {
   targets: { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 },
@@ -57,9 +50,9 @@ function KpiInput({
   const displayValue = isPercentage ? Math.round(value * 100) : value;
 
   return (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <div className="relative">
+    <div className="card-elevated rounded-lg p-4">
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</label>
+      <div className="relative mt-1">
         {prefix && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
             {prefix}
@@ -67,7 +60,7 @@ function KpiInput({
         )}
         <Input
           type="number"
-          className={prefix ? 'pl-7' : undefined}
+          className={`tabular-nums ${prefix ? 'pl-7' : ''} ${suffix ? 'pr-8' : ''}`}
           value={displayValue}
           onChange={(e) => {
             const raw = Number(e.target.value);
@@ -85,19 +78,24 @@ function KpiInput({
   );
 }
 
-function ComparisonBadge({ target, actual, isPercentage }: { target: number; actual: number; isPercentage?: boolean }) {
-  if (actual === 0) return null;
-  const isGood = actual >= target;
+function ComparisonBadge({ target, actual, isPercentage, isCostField }: { target: number; actual: number; isPercentage?: boolean; isCostField?: boolean }) {
+  if (actual === 0 && target === 0) return null;
+  const isGood = isCostField ? actual <= target : actual >= target;
   const formatValue = (v: number) => (isPercentage ? `${Math.round(v * 100)}%` : v.toLocaleString());
 
   return (
     <span
-      className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+      className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
         isGood
           ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
-          : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
       }`}
     >
+      {isGood ? (
+        <CheckCircle2 className="size-3" />
+      ) : (
+        <ArrowDown className="size-3" />
+      )}
       {formatValue(actual)} / {formatValue(target)}
     </span>
   );
@@ -113,9 +111,8 @@ export function KpisMetrics() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">KPIs & Metrics</h1>
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="page-container">
+        <PageHeader title="KPIs & Metrics" description="Loading..." />
       </div>
     );
   }
@@ -163,60 +160,51 @@ export function KpisMetrics() {
   const hasActuals = displayData.actuals && Object.values(displayData.actuals).some((v) => v > 0);
 
   const sectionContent = (
-    <div className="space-y-6">
-      {/* Targets Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Targets</CardTitle>
-          <CardDescription>
-            Monthly performance targets for leads, conversion, and revenue.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {KPI_FIELDS.map((field) => (
-              <KpiInput
-                key={field.key}
-                label={field.label}
-                value={displayData.targets[field.key]}
-                onChange={(value) => updateTarget(field.key, value)}
-                prefix={field.prefix}
-                suffix={field.suffix}
-                isPercentage={field.isPercentage}
-                readOnly={!canEdit || isPreview}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="page-container">
+      {/* Targets */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Targets</h2>
+        <p className="text-xs text-muted-foreground">Monthly performance targets for leads, conversion, and revenue.</p>
+        <div className="stat-grid">
+          {KPI_FIELDS.map((field) => (
+            <KpiInput
+              key={field.key}
+              label={field.label}
+              value={displayData.targets[field.key]}
+              onChange={(value) => updateTarget(field.key, value)}
+              prefix={field.prefix}
+              suffix={field.suffix}
+              isPercentage={field.isPercentage}
+              readOnly={!canEdit || isPreview}
+            />
+          ))}
+        </div>
+      </div>
 
-      <Separator />
+      {/* Actuals (collapsible) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Track Actuals</h2>
+          {canEdit && !isPreview && (
+            <Button variant="outline" size="sm" onClick={toggleActuals}>
+              {showActuals ? (
+                <ChevronDown className="size-4" />
+              ) : (
+                <ChevronRight className="size-4" />
+              )}
+              {showActuals ? 'Collapse' : 'Expand'}
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">Track real performance numbers against your targets.</p>
 
-      {/* Actuals Card (collapsible) */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Track Actuals</CardTitle>
-              <CardDescription>
-                Track real performance numbers against your targets.
-              </CardDescription>
-            </div>
-            {canEdit && !isPreview && (
-              <Button variant="outline" size="sm" onClick={toggleActuals}>
-                {showActuals ? (
-                  <ChevronDown className="size-4" />
-                ) : (
-                  <ChevronRight className="size-4" />
-                )}
-                {showActuals ? 'Collapse' : 'Expand'}
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        {showActuals && (
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          className={`grid transition-all duration-200 ease-in-out ${
+            showActuals ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="stat-grid pt-1">
               {KPI_FIELDS.map((field) => (
                 <KpiInput
                   key={field.key}
@@ -230,59 +218,50 @@ export function KpisMetrics() {
                 />
               ))}
             </div>
-          </CardContent>
-        )}
-      </Card>
+          </div>
+        </div>
+      </div>
 
       {/* Comparison View */}
       {hasActuals && (
-        <>
-          <Separator />
-          <Card>
-            <CardHeader>
-              <CardTitle>Target vs Actual</CardTitle>
-              <CardDescription>
-                Green indicates meeting or exceeding target. Red indicates below target.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {KPI_FIELDS.map((field) => {
-                  const target = displayData.targets[field.key];
-                  const actual = displayData.actuals?.[field.key] ?? 0;
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Target vs Actual</h2>
+          <p className="text-xs text-muted-foreground">Green indicates meeting or exceeding target. Amber indicates below target.</p>
+          <div className="stat-grid">
+            {KPI_FIELDS.map((field) => {
+              const target = displayData.targets[field.key];
+              const actual = displayData.actuals?.[field.key] ?? 0;
+              const isCostField = field.key === 'cacPerLead' || field.key === 'cacPerBooking';
 
-                  // For CAC fields, lower is better (invert comparison)
-                  const isCostField = field.key === 'cacPerLead' || field.key === 'cacPerBooking';
-
-                  return (
-                    <div key={field.key} className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        {field.label}
-                      </label>
-                      <ComparisonBadge
-                        target={isCostField ? actual : target}
-                        actual={isCostField ? target : actual}
-                        isPercentage={field.isPercentage}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </>
+              return (
+                <div key={field.key} className="card-elevated rounded-lg p-4 space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {field.label}
+                  </label>
+                  <div>
+                    <ComparisonBadge
+                      target={target}
+                      actual={actual}
+                      isPercentage={field.isPercentage}
+                      isCostField={isCostField}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">KPIs & Metrics</h1>
+    <div className="page-container">
+      <PageHeader title="KPIs & Metrics" description="Performance targets, actuals tracking, and comparison dashboard">
         {canEdit && (
           <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
         )}
-      </div>
+      </PageHeader>
 
       {aiSuggestion.state.status === 'error' && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
