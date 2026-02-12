@@ -75,7 +75,7 @@ const verdictLabels: Record<InvestmentVerdict, string> = {
 };
 
 export function RisksDueDiligence() {
-  const { data, updateData, isLoading } = useSection<RisksDueDiligenceType>('risks-due-diligence', defaultRisks);
+  const { data, updateData, isLoading, canEdit } = useSection<RisksDueDiligenceType>('risks-due-diligence', defaultRisks);
   const aiSuggestion = useAiSuggestion<RisksDueDiligenceType>('risks-due-diligence');
 
   if (isLoading) {
@@ -121,7 +121,7 @@ export function RisksDueDiligence() {
             <div className="flex items-center gap-3 mb-3">
               <ShieldCheck className="size-5 shrink-0" />
               <h2 className="text-lg font-semibold">Investment Verdict</h2>
-              {!isPreview ? (
+              {canEdit && !isPreview ? (
                 <Select value={verdict.verdict} onValueChange={(v) => updateVerdict(v as InvestmentVerdict)}>
                   <SelectTrigger className="w-52">
                     <span className={`font-semibold ${vStyle.text}`}>{verdictLabels[verdict.verdict]}</span>
@@ -144,7 +144,7 @@ export function RisksDueDiligence() {
                 {verdict.conditions.map((condition, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <span className="text-muted-foreground text-xs">{i + 1}.</span>
-                    {!isPreview ? (
+                    {canEdit && !isPreview ? (
                       <>
                         <Input value={condition} onChange={(e) => updateVerdictCondition(i, e.target.value)} placeholder="Condition..." className="flex-1 text-sm" />
                         <Button variant="ghost" size="icon-xs" onClick={() => removeVerdictCondition(i)}><Trash2 className="size-3" /></Button>
@@ -154,7 +154,7 @@ export function RisksDueDiligence() {
                     )}
                   </div>
                 ))}
-                {!isPreview && (
+                {canEdit && !isPreview && (
                   <Button variant="ghost" size="sm" onClick={addVerdictCondition} className="text-xs"><Plus className="size-3 mr-1" />Add Condition</Button>
                 )}
               </div>
@@ -167,7 +167,7 @@ export function RisksDueDiligence() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Risk Assessment</h2>
-          {!isPreview && <Button variant="outline" size="sm" onClick={addRisk}><Plus className="size-4" />Add Risk</Button>}
+          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addRisk}><Plus className="size-4" />Add Risk</Button>}
         </div>
         <div className="space-y-4">
           {displayData.risks.map((risk, index) => (
@@ -178,14 +178,14 @@ export function RisksDueDiligence() {
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyles[risk.severity]}`}>{risk.severity}</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryStyles[risk.category]}`}>{risk.category}</span>
                   </div>
-                  {!isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeRisk(index)}><Trash2 className="size-3" /></Button>}
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeRisk(index)}><Trash2 className="size-3" /></Button>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Severity</label>
-                    <Select value={risk.severity} onValueChange={(v) => updateRisk(index, 'severity', v)} disabled={isPreview}>
+                    <Select value={risk.severity} onValueChange={(v) => updateRisk(index, 'severity', v)} disabled={!canEdit || isPreview}>
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="critical">Critical</SelectItem>
@@ -197,7 +197,7 @@ export function RisksDueDiligence() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Category</label>
-                    <Select value={risk.category} onValueChange={(v) => updateRisk(index, 'category', v)} disabled={isPreview}>
+                    <Select value={risk.category} onValueChange={(v) => updateRisk(index, 'category', v)} disabled={!canEdit || isPreview}>
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="regulatory">Regulatory</SelectItem>
@@ -212,9 +212,9 @@ export function RisksDueDiligence() {
                     </Select>
                   </div>
                 </div>
-                <div><label className="text-xs font-medium text-muted-foreground">Title</label><Input value={risk.title} onChange={(e) => updateRisk(index, 'title', e.target.value)} placeholder="Risk title" readOnly={isPreview} /></div>
-                <div><label className="text-xs font-medium text-muted-foreground">Description</label><Textarea value={risk.description} onChange={(e) => updateRisk(index, 'description', e.target.value)} placeholder="Describe the risk..." rows={2} readOnly={isPreview} /></div>
-                <div><label className="text-xs font-medium text-muted-foreground">Mitigation</label><Textarea value={risk.mitigation} onChange={(e) => updateRisk(index, 'mitigation', e.target.value)} placeholder="Mitigation strategy..." rows={2} readOnly={isPreview} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Title</label><Input value={risk.title} onChange={(e) => updateRisk(index, 'title', e.target.value)} placeholder="Risk title" readOnly={!canEdit || isPreview} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Description</label><Textarea value={risk.description} onChange={(e) => updateRisk(index, 'description', e.target.value)} placeholder="Describe the risk..." rows={2} readOnly={!canEdit || isPreview} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Mitigation</label><Textarea value={risk.mitigation} onChange={(e) => updateRisk(index, 'mitigation', e.target.value)} placeholder="Mitigation strategy..." rows={2} readOnly={!canEdit || isPreview} /></div>
               </CardContent>
             </Card>
           ))}
@@ -228,7 +228,7 @@ export function RisksDueDiligence() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Due Diligence Checklist</h2>
-          {!isPreview && <Button variant="outline" size="sm" onClick={addDDItem}><Plus className="size-4" />Add Item</Button>}
+          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addDDItem}><Plus className="size-4" />Add Item</Button>}
         </div>
         <div className="space-y-3">
           {ddChecklist.map((item, index) => (
@@ -241,12 +241,12 @@ export function RisksDueDiligence() {
                       {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
                     </span>
                   </div>
-                  {!isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeDDItem(index)}><Trash2 className="size-3" /></Button>}
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeDDItem(index)}><Trash2 className="size-3" /></Button>}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Priority</label>
-                    <Select value={item.priority} onValueChange={(v) => updateDDItem(index, 'priority', v)} disabled={isPreview}>
+                    <Select value={item.priority} onValueChange={(v) => updateDDItem(index, 'priority', v)} disabled={!canEdit || isPreview}>
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="required">Required</SelectItem>
@@ -256,7 +256,7 @@ export function RisksDueDiligence() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Status</label>
-                    <Select value={item.status} onValueChange={(v) => updateDDItem(index, 'status', v)} disabled={isPreview}>
+                    <Select value={item.status} onValueChange={(v) => updateDDItem(index, 'status', v)} disabled={!canEdit || isPreview}>
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="not-started">Not Started</SelectItem>
@@ -266,8 +266,8 @@ export function RisksDueDiligence() {
                     </Select>
                   </div>
                 </div>
-                <div><label className="text-xs font-medium text-muted-foreground">Item</label><Input value={item.item} onChange={(e) => updateDDItem(index, 'item', e.target.value)} placeholder="Due diligence item..." readOnly={isPreview} /></div>
-                <div><label className="text-xs font-medium text-muted-foreground">Detail</label><Textarea value={item.detail} onChange={(e) => updateDDItem(index, 'detail', e.target.value)} placeholder="Details and findings..." rows={2} readOnly={isPreview} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Item</label><Input value={item.item} onChange={(e) => updateDDItem(index, 'item', e.target.value)} placeholder="Due diligence item..." readOnly={!canEdit || isPreview} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Detail</label><Textarea value={item.detail} onChange={(e) => updateDDItem(index, 'detail', e.target.value)} placeholder="Details and findings..." rows={2} readOnly={!canEdit || isPreview} /></div>
               </CardContent>
             </Card>
           ))}
@@ -281,15 +281,15 @@ export function RisksDueDiligence() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Compliance Checklist</h2>
-          {!isPreview && <Button variant="outline" size="sm" onClick={addComplianceItem}><Plus className="size-4" />Add Item</Button>}
+          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addComplianceItem}><Plus className="size-4" />Add Item</Button>}
         </div>
         <Card>
           <CardContent>
             <div className="space-y-3">
               {displayData.complianceChecklist.map((item, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <Input value={item.item} onChange={(e) => updateComplianceItem(index, 'item', e.target.value)} placeholder="Compliance item..." className="flex-1" readOnly={isPreview} />
-                  <Select value={item.status} onValueChange={(v) => updateComplianceItem(index, 'status', v)} disabled={isPreview}>
+                  <Input value={item.item} onChange={(e) => updateComplianceItem(index, 'item', e.target.value)} placeholder="Compliance item..." className="flex-1" readOnly={!canEdit || isPreview} />
+                  <Select value={item.status} onValueChange={(v) => updateComplianceItem(index, 'status', v)} disabled={!canEdit || isPreview}>
                     <SelectTrigger className="w-36">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${complianceStatusStyles[item.status]}`}>
                         {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
@@ -297,7 +297,7 @@ export function RisksDueDiligence() {
                     </SelectTrigger>
                     <SelectContent><SelectItem value="not-started">Not Started</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="complete">Complete</SelectItem></SelectContent>
                   </Select>
-                  {!isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeComplianceItem(index)}><Trash2 className="size-3" /></Button>}
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeComplianceItem(index)}><Trash2 className="size-3" /></Button>}
                 </div>
               ))}
               {displayData.complianceChecklist.length === 0 && <p className="text-sm text-muted-foreground py-2">No compliance items yet.</p>}
@@ -312,7 +312,9 @@ export function RisksDueDiligence() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Risks & Due Diligence</h1>
-        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        {canEdit && (
+          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

@@ -12,6 +12,7 @@ import {
   saveScenarioPreferences,
 } from '@/lib/business-firestore';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
+import { useCanEdit } from '@/hooks/use-business-role';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -30,6 +31,7 @@ export function ScenarioManager() {
   const loadDynamicScenario = useSetAtom(loadDynamicScenarioAtom);
   const resetDynamicToDefaults = useSetAtom(resetDynamicToDefaultsAtom);
 
+  const canEdit = useCanEdit();
   const [isLoading, setIsLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -108,20 +110,22 @@ export function ScenarioManager() {
 
       {/* Actions */}
       <div className="flex items-center gap-2 ml-auto">
-        <Button variant="outline" size="sm" onClick={handleNew}>
+        <Button variant="outline" size="sm" onClick={handleNew} disabled={!canEdit}>
           <Plus className="size-4 mr-1" />
           New
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDelete}
-          disabled={scenarioList.length <= 1 || isLoading}
-        >
-          <Trash2 className="size-4 mr-1" />
-          Delete
-        </Button>
+        {canEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            disabled={scenarioList.length <= 1 || isLoading}
+          >
+            <Trash2 className="size-4 mr-1" />
+            Delete
+          </Button>
+        )}
       </div>
 
       {/* Auto-save indicator */}

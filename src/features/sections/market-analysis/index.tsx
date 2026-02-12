@@ -284,7 +284,7 @@ function parsePriceRange(pricing: string): [number, number] | null {
 }
 
 export function MarketAnalysis() {
-  const { data, updateData, isLoading } = useSection<MarketAnalysisType>(
+  const { data, updateData, isLoading, canEdit } = useSection<MarketAnalysisType>(
     'market-analysis',
     defaultMarketAnalysis
   );
@@ -537,7 +537,7 @@ export function MarketAnalysis() {
               <Input
                 value={displayData.targetDemographic.ageRange}
                 onChange={(e) => updateDemographic('ageRange', e.target.value)}
-                readOnly={isPreview}
+                readOnly={!canEdit || isPreview}
               />
             </div>
             <div>
@@ -545,7 +545,7 @@ export function MarketAnalysis() {
               <Input
                 value={displayData.targetDemographic.location}
                 onChange={(e) => updateDemographic('location', e.target.value)}
-                readOnly={isPreview}
+                readOnly={!canEdit || isPreview}
               />
             </div>
             <div>
@@ -555,14 +555,14 @@ export function MarketAnalysis() {
                   type="number"
                   value={displayData.targetDemographic.radius}
                   onChange={(e) => updateDemographic('radius', Number(e.target.value))}
-                  readOnly={isPreview}
+                  readOnly={!canEdit || isPreview}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">miles</span>
               </div>
             </div>
 
             {/* Zip Codes + Research */}
-            {!isPreview && (
+            {canEdit && !isPreview && (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Zip Codes</label>
                 <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 min-h-9 focus-within:ring-ring/50 focus-within:ring-[3px] focus-within:border-ring">
@@ -625,7 +625,7 @@ export function MarketAnalysis() {
               value={displayData.marketSize}
               onChange={(e) => updateData((prev) => ({ ...prev, marketSize: e.target.value }))}
               rows={4}
-              readOnly={isPreview}
+              readOnly={!canEdit || isPreview}
             />
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -635,7 +635,7 @@ export function MarketAnalysis() {
                   value={displayData.tamDollars}
                   onChange={(e) => updateData((prev) => ({ ...prev, tamDollars: Number(e.target.value) }))}
                   placeholder="e.g. 12000000"
-                  readOnly={isPreview}
+                  readOnly={!canEdit || isPreview}
                 />
               </div>
               <div>
@@ -644,7 +644,7 @@ export function MarketAnalysis() {
                   value={displayData.targetMarketShare}
                   onChange={(e) => updateData((prev) => ({ ...prev, targetMarketShare: e.target.value }))}
                   placeholder="e.g. 2-5%"
-                  readOnly={isPreview}
+                  readOnly={!canEdit || isPreview}
                 />
               </div>
             </div>
@@ -727,7 +727,7 @@ export function MarketAnalysis() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Competitors</h2>
-          {!isPreview && (
+          {canEdit && !isPreview && (
             <Button variant="outline" size="sm" onClick={addCompetitor}>
               <Plus className="size-4" />
               Add Competitor
@@ -755,7 +755,7 @@ export function MarketAnalysis() {
                       value={competitor.name}
                       onChange={(e) => updateCompetitor(index, 'name', e.target.value)}
                       placeholder="Competitor name"
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
                   <div>
@@ -764,7 +764,7 @@ export function MarketAnalysis() {
                       value={competitor.pricing}
                       onChange={(e) => updateCompetitor(index, 'pricing', e.target.value)}
                       placeholder="$XXX-$XXX"
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
                   <div>
@@ -773,7 +773,7 @@ export function MarketAnalysis() {
                       value={competitor.strengths}
                       onChange={(e) => updateCompetitor(index, 'strengths', e.target.value)}
                       placeholder="Key strengths"
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
                   <div>
@@ -782,10 +782,10 @@ export function MarketAnalysis() {
                       value={competitor.weaknesses}
                       onChange={(e) => updateCompetitor(index, 'weaknesses', e.target.value)}
                       placeholder="Key weaknesses"
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
-                  {!isPreview && (
+                  {canEdit && !isPreview && (
                     <Button
                       variant="ghost"
                       size="icon-xs"
@@ -856,7 +856,7 @@ export function MarketAnalysis() {
                     type="number"
                     value={displayData.demographics.population}
                     onChange={(e) => updateDemographics('population', Number(e.target.value))}
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                 </div>
                 <div>
@@ -865,7 +865,7 @@ export function MarketAnalysis() {
                     type="number"
                     value={displayData.demographics.householdsWithKids}
                     onChange={(e) => updateDemographics('householdsWithKids', Number(e.target.value))}
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                 </div>
                 <div>
@@ -878,7 +878,7 @@ export function MarketAnalysis() {
                         e.target.value.split(',').map((l) => l.trim()).filter(Boolean)
                       )
                     }
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                 </div>
                 <div>
@@ -886,7 +886,7 @@ export function MarketAnalysis() {
                   <Input
                     value={displayData.demographics.income}
                     onChange={(e) => updateDemographics('income', e.target.value)}
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                 </div>
                 <div>
@@ -895,7 +895,7 @@ export function MarketAnalysis() {
                     type="number"
                     value={displayData.demographics.annualTourists}
                     onChange={(e) => updateDemographics('annualTourists', Number(e.target.value))}
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                 </div>
               </div>
@@ -962,13 +962,15 @@ export function MarketAnalysis() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Market Analysis</h1>
-        <AiActionBar
-          onGenerate={() => aiSuggestion.generate('generate', data)}
-          onImprove={() => aiSuggestion.generate('improve', data)}
-          onExpand={() => aiSuggestion.generate('expand', data)}
-          isLoading={aiSuggestion.state.status === 'loading'}
-          disabled={!isAiAvailable}
-        />
+        {canEdit && (
+          <AiActionBar
+            onGenerate={() => aiSuggestion.generate('generate', data)}
+            onImprove={() => aiSuggestion.generate('improve', data)}
+            onExpand={() => aiSuggestion.generate('expand', data)}
+            isLoading={aiSuggestion.state.status === 'loading'}
+            disabled={!isAiAvailable}
+          />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

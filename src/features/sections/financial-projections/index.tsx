@@ -67,7 +67,7 @@ function formatCurrency(value: number): string {
 const PIE_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6', '#ef4444', '#06b6d4'];
 
 export function FinancialProjections() {
-  const { data, updateData, isLoading } = useSection<FinancialProjectionsType>('financial-projections', defaultFinancials);
+  const { data, updateData, isLoading, canEdit } = useSection<FinancialProjectionsType>('financial-projections', defaultFinancials);
   const aiSuggestion = useAiSuggestion<string>('financial-projections');
 
   if (isLoading) {
@@ -175,13 +175,15 @@ export function FinancialProjections() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Financial Projections</h1>
-        <AiActionBar
-          onGenerate={() => aiSuggestion.generate('generate', data)}
-          onImprove={() => aiSuggestion.generate('improve', data)}
-          onExpand={() => aiSuggestion.generate('expand', data)}
-          isLoading={aiSuggestion.state.status === 'loading'}
-          disabled={!isAiAvailable}
-        />
+        {canEdit && (
+          <AiActionBar
+            onGenerate={() => aiSuggestion.generate('generate', data)}
+            onImprove={() => aiSuggestion.generate('improve', data)}
+            onExpand={() => aiSuggestion.generate('expand', data)}
+            isLoading={aiSuggestion.state.status === 'loading'}
+            disabled={!isAiAvailable}
+          />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (
@@ -275,22 +277,24 @@ export function FinancialProjections() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Seasonality Coefficients</h2>
-            <div className="flex gap-2">
-              <Button
-                variant={JSON.stringify(data.seasonCoefficients) === JSON.stringify(SEASON_PRESET_FLAT) ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => updateData((prev) => ({ ...prev, seasonCoefficients: SEASON_PRESET_FLAT }))}
-              >
-                Flat
-              </Button>
-              <Button
-                variant={JSON.stringify(data.seasonCoefficients) === JSON.stringify(SEASON_PRESET_SUMMER_PEAK) ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => updateData((prev) => ({ ...prev, seasonCoefficients: SEASON_PRESET_SUMMER_PEAK }))}
-              >
-                Summer Peak
-              </Button>
-            </div>
+            {canEdit && (
+              <div className="flex gap-2">
+                <Button
+                  variant={JSON.stringify(data.seasonCoefficients) === JSON.stringify(SEASON_PRESET_FLAT) ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => updateData((prev) => ({ ...prev, seasonCoefficients: SEASON_PRESET_FLAT }))}
+                >
+                  Flat
+                </Button>
+                <Button
+                  variant={JSON.stringify(data.seasonCoefficients) === JSON.stringify(SEASON_PRESET_SUMMER_PEAK) ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => updateData((prev) => ({ ...prev, seasonCoefficients: SEASON_PRESET_SUMMER_PEAK }))}
+                >
+                  Summer Peak
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -336,11 +340,13 @@ export function FinancialProjections() {
                     });
                   }}
                   className="h-7 text-[11px] text-center px-0.5"
+                  readOnly={!canEdit}
                 />
               </div>
             ))}
           </div>
 
+          {canEdit && (
           <div className="flex justify-end">
             <Button
               onClick={() => {
@@ -362,6 +368,7 @@ export function FinancialProjections() {
               Recalculate Projections
             </Button>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -390,7 +397,7 @@ export function FinancialProjections() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Monthly P&L</h2>
-            <Button variant="outline" size="sm" onClick={addMonth}><Plus className="size-4" />Add Month</Button>
+            {canEdit && <Button variant="outline" size="sm" onClick={addMonth}><Plus className="size-4" />Add Month</Button>}
           </div>
         </CardHeader>
         <CardContent>
@@ -417,17 +424,17 @@ export function FinancialProjections() {
                   const profit = m.revenue - totalC;
                   return (
                     <tr key={i} className="border-b last:border-b-0">
-                      <td className="py-1 pr-2"><Input value={m.month} onChange={(e) => updateMonthName(i, e.target.value)} className="h-8 text-xs w-24" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.revenue} onChange={(e) => updateMonth(i, 'revenue', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.costs.marketing} onChange={(e) => updateMonth(i, 'marketing', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.costs.labor} onChange={(e) => updateMonth(i, 'labor', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.costs.supplies} onChange={(e) => updateMonth(i, 'supplies', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.costs.museum} onChange={(e) => updateMonth(i, 'museum', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.costs.transport} onChange={(e) => updateMonth(i, 'transport', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
-                      <td className="py-1 px-1"><Input type="number" value={m.costs.fixed ?? 0} onChange={(e) => updateMonth(i, 'fixed', Number(e.target.value))} className="h-8 text-xs text-right w-20" /></td>
+                      <td className="py-1 pr-2"><Input value={m.month} onChange={(e) => updateMonthName(i, e.target.value)} className="h-8 text-xs w-24" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.revenue} onChange={(e) => updateMonth(i, 'revenue', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.costs.marketing} onChange={(e) => updateMonth(i, 'marketing', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.costs.labor} onChange={(e) => updateMonth(i, 'labor', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.costs.supplies} onChange={(e) => updateMonth(i, 'supplies', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.costs.museum} onChange={(e) => updateMonth(i, 'museum', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.costs.transport} onChange={(e) => updateMonth(i, 'transport', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
+                      <td className="py-1 px-1"><Input type="number" value={m.costs.fixed ?? 0} onChange={(e) => updateMonth(i, 'fixed', Number(e.target.value))} className="h-8 text-xs text-right w-20" readOnly={!canEdit} /></td>
                       <td className="py-1 px-2 text-right text-xs font-medium text-muted-foreground">{formatCurrency(totalC)}</td>
                       <td className={`py-1 px-2 text-right text-xs font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(profit)}</td>
-                      <td className="py-1 pl-1"><Button variant="ghost" size="icon-xs" onClick={() => removeMonth(i)}><Trash2 className="size-3" /></Button></td>
+                      <td className="py-1 pl-1">{canEdit && <Button variant="ghost" size="icon-xs" onClick={() => removeMonth(i)}><Trash2 className="size-3" /></Button>}</td>
                     </tr>
                   );
                 })}
@@ -462,11 +469,11 @@ export function FinancialProjections() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Average Check ($)</label>
-              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={data.unitEconomics.avgCheck} onChange={(e) => updateUnitEconomics('avgCheck', Number(e.target.value))} /></div>
+              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={data.unitEconomics.avgCheck} onChange={(e) => updateUnitEconomics('avgCheck', Number(e.target.value))} readOnly={!canEdit} /></div>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Cost Per Event ($)</label>
-              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={data.unitEconomics.costPerEvent} onChange={(e) => updateUnitEconomics('costPerEvent', Number(e.target.value))} /></div>
+              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={data.unitEconomics.costPerEvent} onChange={(e) => updateUnitEconomics('costPerEvent', Number(e.target.value))} readOnly={!canEdit} /></div>
               <p className="text-[10px] text-muted-foreground mt-1">Computed from operations cost breakdown</p>
             </div>
             <div>

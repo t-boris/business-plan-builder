@@ -133,7 +133,7 @@ function SubtotalRow({ label, value }: { label: string; value: number }) {
 }
 
 export function Operations() {
-  const { data, updateData, isLoading } = useSection<OperationsType>('operations', defaultOperations);
+  const { data, updateData, isLoading, canEdit } = useSection<OperationsType>('operations', defaultOperations);
   const aiSuggestion = useAiSuggestion<OperationsType>('operations');
 
   if (isLoading) {
@@ -246,7 +246,7 @@ export function Operations() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Event Crew (per-event labor)</h2>
-          {!isPreview && <Button variant="outline" size="sm" onClick={addCrewMember}><Plus className="size-4" />Add Crew Member</Button>}
+          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addCrewMember}><Plus className="size-4" />Add Crew Member</Button>}
         </div>
         <Card>
           <CardContent>
@@ -260,11 +260,11 @@ export function Operations() {
               </div>
               {displayData.crew.map((member, index) => (
                 <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
-                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Role</span><Input value={member.role} onChange={(e) => updateCrewMember(index, 'role', e.target.value)} placeholder="Role name" readOnly={isPreview} /></div>
-                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">$/hr</span><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={member.hourlyRate} onChange={(e) => updateCrewMember(index, 'hourlyRate', Number(e.target.value))} step="0.5" readOnly={isPreview} /></div></div>
-                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Count</span><Input type="number" value={member.count} onChange={(e) => updateCrewMember(index, 'count', Number(e.target.value))} min={1} readOnly={isPreview} /></div>
+                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Role</span><Input value={member.role} onChange={(e) => updateCrewMember(index, 'role', e.target.value)} placeholder="Role name" readOnly={!canEdit || isPreview} /></div>
+                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">$/hr</span><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={member.hourlyRate} onChange={(e) => updateCrewMember(index, 'hourlyRate', Number(e.target.value))} step="0.5" readOnly={!canEdit || isPreview} /></div></div>
+                  <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Count</span><Input type="number" value={member.count} onChange={(e) => updateCrewMember(index, 'count', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
                   <div><span className="text-xs font-medium text-muted-foreground sm:hidden">Per Event</span><div className="flex h-9 items-center rounded-md bg-muted px-3 text-sm font-medium">{fmt(member.hourlyRate * member.count * displayData.hoursPerEvent)}</div></div>
-                  {!isPreview && <Button variant="ghost" size="icon-xs" className="mt-1 sm:mt-0" onClick={() => removeCrewMember(index)}><Trash2 className="size-3" /></Button>}
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="mt-1 sm:mt-0" onClick={() => removeCrewMember(index)}><Trash2 className="size-3" /></Button>}
                 </div>
               ))}
               {displayData.crew.length === 0 && <p className="text-sm text-muted-foreground py-2">No crew members.</p>}
@@ -272,7 +272,7 @@ export function Operations() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-center border-t pt-3">
                     <div className="sm:col-span-3 text-sm font-semibold text-right">Hours per event:</div>
-                    <div><Input type="number" value={displayData.hoursPerEvent} onChange={(e) => updateData((prev) => ({ ...prev, hoursPerEvent: Number(e.target.value) }))} min={1} step={0.5} readOnly={isPreview} /></div>
+                    <div><Input type="number" value={displayData.hoursPerEvent} onChange={(e) => updateData((prev) => ({ ...prev, hoursPerEvent: Number(e.target.value) }))} min={1} step={0.5} readOnly={!canEdit || isPreview} /></div>
                     <div />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_80px_100px_40px] gap-3 items-center border-t pt-3">
@@ -300,8 +300,8 @@ export function Operations() {
             <CardHeader><CardTitle>Supplies & Materials</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <CostInput label="Cost per child" value={cb.suppliesPerChild} onChange={(v) => uc('suppliesPerChild', v)} readOnly={isPreview} step={0.5} />
-                <div><label className="text-xs font-medium text-muted-foreground">Participants</label><Input type="number" value={cb.participantsPerEvent} onChange={(e) => uc('participantsPerEvent', Number(e.target.value))} min={1} readOnly={isPreview} /></div>
+                <CostInput label="Cost per child" value={cb.suppliesPerChild} onChange={(v) => uc('suppliesPerChild', v)} readOnly={!canEdit || isPreview} step={0.5} />
+                <div><label className="text-xs font-medium text-muted-foreground">Participants</label><Input type="number" value={cb.participantsPerEvent} onChange={(e) => uc('participantsPerEvent', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
               </div>
               <SubtotalRow label="Supplies total" value={costs.suppliesCost} />
             </CardContent>
@@ -310,8 +310,8 @@ export function Operations() {
             <CardHeader><CardTitle>Venue / Tickets</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <CostInput label="Ticket/Venue price" value={cb.museumTicketPrice} onChange={(v) => uc('museumTicketPrice', v)} readOnly={isPreview} step={0.5} />
-                <div><label className="text-xs font-medium text-muted-foreground">Tickets per event</label><Input type="number" value={cb.ticketsPerEvent} onChange={(e) => uc('ticketsPerEvent', Number(e.target.value))} min={0} readOnly={isPreview} /></div>
+                <CostInput label="Ticket/Venue price" value={cb.museumTicketPrice} onChange={(v) => uc('museumTicketPrice', v)} readOnly={!canEdit || isPreview} step={0.5} />
+                <div><label className="text-xs font-medium text-muted-foreground">Tickets per event</label><Input type="number" value={cb.ticketsPerEvent} onChange={(e) => uc('ticketsPerEvent', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
               </div>
               <SubtotalRow label="Venue/Tickets total" value={costs.museumCost} />
             </CardContent>
@@ -320,11 +320,11 @@ export function Operations() {
             <CardHeader><CardTitle>Fuel / Transportation</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
-                <CostInput label="Gas $/gal" value={cb.fuelPricePerGallon} onChange={(v) => uc('fuelPricePerGallon', v)} readOnly={isPreview} step={0.1} />
-                <div><label className="text-xs font-medium text-muted-foreground">Vehicle MPG</label><Input type="number" value={cb.vehicleMPG} onChange={(e) => uc('vehicleMPG', Number(e.target.value))} min={1} readOnly={isPreview} /></div>
-                <div><label className="text-xs font-medium text-muted-foreground">Round trip mi</label><Input type="number" value={cb.avgRoundTripMiles} onChange={(e) => uc('avgRoundTripMiles', Number(e.target.value))} min={0} readOnly={isPreview} /></div>
+                <CostInput label="Gas $/gal" value={cb.fuelPricePerGallon} onChange={(v) => uc('fuelPricePerGallon', v)} readOnly={!canEdit || isPreview} step={0.1} />
+                <div><label className="text-xs font-medium text-muted-foreground">Vehicle MPG</label><Input type="number" value={cb.vehicleMPG} onChange={(e) => uc('vehicleMPG', Number(e.target.value))} min={1} readOnly={!canEdit || isPreview} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Round trip mi</label><Input type="number" value={cb.avgRoundTripMiles} onChange={(e) => uc('avgRoundTripMiles', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
               </div>
-              <CostInput label="Parking per event" value={cb.parkingPerEvent} onChange={(v) => uc('parkingPerEvent', v)} readOnly={isPreview} />
+              <CostInput label="Parking per event" value={cb.parkingPerEvent} onChange={(v) => uc('parkingPerEvent', v)} readOnly={!canEdit || isPreview} />
               <SubtotalRow label={`Fuel (${(cb.avgRoundTripMiles / Math.max(cb.vehicleMPG, 1)).toFixed(1)} gal) + parking`} value={costs.fuelCost + cb.parkingPerEvent} />
             </CardContent>
           </Card>
@@ -374,9 +374,9 @@ export function Operations() {
           <Card>
             <CardHeader><div className="flex items-center gap-2"><Users className="size-4 text-blue-600" /><CardTitle>Core Team</CardTitle></div></CardHeader>
             <CardContent className="space-y-3">
-              <CostInput label="Owner / Founder salary" value={cb.ownerSalary} onChange={(v) => uc('ownerSalary', v)} readOnly={isPreview} />
-              <CostInput label="Marketing / Social Media manager" value={cb.marketingPerson} onChange={(v) => uc('marketingPerson', v)} readOnly={isPreview} />
-              <CostInput label="Event coordinator / Sales" value={cb.eventCoordinator} onChange={(v) => uc('eventCoordinator', v)} readOnly={isPreview} />
+              <CostInput label="Owner / Founder salary" value={cb.ownerSalary} onChange={(v) => uc('ownerSalary', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Marketing / Social Media manager" value={cb.marketingPerson} onChange={(v) => uc('marketingPerson', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Event coordinator / Sales" value={cb.eventCoordinator} onChange={(v) => uc('eventCoordinator', v)} readOnly={!canEdit || isPreview} />
               <SubtotalRow label="Team subtotal" value={costs.teamCosts} />
             </CardContent>
           </Card>
@@ -385,9 +385,9 @@ export function Operations() {
           <Card>
             <CardHeader><div className="flex items-center gap-2"><Car className="size-4 text-purple-600" /><CardTitle>Vehicle</CardTitle></div></CardHeader>
             <CardContent className="space-y-3">
-              <CostInput label="Loan / Lease payment" value={cb.vehiclePayment} onChange={(v) => uc('vehiclePayment', v)} readOnly={isPreview} />
-              <CostInput label="Insurance" value={cb.vehicleInsurance} onChange={(v) => uc('vehicleInsurance', v)} readOnly={isPreview} />
-              <CostInput label="Maintenance reserve" value={cb.vehicleMaintenance} onChange={(v) => uc('vehicleMaintenance', v)} readOnly={isPreview} />
+              <CostInput label="Loan / Lease payment" value={cb.vehiclePayment} onChange={(v) => uc('vehiclePayment', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Insurance" value={cb.vehicleInsurance} onChange={(v) => uc('vehicleInsurance', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Maintenance reserve" value={cb.vehicleMaintenance} onChange={(v) => uc('vehicleMaintenance', v)} readOnly={!canEdit || isPreview} />
               <SubtotalRow label="Vehicle subtotal" value={costs.vehicleCosts} />
             </CardContent>
           </Card>
@@ -396,11 +396,11 @@ export function Operations() {
           <Card>
             <CardHeader><div className="flex items-center gap-2"><Monitor className="size-4 text-emerald-600" /><CardTitle>IT & Software</CardTitle></div></CardHeader>
             <CardContent className="space-y-3">
-              <CostInput label="CRM + Booking platform" value={cb.crmSoftware} onChange={(v) => uc('crmSoftware', v)} readOnly={isPreview} />
-              <CostInput label="Website hosting + domain" value={cb.websiteHosting} onChange={(v) => uc('websiteHosting', v)} readOnly={isPreview} />
-              <CostInput label="AI chatbot (Gemini API, Instagram bot)" value={cb.aiChatbot} onChange={(v) => uc('aiChatbot', v)} readOnly={isPreview} />
-              <CostInput label="Cloud services (Firebase, storage)" value={cb.cloudServices} onChange={(v) => uc('cloudServices', v)} readOnly={isPreview} />
-              <CostInput label="Business phone plan" value={cb.phonePlan} onChange={(v) => uc('phonePlan', v)} readOnly={isPreview} />
+              <CostInput label="CRM + Booking platform" value={cb.crmSoftware} onChange={(v) => uc('crmSoftware', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Website hosting + domain" value={cb.websiteHosting} onChange={(v) => uc('websiteHosting', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="AI chatbot (Gemini API, Instagram bot)" value={cb.aiChatbot} onChange={(v) => uc('aiChatbot', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Cloud services (Firebase, storage)" value={cb.cloudServices} onChange={(v) => uc('cloudServices', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Business phone plan" value={cb.phonePlan} onChange={(v) => uc('phonePlan', v)} readOnly={!canEdit || isPreview} />
               <SubtotalRow label="IT subtotal" value={costs.itCosts} />
             </CardContent>
           </Card>
@@ -409,8 +409,8 @@ export function Operations() {
           <Card>
             <CardHeader><div className="flex items-center gap-2"><Megaphone className="size-4 text-amber-600" /><CardTitle>Marketing Overhead</CardTitle></div></CardHeader>
             <CardContent className="space-y-3">
-              <CostInput label="Content creation (video, photo)" value={cb.contentCreation} onChange={(v) => uc('contentCreation', v)} readOnly={isPreview} />
-              <CostInput label="Graphic design (Canva Pro, freelance)" value={cb.graphicDesign} onChange={(v) => uc('graphicDesign', v)} readOnly={isPreview} />
+              <CostInput label="Content creation (video, photo)" value={cb.contentCreation} onChange={(v) => uc('contentCreation', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Graphic design (Canva Pro, freelance)" value={cb.graphicDesign} onChange={(v) => uc('graphicDesign', v)} readOnly={!canEdit || isPreview} />
               <SubtotalRow label="Marketing overhead subtotal" value={costs.marketingOverhead} />
               <p className="text-[10px] text-muted-foreground">This is production cost, not ad spend. Ad spend is in Marketing Strategy.</p>
             </CardContent>
@@ -420,10 +420,10 @@ export function Operations() {
           <Card>
             <CardHeader><CardTitle>Other Overhead</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <CostInput label="Storage / warehouse rent" value={cb.storageRent} onChange={(v) => uc('storageRent', v)} readOnly={isPreview} />
-              <CostInput label="Equipment amortization (monthly)" value={cb.equipmentAmortization} onChange={(v) => uc('equipmentAmortization', v)} readOnly={isPreview} />
-              <CostInput label="Business licenses (amortized)" value={cb.businessLicenses} onChange={(v) => uc('businessLicenses', v)} readOnly={isPreview} />
-              <CostInput label="Miscellaneous / buffer" value={cb.miscFixed} onChange={(v) => uc('miscFixed', v)} readOnly={isPreview} />
+              <CostInput label="Storage / warehouse rent" value={cb.storageRent} onChange={(v) => uc('storageRent', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Equipment amortization (monthly)" value={cb.equipmentAmortization} onChange={(v) => uc('equipmentAmortization', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Business licenses (amortized)" value={cb.businessLicenses} onChange={(v) => uc('businessLicenses', v)} readOnly={!canEdit || isPreview} />
+              <CostInput label="Miscellaneous / buffer" value={cb.miscFixed} onChange={(v) => uc('miscFixed', v)} readOnly={!canEdit || isPreview} />
               <SubtotalRow label="Other subtotal" value={costs.otherOverhead} />
             </CardContent>
           </Card>
@@ -433,7 +433,7 @@ export function Operations() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Custom Expenses</CardTitle>
-                {!isPreview && <Button variant="outline" size="sm" onClick={addCustomExpense}><Plus className="size-4" />Add Expense</Button>}
+                {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addCustomExpense}><Plus className="size-4" />Add Expense</Button>}
               </div>
             </CardHeader>
             <CardContent>
@@ -441,15 +441,15 @@ export function Operations() {
                 {(cb.customExpenses || []).length === 0 && <p className="text-sm text-muted-foreground py-2">No custom expenses. Add any cost not covered above.</p>}
                 {(cb.customExpenses || []).map((exp, index) => (
                   <div key={index} className="grid grid-cols-[1fr_100px_120px_32px] gap-2 items-end">
-                    <div><label className="text-xs font-medium text-muted-foreground">Name</label><Input value={exp.name} onChange={(e) => updateCustomExpense(index, 'name', e.target.value)} placeholder="Expense name" readOnly={isPreview} /></div>
-                    <div><label className="text-xs font-medium text-muted-foreground">Amount</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={exp.amount} onChange={(e) => updateCustomExpense(index, 'amount', Number(e.target.value))} readOnly={isPreview} /></div></div>
+                    <div><label className="text-xs font-medium text-muted-foreground">Name</label><Input value={exp.name} onChange={(e) => updateCustomExpense(index, 'name', e.target.value)} placeholder="Expense name" readOnly={!canEdit || isPreview} /></div>
+                    <div><label className="text-xs font-medium text-muted-foreground">Amount</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" className="pl-7" value={exp.amount} onChange={(e) => updateCustomExpense(index, 'amount', Number(e.target.value))} readOnly={!canEdit || isPreview} /></div></div>
                     <div><label className="text-xs font-medium text-muted-foreground">Type</label>
-                      <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={exp.type} onChange={(e) => updateCustomExpense(index, 'type', e.target.value)} disabled={isPreview}>
+                      <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={exp.type} onChange={(e) => updateCustomExpense(index, 'type', e.target.value)} disabled={!canEdit || isPreview}>
                         <option value="monthly">Monthly</option>
                         <option value="per-event">Per Event</option>
                       </select>
                     </div>
-                    {!isPreview && <Button variant="ghost" size="icon-xs" className="mb-0.5" onClick={() => removeCustomExpense(index)}><Trash2 className="size-3" /></Button>}
+                    {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" className="mb-0.5" onClick={() => removeCustomExpense(index)}><Trash2 className="size-3" /></Button>}
                   </div>
                 ))}
                 {((cb.customExpenses || []).length > 0) && (
@@ -544,9 +544,9 @@ export function Operations() {
           <CardHeader><CardTitle>Capacity</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-3">
-              <div><label className="text-xs font-medium text-muted-foreground">Per Day</label><Input type="number" value={displayData.capacity.maxBookingsPerDay} onChange={(e) => updateCapacity('maxBookingsPerDay', Number(e.target.value))} min={0} readOnly={isPreview} /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Per Week</label><Input type="number" value={displayData.capacity.maxBookingsPerWeek} onChange={(e) => updateCapacity('maxBookingsPerWeek', Number(e.target.value))} min={0} readOnly={isPreview} /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Per Month</label><Input type="number" value={displayData.capacity.maxBookingsPerMonth} onChange={(e) => updateCapacity('maxBookingsPerMonth', Number(e.target.value))} min={0} readOnly={isPreview} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Per Day</label><Input type="number" value={displayData.capacity.maxBookingsPerDay} onChange={(e) => updateCapacity('maxBookingsPerDay', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Per Week</label><Input type="number" value={displayData.capacity.maxBookingsPerWeek} onChange={(e) => updateCapacity('maxBookingsPerWeek', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Per Month</label><Input type="number" value={displayData.capacity.maxBookingsPerMonth} onChange={(e) => updateCapacity('maxBookingsPerMonth', Number(e.target.value))} min={0} readOnly={!canEdit || isPreview} /></div>
             </div>
           </CardContent>
         </Card>
@@ -554,7 +554,7 @@ export function Operations() {
           <CardHeader><CardTitle>Travel Radius</CardTitle></CardHeader>
           <CardContent>
             <div className="relative">
-              <Input type="number" value={displayData.travelRadius} onChange={(e) => updateData((prev) => ({ ...prev, travelRadius: Number(e.target.value) }))} min={0} readOnly={isPreview} />
+              <Input type="number" value={displayData.travelRadius} onChange={(e) => updateData((prev) => ({ ...prev, travelRadius: Number(e.target.value) }))} min={0} readOnly={!canEdit || isPreview} />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">miles</span>
             </div>
           </CardContent>
@@ -567,15 +567,15 @@ export function Operations() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Equipment</h2>
-          {!isPreview && <Button variant="outline" size="sm" onClick={addEquipment}><Plus className="size-4" />Add Item</Button>}
+          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addEquipment}><Plus className="size-4" />Add Item</Button>}
         </div>
         <Card>
           <CardContent>
             <div className="space-y-3">
               {displayData.equipment.map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <Input value={item} onChange={(e) => updateEquipment(index, e.target.value)} placeholder="Equipment item" readOnly={isPreview} />
-                  {!isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeEquipment(index)}><Trash2 className="size-3" /></Button>}
+                  <Input value={item} onChange={(e) => updateEquipment(index, e.target.value)} placeholder="Equipment item" readOnly={!canEdit || isPreview} />
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeEquipment(index)}><Trash2 className="size-3" /></Button>}
                 </div>
               ))}
               {displayData.equipment.length === 0 && <p className="text-sm text-muted-foreground py-2">No equipment listed.</p>}
@@ -597,7 +597,7 @@ export function Operations() {
           </div>
         </div>
         <div className="flex items-center justify-end">
-          {!isPreview && <Button variant="outline" size="sm" onClick={addSafetyProtocol}><Plus className="size-4" />Add Protocol</Button>}
+          {canEdit && !isPreview && <Button variant="outline" size="sm" onClick={addSafetyProtocol}><Plus className="size-4" />Add Protocol</Button>}
         </div>
         <Card>
           <CardContent>
@@ -605,8 +605,8 @@ export function Operations() {
               {displayData.safetyProtocols.map((protocol, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <span className="inline-flex shrink-0 items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">#{index + 1}</span>
-                  <Input value={protocol} onChange={(e) => updateSafetyProtocol(index, e.target.value)} placeholder="Safety protocol" readOnly={isPreview} />
-                  {!isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeSafetyProtocol(index)}><Trash2 className="size-3" /></Button>}
+                  <Input value={protocol} onChange={(e) => updateSafetyProtocol(index, e.target.value)} placeholder="Safety protocol" readOnly={!canEdit || isPreview} />
+                  {canEdit && !isPreview && <Button variant="ghost" size="icon-xs" onClick={() => removeSafetyProtocol(index)}><Trash2 className="size-3" /></Button>}
                 </div>
               ))}
               {displayData.safetyProtocols.length === 0 && <p className="text-sm text-muted-foreground py-2">No safety protocols defined.</p>}
@@ -621,7 +621,9 @@ export function Operations() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Operations</h1>
-        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        {canEdit && (
+          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

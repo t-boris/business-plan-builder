@@ -104,7 +104,7 @@ function ComparisonBadge({ target, actual, isPercentage }: { target: number; act
 }
 
 export function KpisMetrics() {
-  const { data, updateData, isLoading } = useSection<KpisMetricsType>(
+  const { data, updateData, isLoading, canEdit } = useSection<KpisMetricsType>(
     'kpis-metrics',
     defaultKpis
   );
@@ -183,7 +183,7 @@ export function KpisMetrics() {
                 prefix={field.prefix}
                 suffix={field.suffix}
                 isPercentage={field.isPercentage}
-                readOnly={isPreview}
+                readOnly={!canEdit || isPreview}
               />
             ))}
           </div>
@@ -202,7 +202,7 @@ export function KpisMetrics() {
                 Track real performance numbers against your targets.
               </CardDescription>
             </div>
-            {!isPreview && (
+            {canEdit && !isPreview && (
               <Button variant="outline" size="sm" onClick={toggleActuals}>
                 {showActuals ? (
                   <ChevronDown className="size-4" />
@@ -226,7 +226,7 @@ export function KpisMetrics() {
                   prefix={field.prefix}
                   suffix={field.suffix}
                   isPercentage={field.isPercentage}
-                  readOnly={isPreview}
+                  readOnly={!canEdit || isPreview}
                 />
               ))}
             </div>
@@ -279,7 +279,9 @@ export function KpisMetrics() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">KPIs & Metrics</h1>
-        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        {canEdit && (
+          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

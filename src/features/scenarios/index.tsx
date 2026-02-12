@@ -1,4 +1,5 @@
 import { useAtom } from 'jotai';
+import { useCanEdit } from '@/hooks/use-business-role';
 import { scenarioNameAtom } from '@/store/scenario-atoms.ts';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -9,6 +10,7 @@ import { ScenarioComparison } from './scenario-comparison.tsx';
 
 export function Scenarios() {
   const [scenarioName, setScenarioName] = useAtom(scenarioNameAtom);
+  const canEdit = useCanEdit();
 
   return (
     <div className="space-y-6">
@@ -22,6 +24,7 @@ export function Scenarios() {
             onChange={(e) => setScenarioName(e.target.value)}
             className="h-8 text-sm w-64"
             placeholder="Scenario name"
+            readOnly={!canEdit}
           />
         </div>
       </div>
@@ -40,7 +43,7 @@ export function Scenarios() {
           {/* Two-column layout: controls left (40%), dashboard right (60%) */}
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6">
             <div>
-              <DynamicScenarioControls />
+              <DynamicScenarioControls disabled={!canEdit} />
             </div>
             <div>
               <ScenarioDashboard />

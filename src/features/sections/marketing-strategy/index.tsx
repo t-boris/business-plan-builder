@@ -116,7 +116,7 @@ const defaultMarketing: MarketingStrategyType = {
 };
 
 export function MarketingStrategy() {
-  const { data, updateData, isLoading } = useSection<MarketingStrategyType>(
+  const { data, updateData, isLoading, canEdit } = useSection<MarketingStrategyType>(
     'marketing-strategy',
     defaultMarketing
   );
@@ -322,7 +322,7 @@ export function MarketingStrategy() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Marketing Channels</h2>
-            {!isPreview && (
+            {canEdit && !isPreview && (
               <Button variant="outline" size="sm" onClick={addChannel}>
                 <Plus className="size-4" />
                 Add Channel
@@ -349,7 +349,7 @@ export function MarketingStrategy() {
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.badge}`}>
                           {channel.budget > 0 ? 'Paid' : 'Organic'}
                         </span>
-                        {!isPreview && (
+                        {canEdit && !isPreview && (
                           <Button variant="ghost" size="icon-xs" onClick={() => removeChannel(chIndex)}>
                             <Trash2 className="size-3" />
                           </Button>
@@ -363,7 +363,7 @@ export function MarketingStrategy() {
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                            <Input type="number" className="pl-7" value={channel.budget} onChange={(e) => updateChannel(chIndex, 'budget', Number(e.target.value))} readOnly={isPreview} />
+                            <Input type="number" className="pl-7" value={channel.budget} onChange={(e) => updateChannel(chIndex, 'budget', Number(e.target.value))} readOnly={!canEdit || isPreview} />
                           </div>
                         </div>
                         <div>
@@ -371,7 +371,7 @@ export function MarketingStrategy() {
                             Expected Leads
                             <InfoTooltip text="Number of new leads expected per month from this channel" />
                           </label>
-                          <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={isPreview} />
+                          <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={!canEdit || isPreview} />
                         </div>
                         <div>
                           <label className="text-xs font-medium text-muted-foreground">
@@ -380,7 +380,7 @@ export function MarketingStrategy() {
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                            <Input type="number" className="pl-7" value={channel.expectedCAC} onChange={(e) => updateChannel(chIndex, 'expectedCAC', Number(e.target.value))} readOnly={isPreview} />
+                            <Input type="number" className="pl-7" value={channel.expectedCAC} onChange={(e) => updateChannel(chIndex, 'expectedCAC', Number(e.target.value))} readOnly={!canEdit || isPreview} />
                           </div>
                         </div>
                       </div>
@@ -389,7 +389,7 @@ export function MarketingStrategy() {
                   <CardContent className="space-y-4">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Description</label>
-                      <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={isPreview} />
+                      <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit || isPreview} />
                     </div>
 
                     {/* Campaign/Tracking URL */}
@@ -403,7 +403,7 @@ export function MarketingStrategy() {
                           value={channel.url ?? ''}
                           onChange={(e) => updateChannel(chIndex, 'url', e.target.value)}
                           placeholder="https://..."
-                          readOnly={isPreview}
+                          readOnly={!canEdit || isPreview}
                           className="text-sm"
                         />
                         {channel.url && (
@@ -423,7 +423,7 @@ export function MarketingStrategy() {
                           Tactics
                           <InfoTooltip text="Specific actions and campaigns run within this channel" />
                         </label>
-                        {!isPreview && (
+                        {canEdit && !isPreview && (
                           <Button variant="ghost" size="xs" onClick={() => addTactic(chIndex)}>
                             <Plus className="size-3" />
                             Add Tactic
@@ -432,8 +432,8 @@ export function MarketingStrategy() {
                       </div>
                       {channel.tactics.map((tactic, tacticIndex) => (
                         <div key={tacticIndex} className="flex items-center gap-2">
-                          <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={isPreview} />
-                          {!isPreview && (
+                          <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={!canEdit || isPreview} />
+                          {canEdit && !isPreview && (
                             <Button variant="ghost" size="icon-xs" onClick={() => removeTactic(chIndex, tacticIndex)}>
                               <Trash2 className="size-3" />
                             </Button>
@@ -454,7 +454,7 @@ export function MarketingStrategy() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Promotional Offers</h2>
-            {!isPreview && (
+            {canEdit && !isPreview && (
               <Button variant="outline" size="sm" onClick={addOffer}>
                 <Plus className="size-4" />
                 Add Offer
@@ -470,8 +470,8 @@ export function MarketingStrategy() {
                       <Gift className="size-4 text-pink-500 dark:text-pink-400" />
                       <span className="text-xs font-bold text-muted-foreground w-5 text-right">{index + 1}.</span>
                     </div>
-                    <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={isPreview} />
-                    {!isPreview && (
+                    <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={!canEdit || isPreview} />
+                    {canEdit && !isPreview && (
                       <Button variant="ghost" size="icon-xs" onClick={() => removeOffer(index)}>
                         <Trash2 className="size-3" />
                       </Button>
@@ -500,7 +500,7 @@ export function MarketingStrategy() {
                     value={displayData.landingPage.url}
                     onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, url: e.target.value } }))}
                     placeholder="https://yourbusiness.com"
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                   {displayData.landingPage.url && (
                     <a href={displayData.landingPage.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
@@ -513,7 +513,7 @@ export function MarketingStrategy() {
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Description</label>
-                <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={isPreview} />
+                <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit || isPreview} />
               </div>
             </CardContent>
           </Card>
@@ -526,7 +526,9 @@ export function MarketingStrategy() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Marketing Strategy</h1>
-        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        {canEdit && (
+          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

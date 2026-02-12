@@ -38,7 +38,7 @@ const defaultLaunchPlan: LaunchPlanType = {
 };
 
 export function LaunchPlan() {
-  const { data, updateData, isLoading } = useSection<LaunchPlanType>(
+  const { data, updateData, isLoading, canEdit } = useSection<LaunchPlanType>(
     'launch-plan',
     defaultLaunchPlan
   );
@@ -151,7 +151,7 @@ export function LaunchPlan() {
                           }
                           placeholder="Stage name"
                           className="font-semibold"
-                          readOnly={isPreview}
+                          readOnly={!canEdit || isPreview}
                         />
                       </CardTitle>
                     </div>
@@ -166,7 +166,7 @@ export function LaunchPlan() {
                           onChange={(e) =>
                             updateStage(stageIndex, 'startDate', e.target.value)
                           }
-                          readOnly={isPreview}
+                          readOnly={!canEdit || isPreview}
                         />
                       </div>
                       <div>
@@ -179,7 +179,7 @@ export function LaunchPlan() {
                           onChange={(e) =>
                             updateStage(stageIndex, 'endDate', e.target.value)
                           }
-                          readOnly={isPreview}
+                          readOnly={!canEdit || isPreview}
                         />
                       </div>
                     </div>
@@ -188,7 +188,7 @@ export function LaunchPlan() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-muted-foreground">Tasks</label>
-                    {!isPreview && (
+                    {canEdit && !isPreview && (
                       <Button
                         variant="ghost"
                         size="xs"
@@ -214,14 +214,14 @@ export function LaunchPlan() {
                         }
                         placeholder="Task description"
                         className="text-sm"
-                        readOnly={isPreview}
+                        readOnly={!canEdit || isPreview}
                       />
                       <Select
                         value={task.status}
                         onValueChange={(value: TaskStatus) =>
                           updateTaskStatus(stageIndex, taskIndex, value)
                         }
-                        disabled={isPreview}
+                        disabled={!canEdit || isPreview}
                       >
                         <SelectTrigger size="sm" className="w-[130px] shrink-0">
                           <SelectValue />
@@ -232,7 +232,7 @@ export function LaunchPlan() {
                           <SelectItem value="done">Done</SelectItem>
                         </SelectContent>
                       </Select>
-                      {!isPreview && (
+                      {canEdit && !isPreview && (
                         <Button
                           variant="ghost"
                           size="icon-xs"
@@ -263,7 +263,7 @@ export function LaunchPlan() {
       )}
 
       {/* Add Stage Button */}
-      {!isPreview && (
+      {canEdit && !isPreview && (
         <div className="flex justify-center">
           <Button variant="outline" onClick={addStage}>
             <Plus className="size-4" />
@@ -278,7 +278,9 @@ export function LaunchPlan() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Launch Plan</h1>
-        <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        {canEdit && (
+          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

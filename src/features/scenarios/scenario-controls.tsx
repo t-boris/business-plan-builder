@@ -36,6 +36,7 @@ interface SliderInputProps {
   suffix?: string;
   /** Multiplier for display (e.g. 100 for percentage) */
   displayMultiplier?: number;
+  disabled?: boolean;
 }
 
 function SliderInput({
@@ -48,6 +49,7 @@ function SliderInput({
   prefix,
   suffix,
   displayMultiplier = 1,
+  disabled,
 }: SliderInputProps) {
   const displayValue = value * displayMultiplier;
   const displayMin = min * displayMultiplier;
@@ -72,6 +74,7 @@ function SliderInput({
             min={displayMin}
             max={displayMax}
             step={displayStep}
+            readOnly={disabled}
           />
           {suffix && (
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
@@ -87,6 +90,7 @@ function SliderInput({
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           className="flex-1 h-2 cursor-pointer accent-primary"
+          disabled={disabled}
         />
       </div>
     </div>
@@ -100,9 +104,10 @@ interface NumberInputProps {
   prefix?: string;
   min?: number;
   max?: number;
+  disabled?: boolean;
 }
 
-function NumberInput({ label, value, onChange, prefix, min, max }: NumberInputProps) {
+function NumberInput({ label, value, onChange, prefix, min, max, disabled }: NumberInputProps) {
   return (
     <div className="space-y-1">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
@@ -119,6 +124,7 @@ function NumberInput({ label, value, onChange, prefix, min, max }: NumberInputPr
           className={`h-8 text-sm ${prefix ? 'pl-7' : ''}`}
           min={min}
           max={max}
+          readOnly={disabled}
         />
       </div>
     </div>
@@ -130,7 +136,8 @@ function NumberInput({ label, value, onChange, prefix, min, max }: NumberInputPr
 function renderVariableControl(
   variable: VariableDefinition,
   value: number,
-  onChange: (value: number) => void
+  onChange: (value: number) => void,
+  disabled?: boolean
 ) {
   switch (variable.unit) {
     case 'currency':
@@ -143,6 +150,7 @@ function renderVariableControl(
           prefix="$"
           min={variable.min ?? 0}
           max={variable.max}
+          disabled={disabled}
         />
       );
     case 'percent':
@@ -157,6 +165,7 @@ function renderVariableControl(
           min={variable.min ?? 0}
           max={variable.max ?? 1}
           step={variable.step ?? 0.01}
+          disabled={disabled}
         />
       );
     case 'count':
@@ -169,6 +178,7 @@ function renderVariableControl(
           min={variable.min ?? 0}
           max={variable.max ?? 100}
           step={variable.step ?? 1}
+          disabled={disabled}
         />
       );
     default:
@@ -180,6 +190,7 @@ function renderVariableControl(
           onChange={onChange}
           min={variable.min}
           max={variable.max}
+          disabled={disabled}
         />
       );
   }
@@ -187,7 +198,7 @@ function renderVariableControl(
 
 // --- Main Dynamic Component ---
 
-export function DynamicScenarioControls() {
+export function DynamicScenarioControls({ disabled }: { disabled?: boolean }) {
   const definitions = useAtomValue(businessVariablesAtom);
   const [values, setValues] = useAtom(scenarioValuesAtom);
 
@@ -241,7 +252,8 @@ export function DynamicScenarioControls() {
               renderVariableControl(
                 variable,
                 values[variable.id] ?? variable.value,
-                (newValue) => handleChange(variable.id, newValue)
+                (newValue) => handleChange(variable.id, newValue),
+                disabled
               )
             )}
           </CardContent>

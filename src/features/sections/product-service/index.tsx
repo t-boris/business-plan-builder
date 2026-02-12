@@ -20,7 +20,7 @@ const defaultProductService: ProductServiceType = {
 };
 
 export function ProductService() {
-  const { data, updateData, isLoading } = useSection<ProductServiceType>(
+  const { data, updateData, isLoading, canEdit } = useSection<ProductServiceType>(
     'product-service',
     defaultProductService
   );
@@ -132,7 +132,7 @@ export function ProductService() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Packages</h2>
-          {!isPreview && (
+          {canEdit && !isPreview && (
             <Button variant="outline" size="sm" onClick={addPackage}>
               <Plus className="size-4" />
               Add Package
@@ -155,7 +155,7 @@ export function ProductService() {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1"><Clock className="size-3" />{pkg.duration}</span>
                     <span className="inline-flex items-center gap-1"><Users className="size-3" />{pkg.maxParticipants}</span>
-                    {!isPreview && (
+                    {canEdit && !isPreview && (
                       <Button variant="ghost" size="icon-xs" onClick={() => removePackage(pkgIndex)}>
                         <Trash2 className="size-3" />
                       </Button>
@@ -168,7 +168,7 @@ export function ProductService() {
                     <Input
                       value={pkg.name}
                       onChange={(e) => updatePackage(pkgIndex, 'name', e.target.value)}
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
                   <div className="text-right shrink-0">
@@ -188,7 +188,7 @@ export function ProductService() {
                         className="pl-7"
                         value={pkg.price}
                         onChange={(e) => updatePackage(pkgIndex, 'price', Number(e.target.value))}
-                        readOnly={isPreview}
+                        readOnly={!canEdit || isPreview}
                       />
                     </div>
                   </div>
@@ -197,7 +197,7 @@ export function ProductService() {
                     <Input
                       value={pkg.duration}
                       onChange={(e) => updatePackage(pkgIndex, 'duration', e.target.value)}
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
                   <div>
@@ -206,7 +206,7 @@ export function ProductService() {
                       type="number"
                       value={pkg.maxParticipants}
                       onChange={(e) => updatePackage(pkgIndex, 'maxParticipants', Number(e.target.value))}
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
                 </div>
@@ -217,7 +217,7 @@ export function ProductService() {
                     value={pkg.description}
                     onChange={(e) => updatePackage(pkgIndex, 'description', e.target.value)}
                     rows={3}
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                 </div>
 
@@ -226,7 +226,7 @@ export function ProductService() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-muted-foreground">Includes</label>
-                    {!isPreview && (
+                    {canEdit && !isPreview && (
                       <Button variant="ghost" size="xs" onClick={() => addPackageInclude(pkgIndex)}>
                         <Plus className="size-3" />
                         Add
@@ -240,9 +240,9 @@ export function ProductService() {
                         value={item}
                         onChange={(e) => updatePackageInclude(pkgIndex, includeIndex, e.target.value)}
                         className="text-sm"
-                        readOnly={isPreview}
+                        readOnly={!canEdit || isPreview}
                       />
-                      {!isPreview && (
+                      {canEdit && !isPreview && (
                         <Button variant="ghost" size="icon-xs" onClick={() => removePackageInclude(pkgIndex, includeIndex)}>
                           <Trash2 className="size-3" />
                         </Button>
@@ -266,7 +266,7 @@ export function ProductService() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Add-Ons</h2>
-          {!isPreview && (
+          {canEdit && !isPreview && (
             <Button variant="outline" size="sm" onClick={addAddOn}>
               <Plus className="size-4" />
               Add Add-on
@@ -288,7 +288,7 @@ export function ProductService() {
                     value={addOn.name}
                     onChange={(e) => updateAddOn(index, 'name', e.target.value)}
                     placeholder="Add-on name"
-                    readOnly={isPreview}
+                    readOnly={!canEdit || isPreview}
                   />
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
@@ -297,10 +297,10 @@ export function ProductService() {
                       className="pl-7"
                       value={addOn.price}
                       onChange={(e) => updateAddOn(index, 'price', Number(e.target.value))}
-                      readOnly={isPreview}
+                      readOnly={!canEdit || isPreview}
                     />
                   </div>
-                  {!isPreview && (
+                  {canEdit && !isPreview && (
                     <Button variant="ghost" size="icon-xs" onClick={() => removeAddOn(index)}>
                       <Trash2 className="size-3" />
                     </Button>
@@ -321,13 +321,15 @@ export function ProductService() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Product & Service</h1>
-        <AiActionBar
-          onGenerate={() => aiSuggestion.generate('generate', data)}
-          onImprove={() => aiSuggestion.generate('improve', data)}
-          onExpand={() => aiSuggestion.generate('expand', data)}
-          isLoading={aiSuggestion.state.status === 'loading'}
-          disabled={!isAiAvailable}
-        />
+        {canEdit && (
+          <AiActionBar
+            onGenerate={() => aiSuggestion.generate('generate', data)}
+            onImprove={() => aiSuggestion.generate('improve', data)}
+            onExpand={() => aiSuggestion.generate('expand', data)}
+            isLoading={aiSuggestion.state.status === 'loading'}
+            disabled={!isAiAvailable}
+          />
+        )}
       </div>
 
       {aiSuggestion.state.status === 'error' && (

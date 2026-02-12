@@ -22,7 +22,7 @@ const defaultSummary: ExecutiveSummaryType = {
 };
 
 export function ExecutiveSummary() {
-  const { data, updateField, updateData, isLoading } = useSection<ExecutiveSummaryType>(
+  const { data, updateField, updateData, isLoading, canEdit } = useSection<ExecutiveSummaryType>(
     'executive-summary',
     defaultSummary
   );
@@ -83,7 +83,7 @@ export function ExecutiveSummary() {
             onChange={(e) => updateField('summary', e.target.value)}
             rows={5}
             placeholder="Executive summary of the business..."
-            readOnly={aiSuggestion.state.status === 'preview'}
+            readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
           />
         </CardContent>
       </Card>
@@ -100,7 +100,7 @@ export function ExecutiveSummary() {
               onChange={(e) => updateField('mission', e.target.value)}
               rows={4}
               placeholder="Company mission statement..."
-              readOnly={aiSuggestion.state.status === 'preview'}
+              readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
             />
           </CardContent>
         </Card>
@@ -114,7 +114,7 @@ export function ExecutiveSummary() {
               onChange={(e) => updateField('vision', e.target.value)}
               rows={4}
               placeholder="Company vision statement..."
-              readOnly={aiSuggestion.state.status === 'preview'}
+              readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
             />
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ export function ExecutiveSummary() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Key Highlights</h2>
-            {aiSuggestion.state.status !== 'preview' && (
+            {canEdit && aiSuggestion.state.status !== 'preview' && (
               <Button variant="outline" size="sm" onClick={addHighlight}>
                 <Plus className="size-4" />
                 Add Highlight
@@ -141,9 +141,9 @@ export function ExecutiveSummary() {
                   value={highlight}
                   onChange={(e) => updateHighlight(index, e.target.value)}
                   placeholder="Key highlight..."
-                  readOnly={aiSuggestion.state.status === 'preview'}
+                  readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
                 />
-                {aiSuggestion.state.status !== 'preview' && (
+                {canEdit && aiSuggestion.state.status !== 'preview' && (
                   <Button variant="ghost" size="icon-xs" onClick={() => removeHighlight(index)}>
                     <Trash2 className="size-3" />
                   </Button>
@@ -165,13 +165,15 @@ export function ExecutiveSummary() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Executive Summary</h1>
-        <AiActionBar
-          onGenerate={() => aiSuggestion.generate('generate', data)}
-          onImprove={() => aiSuggestion.generate('improve', data)}
-          onExpand={() => aiSuggestion.generate('expand', data)}
-          isLoading={aiSuggestion.state.status === 'loading'}
-          disabled={!isAiAvailable}
-        />
+        {canEdit && (
+          <AiActionBar
+            onGenerate={() => aiSuggestion.generate('generate', data)}
+            onImprove={() => aiSuggestion.generate('improve', data)}
+            onExpand={() => aiSuggestion.generate('expand', data)}
+            isLoading={aiSuggestion.state.status === 'loading'}
+            disabled={!isAiAvailable}
+          />
+        )}
       </div>
 
       {/* AI Error */}
