@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
 - [x] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
 - [x] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
-- [ ] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
+- [x] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
 - [ ] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
 - [ ] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
 
@@ -140,7 +140,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 10-01: Smart dashboard rewrite (priority-sorted KPIs, dynamic chart from currency variables, filtered section links with business-scoped URLs)
+- [x] 10-01: Smart dashboard rewrite (priority-sorted KPIs, dynamic chart from currency variables, filtered section links with business-scoped URLs)
 
 ### Phase 11: Export Updates
 **Goal**: PDF export and business plan view work with generic businesses. Cover page shows business name/info. Section rendering adapts to enabled sections and business-specific data.
@@ -181,6 +181,6 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
 | 8. Business-Aware AI | 2/2 | Complete | 2026-02-12 |
 | 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
-| 10. Dashboard & Navigation | 0/2 | Not started | - |
+| 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
 | 11. Export Updates | 0/2 | Not started | - |
 | 12. Integration & Polish | 0/2 | Not started | - |
