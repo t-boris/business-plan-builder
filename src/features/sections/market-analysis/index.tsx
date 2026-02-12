@@ -6,17 +6,11 @@ import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { isPerplexityAvailable } from '@/lib/ai/perplexity-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
+import { PageHeader } from '@/components/page-header';
 import type { MarketAnalysis as MarketAnalysisType, Competitor } from '@/types';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   Plus,
   Trash2,
@@ -25,7 +19,6 @@ import {
   Loader2,
   X,
   ChevronDown,
-  ChevronUp,
   ExternalLink,
   CheckCircle2,
   Users,
@@ -177,7 +170,7 @@ function parseLanguages(text: string): string[] | null {
   return langs.length > 0 ? langs : null;
 }
 
-/** Extract percentage from a language string like "English (70.5%)" → 70.5, or null */
+/** Extract percentage from a language string like "English (70.5%)" -> 70.5, or null */
 function extractLangPercent(lang: string): number | null {
   const m = lang.match(/\((\d+(?:\.\d+)?)\s*%\)/);
   return m ? parseFloat(m[1]) : null;
@@ -283,6 +276,9 @@ function parsePriceRange(pricing: string): [number, number] | null {
   return [Math.min(...nums), Math.max(...nums)];
 }
 
+const CHART_COLORS = ['var(--chart-profit)', 'var(--chart-neutral)'];
+const PIE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
+
 export function MarketAnalysis() {
   const { data, updateData, isLoading, canEdit } = useSection<MarketAnalysisType>(
     'market-analysis',
@@ -301,8 +297,8 @@ export function MarketAnalysis() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Market Analysis</h1>
+      <div className="page-container">
+        <PageHeader title="Market Analysis" description="Target market, demographics, and competitive landscape" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -444,96 +440,94 @@ export function MarketAnalysis() {
 
   const sectionContent = (
     <div className="space-y-6">
-      {/* Market Size Cards — TAM & Target Share */}
+      {/* Market Size Cards -- TAM & Target Share */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/30 p-5 space-y-1">
+        <div className="card-elevated rounded-lg p-5 space-y-1 border-l-2 border-l-emerald-500">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-            <TrendingUp className="size-5" />
+            <TrendingUp className="size-4" />
             <span className="text-sm font-medium">Total Addressable Market</span>
           </div>
-          <p className="text-3xl font-bold tracking-tight">
-            {displayData.tamDollars > 0 ? formatTam(displayData.tamDollars) : '—'}
+          <p className="text-2xl font-bold tabular-nums tracking-tight">
+            {displayData.tamDollars > 0 ? formatTam(displayData.tamDollars) : '---'}
           </p>
         </div>
 
-        <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 dark:border-indigo-800 dark:bg-indigo-950/30 p-5 space-y-1">
+        <div className="card-elevated rounded-lg p-5 space-y-1 border-l-2 border-l-indigo-500">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-            <Target className="size-5" />
+            <Target className="size-4" />
             <span className="text-sm font-medium">Target Market Share</span>
           </div>
-          <p className="text-3xl font-bold tracking-tight">
-            {displayData.targetMarketShare || '—'}
+          <p className="text-2xl font-bold tabular-nums tracking-tight">
+            {displayData.targetMarketShare || '---'}
           </p>
         </div>
       </div>
 
       {/* Demographic Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="rounded-lg border p-4 space-y-1">
-            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-              <Users className="size-4" />
-              <span className="text-xs font-medium text-muted-foreground">Population</span>
-            </div>
-            <p className="text-2xl font-bold tracking-tight">
-              {displayData.demographics.population > 0 ? displayData.demographics.population.toLocaleString() : '—'}
-            </p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="card-elevated rounded-lg p-4 space-y-1">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+            <Users className="size-3.5" />
+            <span className="text-xs font-medium text-muted-foreground">Population</span>
           </div>
-
-          <div className="rounded-lg border p-4 space-y-1">
-            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-              <Baby className="size-4" />
-              <span className="text-xs font-medium text-muted-foreground">Households w/ Kids</span>
-            </div>
-            <p className="text-2xl font-bold tracking-tight">
-              {displayData.demographics.householdsWithKids > 0 ? displayData.demographics.householdsWithKids.toLocaleString() : '—'}
-            </p>
-          </div>
-
-          <div className="rounded-lg border p-4 space-y-1">
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-              <DollarSign className="size-4" />
-              <span className="text-xs font-medium text-muted-foreground">Median Income</span>
-            </div>
-            <p className="text-2xl font-bold tracking-tight">
-              {displayData.demographics.income
-                ? (displayData.demographics.income.match(/\$[\d,]+/)?.[0] ?? displayData.demographics.income)
-                : '—'}
-            </p>
-          </div>
-
-          <div className="rounded-lg border p-4 space-y-1">
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-              <Globe className="size-4" />
-              <span className="text-xs font-medium text-muted-foreground">Languages</span>
-            </div>
-            <p className="text-2xl font-bold tracking-tight">
-              {displayData.demographics.languages.length}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {displayData.demographics.languages.map((l) => l.replace(/\s*\([\d.]+%\)/, '').trim()).join(', ')}
-            </p>
-          </div>
-
-          <div className="rounded-lg border p-4 space-y-1">
-            <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
-              <Plane className="size-4" />
-              <span className="text-xs font-medium text-muted-foreground">Annual Tourists</span>
-            </div>
-            <p className="text-2xl font-bold tracking-tight">
-              {displayData.demographics.annualTourists > 0 ? displayData.demographics.annualTourists.toLocaleString() : '—'}
-            </p>
-          </div>
+          <p className="text-xl font-bold tabular-nums tracking-tight">
+            {displayData.demographics.population > 0 ? displayData.demographics.population.toLocaleString() : '---'}
+          </p>
         </div>
+
+        <div className="card-elevated rounded-lg p-4 space-y-1">
+          <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+            <Baby className="size-3.5" />
+            <span className="text-xs font-medium text-muted-foreground">Households w/ Kids</span>
+          </div>
+          <p className="text-xl font-bold tabular-nums tracking-tight">
+            {displayData.demographics.householdsWithKids > 0 ? displayData.demographics.householdsWithKids.toLocaleString() : '---'}
+          </p>
+        </div>
+
+        <div className="card-elevated rounded-lg p-4 space-y-1">
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+            <DollarSign className="size-3.5" />
+            <span className="text-xs font-medium text-muted-foreground">Median Income</span>
+          </div>
+          <p className="text-xl font-bold tabular-nums tracking-tight">
+            {displayData.demographics.income
+              ? (displayData.demographics.income.match(/\$[\d,]+/)?.[0] ?? displayData.demographics.income)
+              : '---'}
+          </p>
+        </div>
+
+        <div className="card-elevated rounded-lg p-4 space-y-1">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+            <Globe className="size-3.5" />
+            <span className="text-xs font-medium text-muted-foreground">Languages</span>
+          </div>
+          <p className="text-xl font-bold tabular-nums tracking-tight">
+            {displayData.demographics.languages.length}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {displayData.demographics.languages.map((l) => l.replace(/\s*\([\d.]+%\)/, '').trim()).join(', ')}
+          </p>
+        </div>
+
+        <div className="card-elevated rounded-lg p-4 space-y-1">
+          <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
+            <Plane className="size-3.5" />
+            <span className="text-xs font-medium text-muted-foreground">Annual Tourists</span>
+          </div>
+          <p className="text-xl font-bold tabular-nums tracking-tight">
+            {displayData.demographics.annualTourists > 0 ? displayData.demographics.annualTourists.toLocaleString() : '---'}
+          </p>
+        </div>
+      </div>
 
       {/* Target Demographic + Market Size */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Target Demographic</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="card-elevated rounded-lg p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Target Demographic</h2>
+          <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Age Range</label>
+              <label className="text-sm font-medium">Age Range</label>
               <Input
                 value={displayData.targetDemographic.ageRange}
                 onChange={(e) => updateDemographic('ageRange', e.target.value)}
@@ -541,7 +535,7 @@ export function MarketAnalysis() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Location</label>
+              <label className="text-sm font-medium">Location</label>
               <Input
                 value={displayData.targetDemographic.location}
                 onChange={(e) => updateDemographic('location', e.target.value)}
@@ -549,7 +543,7 @@ export function MarketAnalysis() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Radius (miles)</label>
+              <label className="text-sm font-medium">Radius (miles)</label>
               <div className="relative">
                 <Input
                   type="number"
@@ -564,18 +558,18 @@ export function MarketAnalysis() {
             {/* Zip Codes + Research */}
             {canEdit && !isPreview && (
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Zip Codes</label>
+                <label className="text-sm font-medium">Zip Codes</label>
                 <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 min-h-9 focus-within:ring-ring/50 focus-within:ring-[3px] focus-within:border-ring">
                   {zipCodes.map((zip) => (
                     <span
                       key={zip}
-                      className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                      className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium tabular-nums text-secondary-foreground"
                     >
                       {zip}
                       <button
                         type="button"
                         onClick={() => removeZipCode(zip)}
-                        className="rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                        className="rounded-full hover:bg-muted-foreground/20 p-0.5"
                       >
                         <X className="size-3" />
                       </button>
@@ -613,43 +607,39 @@ export function MarketAnalysis() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Market Size</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              value={displayData.marketSize}
-              onChange={(e) => updateData((prev) => ({ ...prev, marketSize: e.target.value }))}
-              rows={4}
-              readOnly={!canEdit || isPreview}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">TAM ($)</label>
-                <Input
-                  type="number"
-                  value={displayData.tamDollars}
-                  onChange={(e) => updateData((prev) => ({ ...prev, tamDollars: Number(e.target.value) }))}
-                  placeholder="e.g. 12000000"
-                  readOnly={!canEdit || isPreview}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Target Market Share</label>
-                <Input
-                  value={displayData.targetMarketShare}
-                  onChange={(e) => updateData((prev) => ({ ...prev, targetMarketShare: e.target.value }))}
-                  placeholder="e.g. 2-5%"
-                  readOnly={!canEdit || isPreview}
-                />
-              </div>
+        <div className="card-elevated rounded-lg p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Market Size</h2>
+          <Textarea
+            value={displayData.marketSize}
+            onChange={(e) => updateData((prev) => ({ ...prev, marketSize: e.target.value }))}
+            rows={4}
+            readOnly={!canEdit || isPreview}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">TAM ($)</label>
+              <Input
+                type="number"
+                value={displayData.tamDollars}
+                onChange={(e) => updateData((prev) => ({ ...prev, tamDollars: Number(e.target.value) }))}
+                placeholder="e.g. 12000000"
+                readOnly={!canEdit || isPreview}
+              />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <label className="text-sm font-medium">Target Market Share</label>
+              <Input
+                value={displayData.targetMarketShare}
+                onChange={(e) => updateData((prev) => ({ ...prev, targetMarketShare: e.target.value }))}
+                placeholder="e.g. 2-5%"
+                readOnly={!canEdit || isPreview}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Research Results */}
@@ -662,25 +652,25 @@ export function MarketAnalysis() {
       )}
 
       {researchState.status === 'done' && researchState.result && (
-        <Card className="border-green-200 dark:border-green-800">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-green-600 dark:text-green-400" />
-                <CardTitle className="text-base">Market Research Results</CardTitle>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon-xs" onClick={() => setResearchExpanded(!researchExpanded)}>
-                  {researchExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                </Button>
-                <Button variant="ghost" size="icon-xs" onClick={dismissResearch}>
-                  <X className="size-4" />
-                </Button>
-              </div>
+        <div className="card-elevated rounded-lg border-green-200 dark:border-green-800">
+          <button
+            type="button"
+            className="flex items-center justify-between w-full px-5 py-3"
+            onClick={() => setResearchExpanded(!researchExpanded)}
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-semibold">Market Research Results</span>
             </div>
-          </CardHeader>
+            <div className="flex items-center gap-1">
+              <ChevronDown className={`size-4 text-muted-foreground transition-transform ${researchExpanded ? 'rotate-180' : ''}`} />
+              <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); dismissResearch(); }}>
+                <X className="size-4" />
+              </Button>
+            </div>
+          </button>
           {researchExpanded && (
-            <CardContent className="space-y-4">
+            <div className="px-5 pb-5 space-y-4">
               <div
                 className="rounded-md bg-muted/50 p-4 text-sm leading-relaxed prose-sm"
                 dangerouslySetInnerHTML={{ __html: researchHtml }}
@@ -696,7 +686,7 @@ export function MarketAnalysis() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                        className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground hover:bg-secondary/80 transition-colors"
                       >
                         <ExternalLink className="size-3" />
                         {new URL(url).hostname.replace('www.', '')}
@@ -716,17 +706,15 @@ export function MarketAnalysis() {
                   'Apply to Demographics'
                 )}
               </Button>
-            </CardContent>
+            </div>
           )}
-        </Card>
+        </div>
       )}
 
-      <Separator />
-
-      {/* Competitors Table */}
+      {/* Competitors */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Competitors</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Competitors</h2>
           {canEdit && !isPreview && (
             <Button variant="outline" size="sm" onClick={addCompetitor}>
               <Plus className="size-4" />
@@ -735,75 +723,71 @@ export function MarketAnalysis() {
           )}
         </div>
 
-        <Card>
-          <CardContent>
-            <div className="space-y-3">
-              {/* Table Header */}
-              <div className="hidden sm:grid grid-cols-[1fr_100px_1fr_1fr_40px] gap-3 items-center">
-                <span className="text-xs font-medium text-muted-foreground">Name</span>
-                <span className="text-xs font-medium text-muted-foreground">Pricing</span>
-                <span className="text-xs font-medium text-muted-foreground">Strengths</span>
-                <span className="text-xs font-medium text-muted-foreground">Weaknesses</span>
-                <span />
-              </div>
-
+        <div className="card-elevated rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/30">
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Name</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-[100px]">Pricing</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden sm:table-cell">Strengths</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden sm:table-cell">Weaknesses</th>
+                {canEdit && !isPreview && <th className="w-[40px]" />}
+              </tr>
+            </thead>
+            <tbody>
               {displayData.competitors.map((competitor, index) => (
-                <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_1fr_1fr_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground sm:hidden">Name</span>
+                <tr key={index} className="border-b last:border-0 even:bg-muted/15">
+                  <td className="px-4 py-2">
                     <Input
                       value={competitor.name}
                       onChange={(e) => updateCompetitor(index, 'name', e.target.value)}
                       placeholder="Competitor name"
                       readOnly={!canEdit || isPreview}
+                      className="h-8 text-sm"
                     />
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground sm:hidden">Pricing</span>
+                  </td>
+                  <td className="px-4 py-2">
                     <Input
                       value={competitor.pricing}
                       onChange={(e) => updateCompetitor(index, 'pricing', e.target.value)}
                       placeholder="$XXX-$XXX"
                       readOnly={!canEdit || isPreview}
+                      className="h-8 text-sm"
                     />
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground sm:hidden">Strengths</span>
+                  </td>
+                  <td className="px-4 py-2 hidden sm:table-cell">
                     <Input
                       value={competitor.strengths}
                       onChange={(e) => updateCompetitor(index, 'strengths', e.target.value)}
                       placeholder="Key strengths"
                       readOnly={!canEdit || isPreview}
+                      className="h-8 text-sm"
                     />
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground sm:hidden">Weaknesses</span>
+                  </td>
+                  <td className="px-4 py-2 hidden sm:table-cell">
                     <Input
                       value={competitor.weaknesses}
                       onChange={(e) => updateCompetitor(index, 'weaknesses', e.target.value)}
                       placeholder="Key weaknesses"
                       readOnly={!canEdit || isPreview}
+                      className="h-8 text-sm"
                     />
-                  </div>
+                  </td>
                   {canEdit && !isPreview && (
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="mt-1 sm:mt-0"
-                      onClick={() => removeCompetitor(index)}
-                    >
-                      <Trash2 className="size-3" />
-                    </Button>
+                    <td className="px-2 py-2">
+                      <Button variant="ghost" size="icon-xs" onClick={() => removeCompetitor(index)}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </td>
                   )}
-                </div>
+                </tr>
               ))}
-
-              {displayData.competitors.length === 0 && (
-                <p className="text-sm text-muted-foreground py-2">No competitors added yet.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </tbody>
+          </table>
+          {displayData.competitors.length === 0 && (
+            <p className="text-sm text-muted-foreground py-6 text-center">No competitors added yet.</p>
+          )}
+        </div>
 
         {/* Competitor Pricing Chart */}
         {(() => {
@@ -818,140 +802,128 @@ export function MarketAnalysis() {
           if (chartData.length === 0) return null;
 
           return (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Competitor Pricing</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[220px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" tickFormatter={(v: number) => `$${v}`} />
-                      <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-                      <Bar dataKey="min" fill="#94a3b8" name="Min Price" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="max" fill="#6366f1" name="Max Price" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="card-elevated rounded-lg p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Competitor Pricing</h3>
+              <div className="h-[240px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" tickFormatter={(v: number) => `$${v}`} />
+                    <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                    <Bar dataKey="min" fill={CHART_COLORS[1]} name="Min Price" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="max" fill={CHART_COLORS[0]} name="Max Price" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           );
         })()}
       </div>
 
-      <Separator />
-
       {/* Demographics */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Demographics</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Demographics</h2>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4">
-          <Card>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Population</label>
-                  <Input
-                    type="number"
-                    value={displayData.demographics.population}
-                    onChange={(e) => updateDemographics('population', Number(e.target.value))}
-                    readOnly={!canEdit || isPreview}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Households with Kids under 12</label>
-                  <Input
-                    type="number"
-                    value={displayData.demographics.householdsWithKids}
-                    onChange={(e) => updateDemographics('householdsWithKids', Number(e.target.value))}
-                    readOnly={!canEdit || isPreview}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Languages (comma-separated)</label>
-                  <Input
-                    value={displayData.demographics.languages.join(', ')}
-                    onChange={(e) =>
-                      updateDemographics(
-                        'languages',
-                        e.target.value.split(',').map((l) => l.trim()).filter(Boolean)
-                      )
-                    }
-                    readOnly={!canEdit || isPreview}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Median Income</label>
-                  <Input
-                    value={displayData.demographics.income}
-                    onChange={(e) => updateDemographics('income', e.target.value)}
-                    readOnly={!canEdit || isPreview}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Annual Tourists</label>
-                  <Input
-                    type="number"
-                    value={displayData.demographics.annualTourists}
-                    onChange={(e) => updateDemographics('annualTourists', Number(e.target.value))}
-                    readOnly={!canEdit || isPreview}
-                  />
-                </div>
+          <div className="card-elevated rounded-lg p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Population</label>
+                <Input
+                  type="number"
+                  value={displayData.demographics.population}
+                  onChange={(e) => updateDemographics('population', Number(e.target.value))}
+                  readOnly={!canEdit || isPreview}
+                />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <label className="text-sm font-medium">Households with Kids under 12</label>
+                <Input
+                  type="number"
+                  value={displayData.demographics.householdsWithKids}
+                  onChange={(e) => updateDemographics('householdsWithKids', Number(e.target.value))}
+                  readOnly={!canEdit || isPreview}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Languages (comma-separated)</label>
+                <Input
+                  value={displayData.demographics.languages.join(', ')}
+                  onChange={(e) =>
+                    updateDemographics(
+                      'languages',
+                      e.target.value.split(',').map((l) => l.trim()).filter(Boolean)
+                    )
+                  }
+                  readOnly={!canEdit || isPreview}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Median Income</label>
+                <Input
+                  value={displayData.demographics.income}
+                  onChange={(e) => updateDemographics('income', e.target.value)}
+                  readOnly={!canEdit || isPreview}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Annual Tourists</label>
+                <Input
+                  type="number"
+                  value={displayData.demographics.annualTourists}
+                  onChange={(e) => updateDemographics('annualTourists', Number(e.target.value))}
+                  readOnly={!canEdit || isPreview}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Languages Pie Chart */}
           {displayData.demographics.languages.length > 0 && (
-            <Card>
-              <CardHeader className="pb-0">
-                <CardTitle className="text-base">Languages</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const langs = displayData.demographics.languages;
-                  const pieData = langs.map((lang) => {
-                    const pct = extractLangPercent(lang);
-                    const label = lang.replace(/\s*\([\d.]+%\)/, '').trim();
-                    return { name: label, value: pct ?? 1 };
-                  });
-                  const hasPercents = langs.some((l) => extractLangPercent(l) !== null);
+            <div className="card-elevated rounded-lg p-5 space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Languages</h3>
+              {(() => {
+                const langs = displayData.demographics.languages;
+                const pieData = langs.map((lang) => {
+                  const pct = extractLangPercent(lang);
+                  const label = lang.replace(/\s*\([\d.]+%\)/, '').trim();
+                  return { name: label, value: pct ?? 1 };
+                });
+                const hasPercents = langs.some((l) => extractLangPercent(l) !== null);
 
-                  return (
-                    <div className="h-[200px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={pieData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={40}
-                            outerRadius={65}
-                            paddingAngle={3}
-                            dataKey="value"
-                            label={hasPercents ? ({ value }: { value: number }) => `${value}%` : false}
-                          >
-                            {pieData.map((_, i) => (
-                              <Cell
-                                key={i}
-                                fill={['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'][i % 6]}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(v, name) => [hasPercents ? `${v}%` : name, hasPercents ? name : 'Language']} />
-                          <Legend
-                            layout="horizontal"
-                            verticalAlign="bottom"
-                            wrapperStyle={{ fontSize: 11 }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
+                return (
+                  <div className="h-[240px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={65}
+                          paddingAngle={3}
+                          dataKey="value"
+                          label={hasPercents ? ({ value }: { value: number }) => `${value}%` : false}
+                        >
+                          {pieData.map((_, i) => (
+                            <Cell
+                              key={i}
+                              fill={PIE_COLORS[i % PIE_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v, name) => [hasPercents ? `${v}%` : name, hasPercents ? name : 'Language']} />
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          wrapperStyle={{ fontSize: 11 }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                );
+              })()}
+            </div>
           )}
         </div>
       </div>
@@ -959,9 +931,8 @@ export function MarketAnalysis() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Market Analysis</h1>
+    <div className="page-container">
+      <PageHeader title="Market Analysis" description="Target market, demographics, and competitive landscape">
         {canEdit && (
           <AiActionBar
             onGenerate={() => aiSuggestion.generate('generate', data)}
@@ -971,7 +942,7 @@ export function MarketAnalysis() {
             disabled={!isAiAvailable}
           />
         )}
-      </div>
+      </PageHeader>
 
       {aiSuggestion.state.status === 'error' && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
