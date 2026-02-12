@@ -2,6 +2,7 @@ import { Document, View, Text, Image } from '@react-pdf/renderer';
 import { styles } from './pdfStyles';
 import { CoverPage } from './CoverPage';
 import { SectionPage } from './SectionPage';
+import { SECTION_SLUGS } from '@/lib/constants';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -23,8 +24,12 @@ import type {
 
 // ---- Helpers ----
 
-function formatCurrency(value: number): string {
-  return '$' + Math.round(value).toLocaleString('en-US');
+function formatCurrency(value: number, currency = 'USD'): string {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+  } catch {
+    return '$' + Math.round(value).toLocaleString('en-US');
+  }
 }
 
 function sumCosts(costs: MonthlyCosts): number {
@@ -122,15 +127,12 @@ export interface BusinessPlanDocumentProps {
   risks: RisksDueDiligence | null;
   kpis: KpisMetrics | null;
   launchPlan: LaunchPlan | null;
+  enabledSections: string[];
   scenarioName: string;
-  scenarioMetrics: {
-    monthlyRevenue: number;
-    monthlyProfit: number;
-    profitMargin: number;
-    monthlyBookings: number;
-    annualRevenue: number;
-  };
+  scenarioMetrics: Record<string, { label: string; value: number; unit: string }>;
   chartImage: string | null;
+  businessName: string;
+  currencyCode: string;
 }
 
 export function BusinessPlanDocument({
@@ -143,9 +145,12 @@ export function BusinessPlanDocument({
   risks,
   kpis,
   launchPlan,
+  enabledSections,
   scenarioName,
   scenarioMetrics,
   chartImage,
+  businessName,
+  currencyCode,
 }: BusinessPlanDocumentProps) {
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
@@ -153,408 +158,456 @@ export function BusinessPlanDocument({
     day: 'numeric',
   });
 
+  // Dynamic section filtering and numbering
+  const enabledSlugs = SECTION_SLUGS.filter((s) => enabledSections.includes(s));
+
+  function getSectionNumber(slug: string): number {
+    return enabledSlugs.indexOf(slug as typeof enabledSlugs[number]) + 1;
+  }
+
+  // Build top metrics from scenarioMetrics (top 4, sorted by unit priority)
+  const unitPriority: Record<string, number> = {
+    currency: 0, percent: 1, ratio: 2, count: 3, months: 4, days: 5, hours: 6,
+  };
+
+  const topMetrics = Object.values(scenarioMetrics)
+    .sort((a, b) => (unitPriority[a.unit] ?? 99) - (unitPriority[b.unit] ?? 99))
+    .slice(0, 4)
+    .map((m) => ({
+      label: m.label,
+      value: m.unit === 'currency'
+        ? formatCurrency(m.value, currencyCode)
+        : m.unit === 'percent'
+          ? `${(m.value * 100).toFixed(1)}%`
+          : String(Math.round(m.value)),
+    }));
+
   return (
-    <Document title="Business Plan" author="" subject="Business Plan">
+    <Document title={`${businessName || 'Business'} Plan`} author="" subject="Business Plan">
       {/* Cover Page */}
       <CoverPage
         scenarioName={scenarioName}
         date={date}
-        monthlyRevenue={scenarioMetrics.monthlyRevenue}
-        annualRevenue={scenarioMetrics.annualRevenue}
-        profitMargin={scenarioMetrics.profitMargin}
-        monthlyBookings={scenarioMetrics.monthlyBookings}
+        businessName={businessName}
+        currencyCode={currencyCode}
+        topMetrics={topMetrics}
       />
 
-      {/* Section 1: Executive Summary */}
-      <SectionPage number={1} title="Executive Summary">
-        {execSummary ? (
-          <View>
-            <SubsectionTitle>Summary</SubsectionTitle>
-            <Text style={styles.bodyText}>{execSummary.summary}</Text>
+      {/* Section: Executive Summary */}
+      {enabledSlugs.includes('executive-summary') && (
+        <SectionPage number={getSectionNumber('executive-summary')} title="Executive Summary">
+          {execSummary ? (
+            <View>
+              <SubsectionTitle>Summary</SubsectionTitle>
+              <Text style={styles.bodyText}>{execSummary.summary}</Text>
 
-            <View style={styles.col2}>
-              <View style={styles.flex1}>
-                <SubsectionTitle>Mission</SubsectionTitle>
-                <Text style={styles.bodyText}>{execSummary.mission}</Text>
+              <View style={styles.col2}>
+                <View style={styles.flex1}>
+                  <SubsectionTitle>Mission</SubsectionTitle>
+                  <Text style={styles.bodyText}>{execSummary.mission}</Text>
+                </View>
+                <View style={styles.flex1}>
+                  <SubsectionTitle>Vision</SubsectionTitle>
+                  <Text style={styles.bodyText}>{execSummary.vision}</Text>
+                </View>
               </View>
-              <View style={styles.flex1}>
-                <SubsectionTitle>Vision</SubsectionTitle>
-                <Text style={styles.bodyText}>{execSummary.vision}</Text>
-              </View>
+
+              <SubsectionTitle>Key Highlights</SubsectionTitle>
+              <BulletList items={execSummary.keyHighlights} />
             </View>
+          ) : (
+            <EmptyState section="Executive Summary" />
+          )}
+        </SectionPage>
+      )}
 
-            <SubsectionTitle>Key Highlights</SubsectionTitle>
-            <BulletList items={execSummary.keyHighlights} />
-          </View>
-        ) : (
-          <EmptyState section="Executive Summary" />
-        )}
-      </SectionPage>
-
-      {/* Section 2: Market Analysis */}
-      <SectionPage number={2} title="Market Analysis">
-        {marketAnalysis ? (
-          <View>
-            <View style={styles.col2}>
-              <View style={styles.flex1}>
-                <SubsectionTitle>Target Demographic</SubsectionTitle>
-                <Text style={styles.bodyText}>Age: {marketAnalysis.targetDemographic.ageRange}</Text>
-                <Text style={styles.bodyText}>Location: {marketAnalysis.targetDemographic.location} ({marketAnalysis.targetDemographic.radius} mi)</Text>
+      {/* Section: Market Analysis */}
+      {enabledSlugs.includes('market-analysis') && (
+        <SectionPage number={getSectionNumber('market-analysis')} title="Market Analysis">
+          {marketAnalysis ? (
+            <View>
+              <View style={styles.col2}>
+                <View style={styles.flex1}>
+                  <SubsectionTitle>Target Demographic</SubsectionTitle>
+                  <Text style={styles.bodyText}>Age: {marketAnalysis.targetDemographic.ageRange}</Text>
+                  <Text style={styles.bodyText}>Location: {marketAnalysis.targetDemographic.location} ({marketAnalysis.targetDemographic.radius} mi)</Text>
+                </View>
+                <View style={styles.flex1}>
+                  <SubsectionTitle>Market Size</SubsectionTitle>
+                  <Text style={styles.bodyText}>{marketAnalysis.marketSize}</Text>
+                </View>
               </View>
-              <View style={styles.flex1}>
-                <SubsectionTitle>Market Size</SubsectionTitle>
-                <Text style={styles.bodyText}>{marketAnalysis.marketSize}</Text>
-              </View>
-            </View>
 
-            {marketAnalysis.competitors.length > 0 && (
-              <View>
-                <SubsectionTitle>Competitors</SubsectionTitle>
-                <View style={styles.table}>
-                  <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Name</Text>
-                    <Text style={[styles.tableHeaderCell, { width: '15%' }]}>Pricing</Text>
-                    <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Strengths</Text>
-                    <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Weaknesses</Text>
-                  </View>
-                  {marketAnalysis.competitors.map((c, i) => (
-                    <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
-                      <Text style={[styles.tableCellBold, { width: '25%' }]}>{c.name}</Text>
-                      <Text style={[styles.tableCell, { width: '15%' }]}>{c.pricing}</Text>
-                      <Text style={[styles.tableCell, { width: '30%' }]}>{c.strengths}</Text>
-                      <Text style={[styles.tableCell, { width: '30%' }]}>{c.weaknesses}</Text>
+              {marketAnalysis.competitors.length > 0 && (
+                <View>
+                  <SubsectionTitle>Competitors</SubsectionTitle>
+                  <View style={styles.table}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Name</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '15%' }]}>Pricing</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Strengths</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Weaknesses</Text>
                     </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            <SubsectionTitle>Demographics</SubsectionTitle>
-            <Text style={styles.bodyText}>Population: {marketAnalysis.demographics.population.toLocaleString()}</Text>
-            <Text style={styles.bodyText}>Languages: {marketAnalysis.demographics.languages.join(', ')}</Text>
-            <Text style={styles.bodyText}>Income: {marketAnalysis.demographics.income}</Text>
-          </View>
-        ) : (
-          <EmptyState section="Market Analysis" />
-        )}
-      </SectionPage>
-
-      {/* Section 3: Product & Service */}
-      <SectionPage number={3} title="Product & Service">
-        {productService ? (
-          <View>
-            <SubsectionTitle>Packages</SubsectionTitle>
-            {productService.packages.map((pkg, i) => (
-              <View key={i} style={styles.infoCard}>
-                <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }]}>
-                  <Text style={styles.infoCardTitle}>{pkg.name}</Text>
-                  <Text style={[styles.statValue, { color: '#2563eb', fontSize: 12 }]}>{formatCurrency(pkg.price)}</Text>
-                </View>
-                <Text style={styles.smallText}>{pkg.duration} | Up to {pkg.maxParticipants} guests</Text>
-                <Text style={[styles.bodyText, { marginTop: 4 }]}>{pkg.description}</Text>
-                <BulletList items={pkg.includes} />
-              </View>
-            ))}
-
-            {productService.addOns.length > 0 && (
-              <View>
-                <SubsectionTitle>Add-Ons</SubsectionTitle>
-                {productService.addOns.map((a, i) => (
-                  <Text key={i} style={styles.bodyText}>{a.name} -- {formatCurrency(a.price)}</Text>
-                ))}
-              </View>
-            )}
-          </View>
-        ) : (
-          <EmptyState section="Product & Service" />
-        )}
-      </SectionPage>
-
-      {/* Section 4: Marketing Strategy */}
-      <SectionPage number={4} title="Marketing Strategy">
-        {marketingStrategy ? (
-          <View>
-            <SubsectionTitle>Channels</SubsectionTitle>
-            {marketingStrategy.channels.map((ch, i) => (
-              <View key={i} style={styles.infoCard}>
-                <Text style={styles.infoCardTitle}>{CHANNEL_NAMES[ch.name] || ch.name}</Text>
-                <View style={[styles.row, { marginBottom: 4 }]}>
-                  <Text style={styles.smallText}>Budget: {formatCurrency(ch.budget)}/mo</Text>
-                  <Text style={styles.smallText}>  Leads: {ch.expectedLeads}</Text>
-                  <Text style={styles.smallText}>  CAC: {formatCurrency(ch.expectedCAC)}</Text>
-                </View>
-                <Text style={styles.bodyText}>{ch.description}</Text>
-              </View>
-            ))}
-
-            {marketingStrategy.offers.length > 0 && (
-              <View>
-                <SubsectionTitle>Promotional Offers</SubsectionTitle>
-                <BulletList items={marketingStrategy.offers} />
-              </View>
-            )}
-
-            {marketingStrategy.landingPage.description && (
-              <View>
-                <SubsectionTitle>Landing Page</SubsectionTitle>
-                {marketingStrategy.landingPage.url && (
-                  <Text style={[styles.bodyText, { color: '#2563eb' }]}>{marketingStrategy.landingPage.url}</Text>
-                )}
-                <Text style={styles.bodyText}>{marketingStrategy.landingPage.description}</Text>
-              </View>
-            )}
-          </View>
-        ) : (
-          <EmptyState section="Marketing Strategy" />
-        )}
-      </SectionPage>
-
-      {/* Section 5: Operations */}
-      <SectionPage number={5} title="Operations">
-        {operations ? (
-          <View>
-            {operations.crew.length > 0 && (
-              <View>
-                <SubsectionTitle>Crew</SubsectionTitle>
-                <View style={styles.table}>
-                  <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Role</Text>
-                    <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Hourly Rate</Text>
-                    <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Count</Text>
-                  </View>
-                  {operations.crew.map((m, i) => (
-                    <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
-                      <Text style={[styles.tableCellBold, { width: '50%' }]}>{m.role}</Text>
-                      <Text style={[styles.tableCellRight, { width: '25%' }]}>${m.hourlyRate}/hr</Text>
-                      <Text style={[styles.tableCellRight, { width: '25%' }]}>{m.count}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            <SubsectionTitle>Capacity</SubsectionTitle>
-            <View style={styles.statCardRow}>
-              <StatCard label="Daily" value={String(operations.capacity.maxBookingsPerDay)} />
-              <StatCard label="Weekly" value={String(operations.capacity.maxBookingsPerWeek)} />
-              <StatCard label="Monthly" value={String(operations.capacity.maxBookingsPerMonth)} />
-              <StatCard label="Travel Radius" value={`${operations.travelRadius} mi`} />
-            </View>
-
-            {operations.equipment.length > 0 && (
-              <View>
-                <SubsectionTitle>Equipment</SubsectionTitle>
-                <BulletList items={operations.equipment} />
-              </View>
-            )}
-
-            {operations.safetyProtocols.length > 0 && (
-              <View>
-                <SubsectionTitle>Safety Protocols</SubsectionTitle>
-                {operations.safetyProtocols.map((p, i) => (
-                  <View key={i} style={styles.listItem}>
-                    <Text style={styles.listBullet}>{i + 1}.</Text>
-                    <Text style={styles.listText}>{p}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        ) : (
-          <EmptyState section="Operations" />
-        )}
-      </SectionPage>
-
-      {/* Section 6: Financial Projections */}
-      <SectionPage number={6} title="Financial Projections">
-        {financials ? (
-          <View>
-            <SubsectionTitle>{`Key Metrics (${scenarioName})`}</SubsectionTitle>
-            <View style={styles.statCardRow}>
-              <StatCard label="Monthly Revenue" value={formatCurrency(scenarioMetrics.monthlyRevenue)} color="#16a34a" />
-              <StatCard label="Monthly Profit" value={formatCurrency(scenarioMetrics.monthlyProfit)} color={scenarioMetrics.monthlyProfit >= 0 ? '#16a34a' : '#dc2626'} />
-              <StatCard label="Profit Margin" value={`${(scenarioMetrics.profitMargin * 100).toFixed(1)}%`} color={scenarioMetrics.profitMargin >= 0 ? '#16a34a' : '#dc2626'} />
-              <StatCard label="Bookings/Mo" value={String(scenarioMetrics.monthlyBookings)} />
-            </View>
-
-            <SubsectionTitle>Unit Economics</SubsectionTitle>
-            <View style={styles.statCardRow}>
-              <StatCard label="Avg Check" value={formatCurrency(financials.unitEconomics.avgCheck)} />
-              <StatCard label="Cost/Event" value={formatCurrency(financials.unitEconomics.costPerEvent)} />
-              <StatCard label="Profit/Event" value={formatCurrency(financials.unitEconomics.profitPerEvent)} />
-              <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenEvents} events`} />
-            </View>
-
-            {/* Chart Image */}
-            {chartImage && (
-              <View>
-                <SubsectionTitle>Revenue vs Costs (12-Month Projection)</SubsectionTitle>
-                <Image style={styles.chartImage} src={chartImage} />
-              </View>
-            )}
-
-            {/* Monthly P&L Table */}
-            <SubsectionTitle>Monthly P&L</SubsectionTitle>
-            <View style={styles.table}>
-              <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Month</Text>
-                <Text style={[styles.tableHeaderCell, { width: '23%', textAlign: 'right' }]}>Revenue</Text>
-                <Text style={[styles.tableHeaderCell, { width: '23%', textAlign: 'right' }]}>Costs</Text>
-                <Text style={[styles.tableHeaderCell, { width: '24%', textAlign: 'right' }]}>Profit</Text>
-              </View>
-              {financials.months.map((m, i) => {
-                const totalCosts = sumCosts(m.costs);
-                const profit = m.revenue - totalCosts;
-                return (
-                  <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
-                    <Text style={[styles.tableCellBold, { width: '30%' }]}>{m.month}</Text>
-                    <Text style={[styles.tableCellRight, { width: '23%' }]}>{formatCurrency(m.revenue)}</Text>
-                    <Text style={[styles.tableCellRight, { width: '23%' }]}>{formatCurrency(totalCosts)}</Text>
-                    <Text style={[styles.tableCellRight, { width: '24%', color: profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
-                      {formatCurrency(profit)}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        ) : (
-          <EmptyState section="Financial Projections" />
-        )}
-      </SectionPage>
-
-      {/* Section 7: Risks & Due Diligence */}
-      <SectionPage number={7} title="Risks & Due Diligence">
-        {risks ? (
-          <View>
-            {/* Investment Verdict */}
-            {risks.investmentVerdict && (
-              <View style={[styles.infoCard, { borderLeftWidth: 3, borderLeftColor: verdictColors[risks.investmentVerdict.verdict] }]}>
-                <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
-                  <Text style={[styles.infoCardTitle, { marginBottom: 0 }]}>Investment Verdict: </Text>
-                  <Text style={[styles.infoCardTitle, { marginBottom: 0, color: verdictColors[risks.investmentVerdict.verdict] }]}>
-                    {verdictLabels[risks.investmentVerdict.verdict]}
-                  </Text>
-                </View>
-                {risks.investmentVerdict.conditions.length > 0 && (
-                  <View style={{ marginTop: 4 }}>
-                    <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 3, textTransform: 'uppercase' }]}>Conditions</Text>
-                    {risks.investmentVerdict.conditions.map((c, i) => (
-                      <View key={i} style={styles.listItem}>
-                        <Text style={styles.listBullet}>{i + 1}.</Text>
-                        <Text style={styles.listText}>{c}</Text>
+                    {marketAnalysis.competitors.map((c, i) => (
+                      <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                        <Text style={[styles.tableCellBold, { width: '25%' }]}>{c.name}</Text>
+                        <Text style={[styles.tableCell, { width: '15%' }]}>{c.pricing}</Text>
+                        <Text style={[styles.tableCell, { width: '30%' }]}>{c.strengths}</Text>
+                        <Text style={[styles.tableCell, { width: '30%' }]}>{c.weaknesses}</Text>
                       </View>
                     ))}
                   </View>
-                )}
-              </View>
-            )}
+                </View>
+              )}
 
-            {/* Risk Assessment */}
-            {risks.risks.length > 0 ? (
-              <View>
-                <SubsectionTitle>Risk Assessment</SubsectionTitle>
-                {risks.risks.map((risk, i) => (
-                  <View key={i} style={[styles.infoCard, risk.severity === 'critical' ? { borderLeftWidth: 3, borderLeftColor: '#ef4444' } : {}]}>
-                    <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
-                      <Text style={[styles.badge, styles[severityBadge[risk.severity]]]}>{risk.severity}</Text>
-                      <Text style={[styles.smallText, { marginLeft: 6 }]}>{risk.category}</Text>
-                    </View>
-                    <Text style={styles.infoCardTitle}>{risk.title}</Text>
-                    <Text style={styles.bodyText}>{risk.description}</Text>
-                    <Text style={[styles.bodyText, { fontFamily: 'Helvetica-Bold' }]}>
-                      Mitigation: <Text style={{ fontFamily: 'Helvetica' }}>{risk.mitigation}</Text>
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <EmptyState section="Risks" />
-            )}
-
-            {/* Due Diligence Checklist */}
-            {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
-              <View>
-                <SubsectionTitle>Due Diligence Checklist</SubsectionTitle>
-                {risks.dueDiligenceChecklist.map((item, i) => (
-                  <View key={i} style={styles.infoCard}>
-                    <View style={[styles.row, { marginBottom: 3, alignItems: 'center' }]}>
-                      <Text style={[styles.badge, styles[priorityBadge[item.priority]], { marginRight: 4 }]}>{item.priority}</Text>
-                      <Text style={[styles.badge, styles.badgeBlue]}>{complianceLabels[item.status]}</Text>
-                    </View>
-                    <Text style={styles.infoCardTitle}>{item.item}</Text>
-                    <Text style={styles.bodyText}>{item.detail}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Compliance Checklist */}
-            {risks.complianceChecklist.length > 0 && (
-              <View>
-                <SubsectionTitle>Compliance Checklist</SubsectionTitle>
-                {risks.complianceChecklist.map((item, i) => (
-                  <View key={i} style={[styles.listItem, { marginBottom: 3 }]}>
-                    <Text style={[styles.badge, styles.badgeBlue, { marginRight: 6 }]}>{complianceLabels[item.status]}</Text>
-                    <Text style={styles.listText}>{item.item}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        ) : (
-          <EmptyState section="Risks & Due Diligence" />
-        )}
-      </SectionPage>
-
-      {/* Section 8: KPIs & Metrics */}
-      <SectionPage number={8} title="KPIs & Metrics">
-        {kpis ? (
-          <View>
-            <SubsectionTitle>Target Metrics</SubsectionTitle>
-            <View style={styles.statCardRow}>
-              <StatCard label="Monthly Leads" value={String(kpis.targets.monthlyLeads)} />
-              <StatCard label="Conversion Rate" value={`${(kpis.targets.conversionRate * 100).toFixed(0)}%`} />
-              <StatCard label="Average Check" value={formatCurrency(kpis.targets.avgCheck)} />
+              <SubsectionTitle>Demographics</SubsectionTitle>
+              <Text style={styles.bodyText}>Population: {marketAnalysis.demographics.population.toLocaleString()}</Text>
+              <Text style={styles.bodyText}>Languages: {marketAnalysis.demographics.languages.join(', ')}</Text>
+              <Text style={styles.bodyText}>Income: {marketAnalysis.demographics.income}</Text>
             </View>
-            <View style={styles.statCardRow}>
-              <StatCard label="CAC/Lead" value={formatCurrency(kpis.targets.cacPerLead)} />
-              <StatCard label="CAC/Booking" value={formatCurrency(kpis.targets.cacPerBooking)} />
-              <StatCard label="Monthly Bookings" value={String(kpis.targets.monthlyBookings)} />
-            </View>
-          </View>
-        ) : (
-          <EmptyState section="KPIs & Metrics" />
-        )}
-      </SectionPage>
+          ) : (
+            <EmptyState section="Market Analysis" />
+          )}
+        </SectionPage>
+      )}
 
-      {/* Section 9: Launch Plan */}
-      <SectionPage number={9} title="Launch Plan">
-        {launchPlan ? (
-          <View>
-            {launchPlan.stages.length > 0 ? (
-              launchPlan.stages.map((stage, i) => (
-                <View key={i} style={[styles.infoCard, { marginLeft: 16 }]}>
+      {/* Section: Product & Service */}
+      {enabledSlugs.includes('product-service') && (
+        <SectionPage number={getSectionNumber('product-service')} title="Product & Service">
+          {productService ? (
+            <View>
+              <SubsectionTitle>Packages</SubsectionTitle>
+              {productService.packages.map((pkg, i) => (
+                <View key={i} style={styles.infoCard}>
                   <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }]}>
-                    <Text style={styles.infoCardTitle}>Stage {i + 1}: {stage.name}</Text>
-                    <Text style={styles.smallText}>{stage.startDate} -- {stage.endDate}</Text>
+                    <Text style={styles.infoCardTitle}>{pkg.name}</Text>
+                    <Text style={[styles.statValue, { color: '#2563eb', fontSize: 12 }]}>{formatCurrency(pkg.price, currencyCode)}</Text>
                   </View>
-                  {stage.tasks.map((t, j) => (
-                    <View key={j} style={[styles.listItem, { marginBottom: 2 }]}>
-                      <Text style={[styles.badge, styles.badgeBlue, { marginRight: 6 }]}>{taskLabels[t.status]}</Text>
-                      <Text style={styles.listText}>{t.task}</Text>
+                  <Text style={styles.smallText}>{pkg.duration} | Up to {pkg.maxParticipants} guests</Text>
+                  <Text style={[styles.bodyText, { marginTop: 4 }]}>{pkg.description}</Text>
+                  <BulletList items={pkg.includes} />
+                </View>
+              ))}
+
+              {productService.addOns.length > 0 && (
+                <View>
+                  <SubsectionTitle>Add-Ons</SubsectionTitle>
+                  {productService.addOns.map((a, i) => (
+                    <Text key={i} style={styles.bodyText}>{a.name} -- {formatCurrency(a.price, currencyCode)}</Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <EmptyState section="Product & Service" />
+          )}
+        </SectionPage>
+      )}
+
+      {/* Section: Marketing Strategy */}
+      {enabledSlugs.includes('marketing-strategy') && (
+        <SectionPage number={getSectionNumber('marketing-strategy')} title="Marketing Strategy">
+          {marketingStrategy ? (
+            <View>
+              <SubsectionTitle>Channels</SubsectionTitle>
+              {marketingStrategy.channels.map((ch, i) => (
+                <View key={i} style={styles.infoCard}>
+                  <Text style={styles.infoCardTitle}>{CHANNEL_NAMES[ch.name] || ch.name}</Text>
+                  <View style={[styles.row, { marginBottom: 4 }]}>
+                    <Text style={styles.smallText}>Budget: {formatCurrency(ch.budget, currencyCode)}/mo</Text>
+                    <Text style={styles.smallText}>  Leads: {ch.expectedLeads}</Text>
+                    <Text style={styles.smallText}>  CAC: {formatCurrency(ch.expectedCAC, currencyCode)}</Text>
+                  </View>
+                  <Text style={styles.bodyText}>{ch.description}</Text>
+                </View>
+              ))}
+
+              {marketingStrategy.offers.length > 0 && (
+                <View>
+                  <SubsectionTitle>Promotional Offers</SubsectionTitle>
+                  <BulletList items={marketingStrategy.offers} />
+                </View>
+              )}
+
+              {marketingStrategy.landingPage.description && (
+                <View>
+                  <SubsectionTitle>Landing Page</SubsectionTitle>
+                  {marketingStrategy.landingPage.url && (
+                    <Text style={[styles.bodyText, { color: '#2563eb' }]}>{marketingStrategy.landingPage.url}</Text>
+                  )}
+                  <Text style={styles.bodyText}>{marketingStrategy.landingPage.description}</Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <EmptyState section="Marketing Strategy" />
+          )}
+        </SectionPage>
+      )}
+
+      {/* Section: Operations */}
+      {enabledSlugs.includes('operations') && (
+        <SectionPage number={getSectionNumber('operations')} title="Operations">
+          {operations ? (
+            <View>
+              {operations.crew.length > 0 && (
+                <View>
+                  <SubsectionTitle>Crew</SubsectionTitle>
+                  <View style={styles.table}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Role</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Hourly Rate</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Count</Text>
+                    </View>
+                    {operations.crew.map((m, i) => (
+                      <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                        <Text style={[styles.tableCellBold, { width: '50%' }]}>{m.role}</Text>
+                        <Text style={[styles.tableCellRight, { width: '25%' }]}>{formatCurrency(m.hourlyRate, currencyCode)}/hr</Text>
+                        <Text style={[styles.tableCellRight, { width: '25%' }]}>{m.count}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <SubsectionTitle>Capacity</SubsectionTitle>
+              <View style={styles.statCardRow}>
+                <StatCard label="Daily" value={String(operations.capacity.maxBookingsPerDay)} />
+                <StatCard label="Weekly" value={String(operations.capacity.maxBookingsPerWeek)} />
+                <StatCard label="Monthly" value={String(operations.capacity.maxBookingsPerMonth)} />
+                <StatCard label="Travel Radius" value={`${operations.travelRadius} mi`} />
+              </View>
+
+              {operations.equipment.length > 0 && (
+                <View>
+                  <SubsectionTitle>Equipment</SubsectionTitle>
+                  <BulletList items={operations.equipment} />
+                </View>
+              )}
+
+              {operations.safetyProtocols.length > 0 && (
+                <View>
+                  <SubsectionTitle>Safety Protocols</SubsectionTitle>
+                  {operations.safetyProtocols.map((p, i) => (
+                    <View key={i} style={styles.listItem}>
+                      <Text style={styles.listBullet}>{i + 1}.</Text>
+                      <Text style={styles.listText}>{p}</Text>
                     </View>
                   ))}
                 </View>
-              ))
-            ) : (
-              <EmptyState section="Launch Plan" />
-            )}
-          </View>
-        ) : (
-          <EmptyState section="Launch Plan" />
-        )}
-      </SectionPage>
+              )}
+            </View>
+          ) : (
+            <EmptyState section="Operations" />
+          )}
+        </SectionPage>
+      )}
+
+      {/* Section: Financial Projections */}
+      {enabledSlugs.includes('financial-projections') && (
+        <SectionPage number={getSectionNumber('financial-projections')} title="Financial Projections">
+          {financials ? (
+            <View>
+              <SubsectionTitle>{`Key Metrics (${scenarioName})`}</SubsectionTitle>
+              <View style={styles.statCardRow}>
+                {topMetrics.map((m, i) => (
+                  <StatCard key={i} label={m.label} value={m.value} />
+                ))}
+              </View>
+
+              {(financials.unitEconomics.avgCheck > 0 || financials.unitEconomics.costPerEvent > 0) && (
+                <View>
+                  <SubsectionTitle>Unit Economics</SubsectionTitle>
+                  <View style={styles.statCardRow}>
+                    <StatCard label="Avg Check" value={formatCurrency(financials.unitEconomics.avgCheck, currencyCode)} />
+                    <StatCard label="Cost/Event" value={formatCurrency(financials.unitEconomics.costPerEvent, currencyCode)} />
+                    <StatCard label="Profit/Event" value={formatCurrency(financials.unitEconomics.profitPerEvent, currencyCode)} />
+                    <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenEvents} events`} />
+                  </View>
+                </View>
+              )}
+
+              {/* Chart Image */}
+              {chartImage && (
+                <View>
+                  <SubsectionTitle>Revenue vs Costs (12-Month Projection)</SubsectionTitle>
+                  <Image style={styles.chartImage} src={chartImage} />
+                </View>
+              )}
+
+              {/* Monthly P&L Table */}
+              {financials.months.length > 0 && (
+                <View>
+                  <SubsectionTitle>Monthly P&L</SubsectionTitle>
+                  <View style={styles.table}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Month</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '23%', textAlign: 'right' }]}>Revenue</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '23%', textAlign: 'right' }]}>Costs</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '24%', textAlign: 'right' }]}>Profit</Text>
+                    </View>
+                    {financials.months.map((m, i) => {
+                      const totalCosts = sumCosts(m.costs);
+                      const profit = m.revenue - totalCosts;
+                      return (
+                        <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                          <Text style={[styles.tableCellBold, { width: '30%' }]}>{m.month}</Text>
+                          <Text style={[styles.tableCellRight, { width: '23%' }]}>{formatCurrency(m.revenue, currencyCode)}</Text>
+                          <Text style={[styles.tableCellRight, { width: '23%' }]}>{formatCurrency(totalCosts, currencyCode)}</Text>
+                          <Text style={[styles.tableCellRight, { width: '24%', color: profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                            {formatCurrency(profit, currencyCode)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </View>
+          ) : (
+            <EmptyState section="Financial Projections" />
+          )}
+        </SectionPage>
+      )}
+
+      {/* Section: Risks & Due Diligence */}
+      {enabledSlugs.includes('risks-due-diligence') && (
+        <SectionPage number={getSectionNumber('risks-due-diligence')} title="Risks & Due Diligence">
+          {risks ? (
+            <View>
+              {/* Investment Verdict */}
+              {risks.investmentVerdict && (
+                <View style={[styles.infoCard, { borderLeftWidth: 3, borderLeftColor: verdictColors[risks.investmentVerdict.verdict] }]}>
+                  <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
+                    <Text style={[styles.infoCardTitle, { marginBottom: 0 }]}>Investment Verdict: </Text>
+                    <Text style={[styles.infoCardTitle, { marginBottom: 0, color: verdictColors[risks.investmentVerdict.verdict] }]}>
+                      {verdictLabels[risks.investmentVerdict.verdict]}
+                    </Text>
+                  </View>
+                  {risks.investmentVerdict.conditions.length > 0 && (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 3, textTransform: 'uppercase' }]}>Conditions</Text>
+                      {risks.investmentVerdict.conditions.map((c, i) => (
+                        <View key={i} style={styles.listItem}>
+                          <Text style={styles.listBullet}>{i + 1}.</Text>
+                          <Text style={styles.listText}>{c}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Risk Assessment */}
+              {risks.risks.length > 0 ? (
+                <View>
+                  <SubsectionTitle>Risk Assessment</SubsectionTitle>
+                  {risks.risks.map((risk, i) => (
+                    <View key={i} style={[styles.infoCard, risk.severity === 'critical' ? { borderLeftWidth: 3, borderLeftColor: '#ef4444' } : {}]}>
+                      <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
+                        <Text style={[styles.badge, styles[severityBadge[risk.severity]]]}>{risk.severity}</Text>
+                        <Text style={[styles.smallText, { marginLeft: 6 }]}>{risk.category}</Text>
+                      </View>
+                      <Text style={styles.infoCardTitle}>{risk.title}</Text>
+                      <Text style={styles.bodyText}>{risk.description}</Text>
+                      <Text style={[styles.bodyText, { fontFamily: 'Helvetica-Bold' }]}>
+                        Mitigation: <Text style={{ fontFamily: 'Helvetica' }}>{risk.mitigation}</Text>
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <EmptyState section="Risks" />
+              )}
+
+              {/* Due Diligence Checklist */}
+              {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
+                <View>
+                  <SubsectionTitle>Due Diligence Checklist</SubsectionTitle>
+                  {risks.dueDiligenceChecklist.map((item, i) => (
+                    <View key={i} style={styles.infoCard}>
+                      <View style={[styles.row, { marginBottom: 3, alignItems: 'center' }]}>
+                        <Text style={[styles.badge, styles[priorityBadge[item.priority]], { marginRight: 4 }]}>{item.priority}</Text>
+                        <Text style={[styles.badge, styles.badgeBlue]}>{complianceLabels[item.status]}</Text>
+                      </View>
+                      <Text style={styles.infoCardTitle}>{item.item}</Text>
+                      <Text style={styles.bodyText}>{item.detail}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Compliance Checklist */}
+              {risks.complianceChecklist.length > 0 && (
+                <View>
+                  <SubsectionTitle>Compliance Checklist</SubsectionTitle>
+                  {risks.complianceChecklist.map((item, i) => (
+                    <View key={i} style={[styles.listItem, { marginBottom: 3 }]}>
+                      <Text style={[styles.badge, styles.badgeBlue, { marginRight: 6 }]}>{complianceLabels[item.status]}</Text>
+                      <Text style={styles.listText}>{item.item}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <EmptyState section="Risks & Due Diligence" />
+          )}
+        </SectionPage>
+      )}
+
+      {/* Section: KPIs & Metrics */}
+      {enabledSlugs.includes('kpis-metrics') && (
+        <SectionPage number={getSectionNumber('kpis-metrics')} title="KPIs & Metrics">
+          {kpis ? (
+            <View>
+              <SubsectionTitle>Target Metrics</SubsectionTitle>
+              <View style={styles.statCardRow}>
+                <StatCard label="Monthly Leads" value={String(kpis.targets.monthlyLeads)} />
+                <StatCard label="Conversion Rate" value={`${(kpis.targets.conversionRate * 100).toFixed(0)}%`} />
+                <StatCard label="Average Check" value={formatCurrency(kpis.targets.avgCheck, currencyCode)} />
+              </View>
+              <View style={styles.statCardRow}>
+                <StatCard label="CAC/Lead" value={formatCurrency(kpis.targets.cacPerLead, currencyCode)} />
+                <StatCard label="CAC/Booking" value={formatCurrency(kpis.targets.cacPerBooking, currencyCode)} />
+                <StatCard label="Monthly Bookings" value={String(kpis.targets.monthlyBookings)} />
+              </View>
+            </View>
+          ) : (
+            <EmptyState section="KPIs & Metrics" />
+          )}
+        </SectionPage>
+      )}
+
+      {/* Section: Launch Plan */}
+      {enabledSlugs.includes('launch-plan') && (
+        <SectionPage number={getSectionNumber('launch-plan')} title="Launch Plan">
+          {launchPlan ? (
+            <View>
+              {launchPlan.stages.length > 0 ? (
+                launchPlan.stages.map((stage, i) => (
+                  <View key={i} style={[styles.infoCard, { marginLeft: 16 }]}>
+                    <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }]}>
+                      <Text style={styles.infoCardTitle}>Stage {i + 1}: {stage.name}</Text>
+                      <Text style={styles.smallText}>{stage.startDate} -- {stage.endDate}</Text>
+                    </View>
+                    {stage.tasks.map((t, j) => (
+                      <View key={j} style={[styles.listItem, { marginBottom: 2 }]}>
+                        <Text style={[styles.badge, styles.badgeBlue, { marginRight: 6 }]}>{taskLabels[t.status]}</Text>
+                        <Text style={styles.listText}>{t.task}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))
+              ) : (
+                <EmptyState section="Launch Plan" />
+              )}
+            </View>
+          ) : (
+            <EmptyState section="Launch Plan" />
+          )}
+        </SectionPage>
+      )}
     </Document>
   );
 }

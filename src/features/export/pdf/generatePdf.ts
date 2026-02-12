@@ -22,15 +22,12 @@ export interface GeneratePdfParams {
     kpis: KpisMetrics;
     launchPlan: LaunchPlan;
   };
-  scenarioMetrics: {
-    monthlyRevenue: number;
-    monthlyProfit: number;
-    profitMargin: number;
-    monthlyBookings: number;
-    annualRevenue: number;
-  };
+  enabledSections: string[];
+  scenarioMetrics: Record<string, { label: string; value: number; unit: string }>;
   scenarioName: string;
   chartImage: string | null;
+  businessName: string;
+  currencyCode: string;
 }
 
 /**
@@ -53,9 +50,12 @@ export async function generateBusinessPlanPdf(params: GeneratePdfParams): Promis
     risks: params.sections.risks,
     kpis: params.sections.kpis,
     launchPlan: params.sections.launchPlan,
+    enabledSections: params.enabledSections,
     scenarioName: params.scenarioName,
     scenarioMetrics: params.scenarioMetrics,
     chartImage: params.chartImage,
+    businessName: params.businessName,
+    currencyCode: params.currencyCode,
   });
 
   const blob = await pdf(doc).toBlob();

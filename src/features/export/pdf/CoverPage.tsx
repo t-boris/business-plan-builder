@@ -5,25 +5,16 @@ import { PageFooter } from './PageFooter';
 interface CoverPageProps {
   scenarioName: string;
   date: string;
-  monthlyRevenue: number;
-  annualRevenue: number;
-  profitMargin: number;
-  monthlyBookings: number;
-  businessName?: string;
-}
-
-function formatCurrency(value: number): string {
-  return '$' + Math.round(value).toLocaleString('en-US');
+  businessName: string;
+  currencyCode: string;
+  topMetrics: Array<{ label: string; value: string }>;
 }
 
 export function CoverPage({
   scenarioName,
   date,
-  monthlyRevenue,
-  annualRevenue,
-  profitMargin,
-  monthlyBookings,
   businessName,
+  topMetrics,
 }: CoverPageProps) {
   return (
     <Page size="A4" style={styles.coverPage}>
@@ -34,22 +25,12 @@ export function CoverPage({
       <Text style={styles.coverScenario}>Based on: {scenarioName}</Text>
 
       <View style={styles.coverMetricsRow}>
-        <View style={styles.coverMetricCard}>
-          <Text style={styles.coverMetricLabel}>Monthly Revenue</Text>
-          <Text style={styles.coverMetricValue}>{formatCurrency(monthlyRevenue)}</Text>
-        </View>
-        <View style={styles.coverMetricCard}>
-          <Text style={styles.coverMetricLabel}>Annual Revenue</Text>
-          <Text style={styles.coverMetricValue}>{formatCurrency(annualRevenue)}</Text>
-        </View>
-        <View style={styles.coverMetricCard}>
-          <Text style={styles.coverMetricLabel}>Profit Margin</Text>
-          <Text style={styles.coverMetricValue}>{(profitMargin * 100).toFixed(1)}%</Text>
-        </View>
-        <View style={styles.coverMetricCard}>
-          <Text style={styles.coverMetricLabel}>Monthly Bookings</Text>
-          <Text style={styles.coverMetricValue}>{monthlyBookings}</Text>
-        </View>
+        {topMetrics.map((metric, i) => (
+          <View key={i} style={styles.coverMetricCard}>
+            <Text style={styles.coverMetricLabel}>{metric.label}</Text>
+            <Text style={styles.coverMetricValue}>{metric.value}</Text>
+          </View>
+        ))}
       </View>
 
       <PageFooter />
