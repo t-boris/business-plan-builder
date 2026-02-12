@@ -241,7 +241,19 @@ export const styles = StyleSheet.create({
     backgroundColor: '#dcfce7',
     color: '#166534',
   },
+  badgeCritical: {
+    backgroundColor: '#fecaca',
+    color: '#7f1d1d',
+  },
   badgeBlue: {
+    backgroundColor: COLORS.primaryLight,
+    color: '#1e40af',
+  },
+  badgeRequired: {
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+  },
+  badgeAdvised: {
     backgroundColor: COLORS.primaryLight,
     color: '#1e40af',
   },

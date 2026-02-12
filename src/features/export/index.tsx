@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAtomValue } from 'jotai';
 import { scenarioNameAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
+import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
+import { SECTION_SLUGS } from '@/lib/constants';
 import { useSection } from '@/hooks/use-section';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -86,11 +88,25 @@ const defaultLaunchPlan: LaunchPlan = { stages: [] };
 export function Export() {
   const scenarioName = useAtomValue(scenarioNameAtom);
   const evaluated = useAtomValue(evaluatedValuesAtom);
-  const monthlyRevenue = evaluated['monthly_revenue'] ?? 0;
-  const monthlyProfit = evaluated['monthly_profit'] ?? 0;
-  const profitMargin = evaluated['profit_margin'] ?? 0;
-  const monthlyBookings = evaluated['monthly_bookings'] ?? 0;
-  const annualRevenue = evaluated['annual_revenue'] ?? 0;
+  const business = useAtomValue(activeBusinessAtom);
+  const definitions = useAtomValue(businessVariablesAtom);
+
+  // Derive business identity
+  const businessName = business?.profile.name ?? 'Business Plan';
+  const currencyCode = business?.profile.currency ?? 'USD';
+  const enabledSections = business?.enabledSections ?? SECTION_SLUGS;
+
+  // Build dynamic scenarioMetrics from computed evaluated variables
+  const scenarioMetrics = useMemo(() => {
+    if (!definitions) return {};
+    const metrics: Record<string, { label: string; value: number; unit: string }> = {};
+    for (const [id, def] of Object.entries(definitions)) {
+      if (def.type === 'computed') {
+        metrics[id] = { label: def.label, value: evaluated[id] ?? 0, unit: def.unit };
+      }
+    }
+    return metrics;
+  }, [definitions, evaluated]);
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
@@ -142,19 +158,17 @@ export function Export() {
           kpis,
           launchPlan,
         },
-        scenarioMetrics: {
-          monthlyRevenue,
-          monthlyProfit,
-          profitMargin,
-          monthlyBookings,
-          annualRevenue,
-        },
+        enabledSections,
+        scenarioMetrics,
         scenarioName,
         chartImage,
+        businessName,
+        currencyCode,
       });
 
-      // 4. Trigger download
-      saveAs(blob, 'business-plan.pdf');
+      // 4. Trigger download with business name in filename
+      const sanitizedName = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      saveAs(blob, `${sanitizedName}-business-plan.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate PDF. Please try again.');
@@ -236,7 +250,7 @@ export function Export() {
               )}
 
               <p className="text-xs text-center text-muted-foreground">
-                The PDF includes all 9 sections, financial charts, and scenario metrics.
+                The PDF includes all enabled sections, financial charts, and scenario metrics.
               </p>
             </CardContent>
           </Card>
