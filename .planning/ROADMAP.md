@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Variable Library** - Predefined business variables organized by business type
 - [x] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
 - [x] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
-- [ ] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
+- [x] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
 - [ ] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
 - [ ] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
 - [ ] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
@@ -130,8 +130,8 @@ Plans:
 
 Plans:
 - [x] 09-01: Data model, security rules, and auth cleanup (viewer role, invite CRUD, rewrite Firestore rules, remove ALLOWED_EMAILS)
-- [ ] 09-02: Accept invite flow and share dialog UI (AcceptInvite page, /invite route, ShareDialog with role picker and member management)
-- [ ] 09-03: Read-only viewer enforcement (useBusinessRole hook, disable editing for viewers across all sections/scenarios/AI)
+- [x] 09-02: Accept invite flow and share dialog UI (AcceptInvite page, /invite route, ShareDialog with role picker and member management)
+- [x] 09-03: Read-only viewer enforcement (useBusinessRole hook, disable editing for viewers across all sections/scenarios/AI)
 
 ### Phase 10: Dashboard & Navigation
 **Goal**: Dashboard shows business-specific KPIs and projections based on that business's variables and scenarios. Sidebar navigation reflects enabled sections. Breadcrumbs include business name.
@@ -181,7 +181,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 6. Variable Library | 4/4 | Complete | 2026-02-12 |
 | 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
 | 8. Business-Aware AI | 2/2 | Complete | 2026-02-12 |
-| 9. Sharing & Access | 1/3 | In progress | - |
+| 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
 | 10. Dashboard & Navigation | 0/2 | Not started | - |
 | 11. Export Updates | 0/2 | Not started | - |
 | 12. Integration & Polish | 0/2 | Not started | - |
