@@ -3,8 +3,8 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
   currentScenarioIdAtom,
   scenarioListAtom,
-  loadScenarioAtom,
-  resetToDefaultsAtom,
+  loadDynamicScenarioAtom,
+  resetDynamicToDefaultsAtom,
 } from '@/store/scenario-atoms.ts';
 import {
   listScenarioData,
@@ -27,8 +27,8 @@ export function ScenarioManager() {
   const [currentId] = useAtom(currentScenarioIdAtom);
   const scenarioList = useAtomValue(scenarioListAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
-  const loadScenario = useSetAtom(loadScenarioAtom);
-  const resetToDefaults = useSetAtom(resetToDefaultsAtom);
+  const loadDynamicScenario = useSetAtom(loadDynamicScenarioAtom);
+  const resetDynamicToDefaults = useSetAtom(resetDynamicToDefaultsAtom);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
@@ -42,7 +42,7 @@ export function ScenarioManager() {
         const scenarios = await listScenarioData(businessId);
         const target = scenarios.find((s) => s.metadata.id === scenarioId);
         if (target) {
-          loadScenario(target);
+          loadDynamicScenario(target);
           await saveScenarioPreferences(businessId, { activeScenarioId: scenarioId });
         }
       } catch {
@@ -51,13 +51,13 @@ export function ScenarioManager() {
         setIsLoading(false);
       }
     },
-    [businessId, loadScenario]
+    [businessId, loadDynamicScenario]
   );
 
   // Create new scenario (reset to defaults)
   const handleNew = useCallback(() => {
-    resetToDefaults();
-  }, [resetToDefaults]);
+    resetDynamicToDefaults();
+  }, [resetDynamicToDefaults]);
 
   // Delete current scenario
   const handleDelete = useCallback(async () => {

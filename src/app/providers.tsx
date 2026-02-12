@@ -11,14 +11,13 @@ import {
 } from '@/store/business-atoms';
 import {
   scenarioListAtom,
-  loadScenarioAtom,
+  loadDynamicScenarioAtom,
   scenarioSyncReadyAtom,
 } from '@/store/scenario-atoms';
-import { DEFAULT_SCENARIO_VARIABLES } from '@/lib/constants';
 import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables } from '@/lib/business-firestore';
 import { useScenarioSync } from '@/hooks/use-scenario-sync';
 import { useBusinesses } from '@/hooks/use-businesses';
-import type { Scenario } from '@/types';
+import type { DynamicScenario } from '@/types';
 
 function AuthListener({ children }: { children: React.ReactNode }) {
   const setAuthState = useSetAtom(authStateAtom);
@@ -97,13 +96,15 @@ function VariableLoader() {
 function ScenarioSync() {
   const authStatus = useAtomValue(authStatusAtom);
   const businessId = useAtomValue(activeBusinessIdAtom);
+  const variables = useAtomValue(businessVariablesAtom);
+  const variablesLoaded = useAtomValue(businessVariablesLoadedAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
-  const loadScenario = useSetAtom(loadScenarioAtom);
+  const loadDynamicScenario = useSetAtom(loadDynamicScenarioAtom);
   const setSyncReady = useSetAtom(scenarioSyncReadyAtom);
   const loadedRef = useRef(false);
   const prevBusinessIdRef = useRef<string | null>(null);
 
-  // Load scenarios from Firestore on auth + business change
+  // Load scenarios from Firestore on auth + business + variables change
   useEffect(() => {
     // Detect business change — reset loaded state to re-initialize
     if (prevBusinessIdRef.current !== businessId) {
@@ -118,6 +119,7 @@ function ScenarioSync() {
 
     if (authStatus !== 'authenticated' || loadedRef.current) return;
     if (!businessId) return;
+    if (!variablesLoaded) return;
     loadedRef.current = true;
 
     async function init() {
@@ -125,8 +127,17 @@ function ScenarioSync() {
         const scenarios = await listScenarioData(businessId!);
 
         if (scenarios.length === 0) {
-          // No scenarios exist — create a default "Baseline"
-          const baseline: Scenario = {
+          // No scenarios exist — create baseline from variable definitions
+          const defaultValues: Record<string, number> = {};
+          if (variables) {
+            for (const [id, def] of Object.entries(variables)) {
+              if (def.type === 'input') {
+                defaultValues[id] = def.defaultValue;
+              }
+            }
+          }
+
+          const baseline: DynamicScenario = {
             metadata: {
               id: 'baseline',
               name: 'Baseline',
@@ -134,18 +145,12 @@ function ScenarioSync() {
               createdAt: new Date().toISOString(),
               isBaseline: true,
             },
-            variables: {
-              ...DEFAULT_SCENARIO_VARIABLES,
-              bookingsPerMonth: Math.round(
-                DEFAULT_SCENARIO_VARIABLES.monthlyLeads *
-                  DEFAULT_SCENARIO_VARIABLES.conversionRate
-              ),
-            },
+            values: defaultValues,
           };
           await saveScenarioData(businessId!, baseline);
           await saveScenarioPreferences(businessId!, { activeScenarioId: 'baseline' });
           setScenarioList([baseline.metadata]);
-          loadScenario(baseline);
+          loadDynamicScenario(baseline);
         } else {
           setScenarioList(scenarios.map((s) => s.metadata));
 
@@ -156,7 +161,7 @@ function ScenarioSync() {
             scenarios.find((s) => s.metadata.id === activeId) ??
             scenarios.find((s) => s.metadata.isBaseline) ??
             scenarios[0];
-          loadScenario(target);
+          loadDynamicScenario(target);
         }
       } catch {
         // Firestore may not be available — use defaults silently
@@ -166,7 +171,7 @@ function ScenarioSync() {
     }
 
     init();
-  }, [authStatus, businessId, setScenarioList, loadScenario, setSyncReady]);
+  }, [authStatus, businessId, variablesLoaded, variables, setScenarioList, loadDynamicScenario, setSyncReady]);
 
   // Wire up auto-save
   useScenarioSync();
