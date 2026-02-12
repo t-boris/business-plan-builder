@@ -19,11 +19,13 @@ import {
   ChevronsUpDown,
   Plus,
   LayoutList,
+  Share2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useBusinesses } from "@/hooks/use-businesses";
+import { ShareDialog } from "@/features/sharing/share-dialog";
 import { BUSINESS_TYPE_TEMPLATES } from "@/lib/business-templates";
 import type { BusinessType } from "@/types";
 import { cn } from "@/lib/utils";
@@ -102,6 +104,9 @@ export function AppSidebar() {
   const templateName = activeBusiness
     ? getTemplateName(activeBusiness.profile.type)
     : "";
+
+  // Current user's role for the active business
+  const userRole = activeBusiness && user ? activeBusiness.roles[user.uid] : null;
 
   // Filter business plan items by enabledSections
   const filteredBusinessPlanItems = useMemo(() => {
@@ -245,6 +250,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {userRole === "owner" && (
+                <SidebarMenuItem>
+                  <ShareDialog>
+                    <SidebarMenuButton tooltip="Share">
+                      <Share2 />
+                      <span>Share</span>
+                    </SidebarMenuButton>
+                  </ShareDialog>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
