@@ -17,6 +17,8 @@ import type {
   RiskSeverity,
   ComplianceStatus,
   TaskStatus,
+  InvestmentVerdict,
+  DueDiligencePriority,
 } from '@/types';
 
 // ---- Helpers ----
@@ -37,9 +39,31 @@ const CHANNEL_NAMES: Record<MarketingChannelName, string> = {
 };
 
 const severityBadge: Record<RiskSeverity, keyof typeof styles> = {
+  critical: 'badgeCritical',
   high: 'badgeHigh',
   medium: 'badgeMedium',
   low: 'badgeLow',
+};
+
+const verdictLabels: Record<InvestmentVerdict, string> = {
+  'strong-go': 'Strong Go',
+  'conditional-go': 'Conditional Go',
+  'proceed-with-caution': 'Proceed with Caution',
+  'defer': 'Defer',
+  'no-go': 'No-Go',
+};
+
+const verdictColors: Record<InvestmentVerdict, string> = {
+  'strong-go': '#16a34a',
+  'conditional-go': '#d97706',
+  'proceed-with-caution': '#ea580c',
+  'defer': '#dc2626',
+  'no-go': '#991b1b',
+};
+
+const priorityBadge: Record<DueDiligencePriority, keyof typeof styles> = {
+  required: 'badgeRequired',
+  advised: 'badgeAdvised',
 };
 
 const complianceLabels: Record<ComplianceStatus, string> = {
@@ -130,7 +154,7 @@ export function BusinessPlanDocument({
   });
 
   return (
-    <Document title="Fun Box Business Plan" author="Fun Box" subject="Business Plan">
+    <Document title="Business Plan" author="" subject="Business Plan">
       {/* Cover Page */}
       <CoverPage
         scenarioName={scenarioName}
@@ -403,11 +427,35 @@ export function BusinessPlanDocument({
       <SectionPage number={7} title="Risks & Due Diligence">
         {risks ? (
           <View>
+            {/* Investment Verdict */}
+            {risks.investmentVerdict && (
+              <View style={[styles.infoCard, { borderLeftWidth: 3, borderLeftColor: verdictColors[risks.investmentVerdict.verdict] }]}>
+                <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
+                  <Text style={[styles.infoCardTitle, { marginBottom: 0 }]}>Investment Verdict: </Text>
+                  <Text style={[styles.infoCardTitle, { marginBottom: 0, color: verdictColors[risks.investmentVerdict.verdict] }]}>
+                    {verdictLabels[risks.investmentVerdict.verdict]}
+                  </Text>
+                </View>
+                {risks.investmentVerdict.conditions.length > 0 && (
+                  <View style={{ marginTop: 4 }}>
+                    <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 3, textTransform: 'uppercase' }]}>Conditions</Text>
+                    {risks.investmentVerdict.conditions.map((c, i) => (
+                      <View key={i} style={styles.listItem}>
+                        <Text style={styles.listBullet}>{i + 1}.</Text>
+                        <Text style={styles.listText}>{c}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Risk Assessment */}
             {risks.risks.length > 0 ? (
               <View>
                 <SubsectionTitle>Risk Assessment</SubsectionTitle>
                 {risks.risks.map((risk, i) => (
-                  <View key={i} style={styles.infoCard}>
+                  <View key={i} style={[styles.infoCard, risk.severity === 'critical' ? { borderLeftWidth: 3, borderLeftColor: '#ef4444' } : {}]}>
                     <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
                       <Text style={[styles.badge, styles[severityBadge[risk.severity]]]}>{risk.severity}</Text>
                       <Text style={[styles.smallText, { marginLeft: 6 }]}>{risk.category}</Text>
@@ -424,6 +472,24 @@ export function BusinessPlanDocument({
               <EmptyState section="Risks" />
             )}
 
+            {/* Due Diligence Checklist */}
+            {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
+              <View>
+                <SubsectionTitle>Due Diligence Checklist</SubsectionTitle>
+                {risks.dueDiligenceChecklist.map((item, i) => (
+                  <View key={i} style={styles.infoCard}>
+                    <View style={[styles.row, { marginBottom: 3, alignItems: 'center' }]}>
+                      <Text style={[styles.badge, styles[priorityBadge[item.priority]], { marginRight: 4 }]}>{item.priority}</Text>
+                      <Text style={[styles.badge, styles.badgeBlue]}>{complianceLabels[item.status]}</Text>
+                    </View>
+                    <Text style={styles.infoCardTitle}>{item.item}</Text>
+                    <Text style={styles.bodyText}>{item.detail}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Compliance Checklist */}
             {risks.complianceChecklist.length > 0 && (
               <View>
                 <SubsectionTitle>Compliance Checklist</SubsectionTitle>

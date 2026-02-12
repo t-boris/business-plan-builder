@@ -4,6 +4,7 @@ import { scenarioNameAtom } from '@/store/scenario-atoms.ts';
 import {
   monthlyBookingsAtom,
   monthlyRevenueAtom,
+  monthlyCostsAtom,
   monthlyProfitAtom,
   profitMarginAtom,
   annualRevenueAtom,
@@ -11,6 +12,11 @@ import {
   totalMonthlyAdSpendAtom,
   cacPerBookingAtom,
 } from '@/store/derived-atoms.ts';
+import { useSection } from '@/hooks/use-section';
+import type { FinancialProjections } from '@/types';
+
+// Flat seasonal coefficients (no seasonal adjustment by default)
+const FLAT_SEASON_COEFFICIENTS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   AreaChart,
@@ -19,6 +25,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import {
@@ -85,13 +92,13 @@ const SECTION_LINKS = [
     title: 'Market Analysis',
     url: '/market-analysis',
     icon: TrendingUp,
-    description: 'Miami market demographics and competition',
+    description: 'Target demographics and competition',
   },
   {
     title: 'Product & Service',
     url: '/product-service',
     icon: Package,
-    description: 'Party packages, pricing, and add-ons',
+    description: 'Products, services, and pricing',
   },
   {
     title: 'Marketing Strategy',
@@ -103,7 +110,7 @@ const SECTION_LINKS = [
     title: 'Operations',
     url: '/operations',
     icon: Settings,
-    description: 'Crew, equipment, and event workflow',
+    description: 'Team, equipment, and workflow',
   },
   {
     title: 'Financial Projections',
@@ -131,10 +138,18 @@ const SECTION_LINKS = [
   },
 ];
 
+// Minimal default for useSection fallback (only needs seasonCoefficients)
+const dashboardFinancialsDefault: FinancialProjections = {
+  months: [],
+  unitEconomics: { avgCheck: 0, costPerEvent: 0, profitPerEvent: 0, breakEvenEvents: 0 },
+  seasonCoefficients: FLAT_SEASON_COEFFICIENTS,
+};
+
 export function Dashboard() {
   const scenarioName = useAtomValue(scenarioNameAtom);
   const monthlyBookings = useAtomValue(monthlyBookingsAtom);
   const monthlyRevenue = useAtomValue(monthlyRevenueAtom);
+  const monthlyCosts = useAtomValue(monthlyCostsAtom);
   const monthlyProfit = useAtomValue(monthlyProfitAtom);
   const profitMargin = useAtomValue(profitMarginAtom);
   const annualRevenue = useAtomValue(annualRevenueAtom);
@@ -142,21 +157,29 @@ export function Dashboard() {
   const totalAdSpend = useAtomValue(totalMonthlyAdSpendAtom);
   const cacPerBooking = useAtomValue(cacPerBookingAtom);
 
-  // 12-month projection (flat line based on current scenario)
+  // Load stored season coefficients from Financial Projections section
+  const { data: financials } = useSection<FinancialProjections>('financial-projections', dashboardFinancialsDefault);
+  const coefficients = financials.seasonCoefficients?.length === 12
+    ? financials.seasonCoefficients
+    : FLAT_SEASON_COEFFICIENTS;
+
+  // 12-month projection driven by stored seasonal coefficients
   const monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
-  const projectionData = monthNames.map((month) => ({
+  const projectionData = monthNames.map((month, i) => ({
     month,
-    Revenue: monthlyRevenue,
+    Revenue: Math.round(monthlyRevenue * coefficients[i]),
+    Costs: Math.round(monthlyCosts * coefficients[i]),
+    Profit: Math.round(monthlyRevenue * coefficients[i]) - Math.round(monthlyCosts * coefficients[i]),
   }));
 
   return (
     <div className="space-y-6">
       {/* Header with active scenario badge */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-bold tracking-tight">Fun Box Planning Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Business Planning Dashboard</h1>
         <Link
           to="/scenarios"
           className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/20 transition-colors"
@@ -223,7 +246,7 @@ export function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] w-full">
+          <div className="h-[240px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={projectionData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -233,12 +256,29 @@ export function Dashboard() {
                   tick={{ fontSize: 11 }}
                 />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend />
                 <Area
                   type="monotone"
                   dataKey="Revenue"
                   stroke="#22c55e"
                   fill="#22c55e"
                   fillOpacity={0.15}
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Costs"
+                  stroke="#f97316"
+                  fill="#f97316"
+                  fillOpacity={0.1}
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Profit"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  fillOpacity={0.1}
                   strokeWidth={2}
                 />
               </AreaChart>

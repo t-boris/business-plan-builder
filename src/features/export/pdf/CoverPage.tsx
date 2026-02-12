@@ -9,6 +9,7 @@ interface CoverPageProps {
   annualRevenue: number;
   profitMargin: number;
   monthlyBookings: number;
+  businessName?: string;
 }
 
 function formatCurrency(value: number): string {
@@ -22,10 +23,11 @@ export function CoverPage({
   annualRevenue,
   profitMargin,
   monthlyBookings,
+  businessName,
 }: CoverPageProps) {
   return (
     <Page size="A4" style={styles.coverPage}>
-      <Text style={styles.coverTitle}>Fun Box</Text>
+      <Text style={styles.coverTitle}>{businessName || 'Business Plan'}</Text>
       <View style={styles.coverAccentLine} />
       <Text style={styles.coverSubtitle}>Business Plan</Text>
       <Text style={styles.coverDate}>Generated {date}</Text>

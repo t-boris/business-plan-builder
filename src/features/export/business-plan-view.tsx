@@ -1,6 +1,6 @@
 import { useAtomValue } from 'jotai';
 import { useSection } from '@/hooks/use-section';
-import { SECTION_SLUGS, SECTION_LABELS, DEFAULT_PACKAGES, DEFAULT_MARKETING_CHANNELS, DEFAULT_KPI_TARGETS } from '@/lib/constants';
+import { SECTION_SLUGS, SECTION_LABELS } from '@/lib/constants';
 import {
   scenarioNameAtom,
   snapshotScenarioAtom,
@@ -27,7 +27,8 @@ import type {
   RiskSeverity,
   ComplianceStatus,
   TaskStatus,
-  MonthlyProjection,
+  InvestmentVerdict,
+  DueDiligencePriority,
 } from '@/types';
 import {
   AreaChart,
@@ -43,40 +44,24 @@ import {
 // ---- Default data (same as individual section pages) ----
 
 const defaultExecutiveSummary: ExecutiveSummary = {
-  summary:
-    'Fun Box is a premium mobile kids birthday party service operating in the Miami metropolitan area. We combine ocean-themed interactive workshops with guided Jellyfish Museum experiences, offering three all-inclusive packages ($800-$1,200) for groups of up to 15 participants.',
-  mission:
-    'To create unforgettable, hassle-free birthday celebrations that combine education and entertainment through immersive ocean-themed experiences.',
-  vision:
-    "To become Miami's leading premium kids birthday party service, known for unique museum-integrated experiences and exceptional customer satisfaction.",
-  keyHighlights: [
-    'Three packages: $800 / $980 / $1,200',
-    '15 participants per event, all-inclusive',
-    'Jellyfish Museum partnership with included tickets',
-    'Target: 100-150 leads/month, 15-25% conversion',
-    'Launch: March 2026 (soft launch then scale)',
-    'Bilingual marketing opportunity (75% non-English at home)',
-  ],
+  summary: '',
+  mission: '',
+  vision: '',
+  keyHighlights: [],
 };
 
 const defaultMarketAnalysis: MarketAnalysis = {
-  targetDemographic: { ageRange: '28-50', location: 'Miami Metro', radius: 25 },
-  marketSize: 'Miami-Dade County -- 2.7M population. Premium kids birthday party market with museum-based experiences priced in the $575-$1,250 range.',
-  competitors: [
-    { name: 'Museum Party Co.', pricing: '$575-$800', strengths: 'Established brand, multiple museum partnerships', weaknesses: 'No mobile option, limited to museum hours' },
-    { name: 'Party Bus Miami', pricing: '$800-$1,250', strengths: 'Mobile concept, strong social media presence', weaknesses: 'No educational component, generic themes' },
-    { name: 'Kids Fun Factory', pricing: '$600-$950', strengths: 'Affordable pricing, large capacity', weaknesses: 'Fixed location only, no premium tier' },
-  ],
-  demographics: { population: 2700000, languages: ['English', 'Spanish', 'Haitian Creole'], income: 'Median household $55,000' },
+  targetDemographic: { ageRange: '', location: '', radius: 0, zipCodes: [] },
+  marketSize: '',
+  tamDollars: 0,
+  targetMarketShare: '',
+  competitors: [],
+  demographics: { population: 0, languages: [], income: '', householdsWithKids: 0, annualTourists: 0 },
 };
 
 const defaultProductService: ProductService = {
-  packages: DEFAULT_PACKAGES,
-  addOns: [
-    { name: 'Extra 30 minutes', price: 150 },
-    { name: 'Face painting', price: 100 },
-    { name: 'Balloon artist', price: 120 },
-  ],
+  packages: [],
+  addOns: [],
 };
 
 const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
@@ -87,85 +72,44 @@ const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
 };
 
 const defaultMarketing: MarketingStrategy = {
-  channels: DEFAULT_MARKETING_CHANNELS,
-  offers: [
-    'Free slime lab for March bookings',
-    'Free professional photos for April parties',
-    'Free custom cake topper',
-    'Free Museum Jellyfish tickets for birthday child',
-  ],
-  landingPage: { url: '', description: 'Landing page with service tiers, photo/video gallery, booking form, trust signals (reviews, safety certifications), and bilingual content (English/Spanish).' },
+  channels: [],
+  offers: [],
+  landingPage: { url: '', description: '' },
 };
 
 const defaultOperations: Operations = {
-  crew: [
-    { role: 'Party Host', hourlyRate: 20, count: 1 },
-    { role: 'Photographer', hourlyRate: 25.5, count: 1 },
-    { role: 'Assistant', hourlyRate: 18, count: 1 },
-  ],
-  capacity: { maxBookingsPerDay: 2, maxBookingsPerWeek: 8, maxBookingsPerMonth: 25 },
-  travelRadius: 25,
-  equipment: ['Party bus', 'Workshop supplies', 'Slime lab materials', 'Ocean decorations', 'Sound system'],
-  safetyProtocols: [
-    'Slime/chemical safety gloves for all participants',
-    'First aid kit on-site',
-    'Adult supervision ratio 1:5',
-    'Museum emergency procedures briefing',
-    'Allergy check before activities',
-  ],
+  crew: [],
+  hoursPerEvent: 0,
+  capacity: { maxBookingsPerDay: 0, maxBookingsPerWeek: 0, maxBookingsPerMonth: 0 },
+  travelRadius: 0,
+  equipment: [],
+  safetyProtocols: [],
+  costBreakdown: {
+    suppliesPerChild: 0, participantsPerEvent: 0, museumTicketPrice: 0, ticketsPerEvent: 0,
+    fuelPricePerGallon: 0, vehicleMPG: 0, avgRoundTripMiles: 0, parkingPerEvent: 0,
+    ownerSalary: 0, marketingPerson: 0, eventCoordinator: 0,
+    vehiclePayment: 0, vehicleInsurance: 0, vehicleMaintenance: 0,
+    crmSoftware: 0, websiteHosting: 0, aiChatbot: 0, cloudServices: 0, phonePlan: 0,
+    contentCreation: 0, graphicDesign: 0,
+    storageRent: 0, equipmentAmortization: 0, businessLicenses: 0, miscFixed: 0,
+    customExpenses: [],
+  },
 };
 
-function generateDefaultMonths(): MonthlyProjection[] {
-  const monthNames = ['Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2026', 'Jan 2027', 'Feb 2027'];
-  const bookingsPerMonth = [10, 12, 18, 22, 25, 25, 25, 25, 22, 28, 20, 25];
-  const avgCheck = 993;
-  return monthNames.map((month, i) => {
-    const bookings = bookingsPerMonth[i];
-    const revenue = bookings * avgCheck;
-    const marketing = 2200;
-    const labor = 3 * 20 * 4 * bookings;
-    const supplies = 50 * bookings;
-    const museum = 200 * bookings;
-    const transport = 150 * bookings;
-    const totalCosts = marketing + labor + supplies + museum + transport;
-    return { month, revenue, costs: { marketing, labor, supplies, museum, transport }, profit: revenue - totalCosts };
-  });
-}
-
 const defaultFinancials: FinancialProjectionsType = {
-  months: generateDefaultMonths(),
-  unitEconomics: { avgCheck: 993, costPerEvent: 450, profitPerEvent: 543, breakEvenEvents: 5 },
+  months: [],
+  unitEconomics: { avgCheck: 0, costPerEvent: 0, profitPerEvent: 0, breakEvenEvents: 0 },
+  seasonCoefficients: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 };
 
 const defaultRisks: RisksDueDiligence = {
-  risks: [
-    { category: 'regulatory', title: 'Miami-Dade Parking Regulations', severity: 'high', description: 'Large trailers may be restricted in residential zones per Miami-Dade county regulations.', mitigation: 'Research county trailer parking rules, obtain necessary permits, scout parking-friendly venues' },
-    { category: 'legal', title: 'Jellyfish Museum Contract', severity: 'high', description: "Museum opens Feb 2026 -- contract terms needed before underwriting '15 tickets included' in packages.", mitigation: 'Secure written partnership agreement with pricing guarantees before launch' },
-    { category: 'legal', title: 'FTSA Compliance', severity: 'medium', description: 'Florida Telephone Solicitation Act compliance required for any automated texting/messaging.', mitigation: 'Ensure opt-in consent for all automated messages, review FTSA requirements with legal counsel' },
-    { category: 'operational', title: 'Slime/Chemical Safety', severity: 'medium', description: 'Slime and chemical activities carry documented dermatitis/burn risk for children.', mitigation: 'Mandatory gloves, pre-activity allergy screening, adult supervision ratio 1:5, first aid kit on-site' },
-    { category: 'financial', title: 'CAC Uncertainty', severity: 'medium', description: 'Actual customer acquisition costs may exceed $30/lead target in competitive Miami market.', mitigation: 'Start with small ad budget in soft launch, test and optimize before scaling' },
-    { category: 'operational', title: 'Bilingual Market Requirement', severity: 'low', description: '75.3% of Miami-Dade speaks non-English at home -- monolingual English marketing limits reach.', mitigation: 'Create bilingual (English/Spanish) ad creatives and landing page' },
-  ],
-  complianceChecklist: [
-    { item: 'Business license and permits', status: 'not-started' },
-    { item: 'Jellyfish Museum partnership agreement', status: 'not-started' },
-    { item: 'General liability insurance', status: 'not-started' },
-    { item: 'FTSA compliance review', status: 'not-started' },
-    { item: 'Food handling permits (if applicable)', status: 'not-started' },
-    { item: 'Vehicle/trailer insurance', status: 'not-started' },
-    { item: 'Child safety protocol documentation', status: 'not-started' },
-  ],
+  risks: [],
+  complianceChecklist: [],
 };
 
-const defaultKpis: KpisMetrics = { targets: DEFAULT_KPI_TARGETS };
+const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 } };
 
-const defaultLaunchPlan: LaunchPlan = {
-  stages: [
-    { name: 'Preparation', startDate: '2026-01-15', endDate: '2026-02-28', tasks: [{ task: 'Package 3 service tiers', status: 'pending' }, { task: 'Shoot video and photo content', status: 'pending' }, { task: 'Build landing page', status: 'pending' }, { task: 'Set up CRM or tracking spreadsheet', status: 'pending' }] },
-    { name: 'Soft Launch', startDate: '2026-03-01', endDate: '2026-03-14', tasks: [{ task: 'Launch ads with small budget', status: 'pending' }, { task: 'Test ad creatives', status: 'pending' }, { task: 'Test promotional offers', status: 'pending' }, { task: 'Collect initial feedback', status: 'pending' }] },
-    { name: 'Scale', startDate: '2026-03-15', endDate: '2026-06-30', tasks: [{ task: 'Increase ad budget', status: 'pending' }, { task: 'Launch Google Ads', status: 'pending' }, { task: 'Activate partnerships', status: 'pending' }, { task: 'Build review collection system', status: 'pending' }] },
-  ],
-};
+const defaultLaunchPlan: LaunchPlan = { stages: [] };
 
 // ---- Helpers ----
 
@@ -178,9 +122,31 @@ function sumCosts(costs: MonthlyCosts): number {
 }
 
 const severityStyles: Record<RiskSeverity, string> = {
+  critical: 'bg-red-200 text-red-900',
   high: 'bg-red-100 text-red-800',
   medium: 'bg-amber-100 text-amber-800',
   low: 'bg-green-100 text-green-800',
+};
+
+const verdictBorderColors: Record<InvestmentVerdict, string> = {
+  'strong-go': 'border-l-green-500 bg-green-50',
+  'conditional-go': 'border-l-amber-500 bg-amber-50',
+  'proceed-with-caution': 'border-l-orange-500 bg-orange-50',
+  'defer': 'border-l-red-400 bg-red-50',
+  'no-go': 'border-l-red-600 bg-red-100',
+};
+
+const verdictLabels: Record<InvestmentVerdict, string> = {
+  'strong-go': 'Strong Go',
+  'conditional-go': 'Conditional Go',
+  'proceed-with-caution': 'Proceed with Caution',
+  'defer': 'Defer',
+  'no-go': 'No-Go',
+};
+
+const priorityStyles: Record<DueDiligencePriority, string> = {
+  required: 'bg-red-100 text-red-800',
+  advised: 'bg-blue-100 text-blue-800',
 };
 
 const complianceStatusStyles: Record<ComplianceStatus, string> = {
@@ -271,7 +237,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
     <div className="max-w-[800px] mx-auto py-8 px-4 prose prose-sm max-w-none">
       {/* Header */}
       <div className="text-center pb-6 border-b">
-        <h1 className="text-3xl font-bold tracking-tight mb-1">Fun Box — Business Plan</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-1">Business Plan</h1>
         <p className="text-muted-foreground text-sm">{currentDate}</p>
         <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium text-blue-800 mt-2">
           Scenario: {scenarioName}
@@ -331,6 +297,16 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Market Size</h3>
             <p className="text-sm leading-relaxed">{marketAnalysis.marketSize}</p>
+            {(marketAnalysis.tamDollars > 0 || marketAnalysis.targetMarketShare) && (
+              <div className="flex gap-4 mt-2">
+                {marketAnalysis.tamDollars > 0 && (
+                  <p className="text-sm"><span className="font-medium">TAM:</span> ${marketAnalysis.tamDollars.toLocaleString()}</p>
+                )}
+                {marketAnalysis.targetMarketShare && (
+                  <p className="text-sm"><span className="font-medium">Target Share:</span> {marketAnalysis.targetMarketShare}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -363,6 +339,12 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Demographics</h3>
           <p className="text-sm">Population: {marketAnalysis.demographics.population.toLocaleString()}</p>
+          {marketAnalysis.demographics.householdsWithKids > 0 && (
+            <p className="text-sm">Households with Kids: {marketAnalysis.demographics.householdsWithKids.toLocaleString()}</p>
+          )}
+          {marketAnalysis.demographics.annualTourists > 0 && (
+            <p className="text-sm">Annual Tourists: {marketAnalysis.demographics.annualTourists.toLocaleString()}</p>
+          )}
           <p className="text-sm">Languages: {marketAnalysis.demographics.languages.join(', ')}</p>
           <p className="text-sm">Income: {marketAnalysis.demographics.income}</p>
         </div>
@@ -538,15 +520,15 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Scenario Parameters</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Starter Price</span><span className="font-medium">{formatCurrency(scenarioVars.priceStarter)}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Explorer Price</span><span className="font-medium">{formatCurrency(scenarioVars.priceExplorer)}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">VIP Price</span><span className="font-medium">{formatCurrency(scenarioVars.priceVIP)}</span></div>
+            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Price Tier 1</span><span className="font-medium">{formatCurrency(scenarioVars.priceTier1)}</span></div>
+            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Price Tier 2</span><span className="font-medium">{formatCurrency(scenarioVars.priceTier2)}</span></div>
+            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Price Tier 3</span><span className="font-medium">{formatCurrency(scenarioVars.priceTier3)}</span></div>
             <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Monthly Leads</span><span className="font-medium">{scenarioVars.monthlyLeads}</span></div>
             <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Conversion Rate</span><span className="font-medium">{(scenarioVars.conversionRate * 100).toFixed(0)}%</span></div>
             <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">CAC/Lead</span><span className="font-medium">{formatCurrency(scenarioVars.cacPerLead)}</span></div>
             <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Meta Ads</span><span className="font-medium">{formatCurrency(scenarioVars.monthlyAdBudgetMeta)}/mo</span></div>
             <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Google Ads</span><span className="font-medium">{formatCurrency(scenarioVars.monthlyAdBudgetGoogle)}/mo</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Crew Count</span><span className="font-medium">{scenarioVars.crewCount}</span></div>
+            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Staff Count</span><span className="font-medium">{scenarioVars.staffCount}</span></div>
           </div>
         </div>
 
@@ -647,10 +629,32 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       {/* Section 7: Risks & Due Diligence */}
       <SectionHeader number={7} title="Risks & Due Diligence" id="section-7" />
       <div className="space-y-4 py-4">
+        {/* Investment Verdict Banner */}
+        {risks.investmentVerdict && (
+          <div className={`border-l-4 rounded-lg p-4 ${verdictBorderColors[risks.investmentVerdict.verdict]}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-sm font-semibold">Investment Verdict:</h3>
+              <span className="font-bold text-sm">{verdictLabels[risks.investmentVerdict.verdict]}</span>
+            </div>
+            {risks.investmentVerdict.conditions.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Conditions</p>
+                <ol className="list-decimal list-inside text-xs space-y-0.5">
+                  {risks.investmentVerdict.conditions.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Risk Assessment */}
         {risks.risks.length > 0 ? (
           <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Risk Assessment</h3>
             {risks.risks.map((risk, i) => (
-              <div key={i} className="border rounded-lg p-4">
+              <div key={i} className={`border rounded-lg p-4 ${risk.severity === 'critical' ? 'border-l-4 border-l-red-500' : ''}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyles[risk.severity]}`}>
                     {risk.severity}
@@ -667,6 +671,30 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
           <EmptyPlaceholder section="Risks" />
         )}
 
+        {/* Due Diligence Checklist */}
+        {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Due Diligence Checklist</h3>
+            <div className="space-y-2">
+              {risks.dueDiligenceChecklist.map((item, i) => (
+                <div key={i} className="border rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${priorityStyles[item.priority]}`}>
+                      {item.priority}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${complianceStatusStyles[item.status]}`}>
+                      {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
+                    </span>
+                  </div>
+                  <h4 className="font-medium text-sm">{item.item}</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Compliance Checklist */}
         {risks.complianceChecklist.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Compliance Checklist</h3>
@@ -758,7 +786,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       {/* Footer */}
       <div className="text-center pt-8 border-t mt-8">
         <p className="text-xs text-muted-foreground">
-          Fun Box Business Plan | Generated on {currentDate} | Scenario: {scenarioName}
+          Business Plan | Generated on {currentDate} | Scenario: {scenarioName}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           Annual Revenue Projection: {formatCurrency(annualRevenue)}

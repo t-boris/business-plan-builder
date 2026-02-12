@@ -9,7 +9,6 @@ import {
   annualRevenueAtom,
 } from '@/store/derived-atoms';
 import { useSection } from '@/hooks/use-section';
-import { DEFAULT_PACKAGES, DEFAULT_MARKETING_CHANNELS, DEFAULT_KPI_TARGETS } from '@/lib/constants';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,62 +25,59 @@ import type {
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
-  MonthlyProjection,
 } from '@/types';
 
 // Default data (same defaults as business-plan-view and individual section pages)
 const defaultExecutiveSummary: ExecutiveSummary = {
-  summary: 'Fun Box is a premium mobile kids birthday party service operating in the Miami metropolitan area.',
-  mission: 'To create unforgettable, hassle-free birthday celebrations.',
-  vision: "To become Miami's leading premium kids birthday party service.",
-  keyHighlights: ['Three packages: $800 / $980 / $1,200'],
+  summary: '',
+  mission: '',
+  vision: '',
+  keyHighlights: [],
 };
 
 const defaultMarketAnalysis: MarketAnalysis = {
-  targetDemographic: { ageRange: '28-50', location: 'Miami Metro', radius: 25 },
-  marketSize: 'Miami-Dade County -- 2.7M population.',
+  targetDemographic: { ageRange: '', location: '', radius: 0, zipCodes: [] },
+  marketSize: '',
+  tamDollars: 0,
+  targetMarketShare: '',
   competitors: [],
-  demographics: { population: 2700000, languages: ['English', 'Spanish'], income: 'Median household $55,000' },
+  demographics: { population: 0, languages: [], income: '', householdsWithKids: 0, annualTourists: 0 },
 };
 
 const defaultProductService: ProductService = {
-  packages: DEFAULT_PACKAGES,
-  addOns: [{ name: 'Extra 30 minutes', price: 150 }],
+  packages: [],
+  addOns: [],
 };
 
 const defaultMarketing: MarketingStrategy = {
-  channels: DEFAULT_MARKETING_CHANNELS,
+  channels: [],
   offers: [],
   landingPage: { url: '', description: '' },
 };
 
 const defaultOperations: Operations = {
-  crew: [{ role: 'Party Host', hourlyRate: 20, count: 1 }],
-  capacity: { maxBookingsPerDay: 2, maxBookingsPerWeek: 8, maxBookingsPerMonth: 25 },
-  travelRadius: 25,
+  crew: [],
+  hoursPerEvent: 0,
+  capacity: { maxBookingsPerDay: 0, maxBookingsPerWeek: 0, maxBookingsPerMonth: 0 },
+  travelRadius: 0,
   equipment: [],
   safetyProtocols: [],
+  costBreakdown: {
+    suppliesPerChild: 0, participantsPerEvent: 0, museumTicketPrice: 0, ticketsPerEvent: 0,
+    fuelPricePerGallon: 0, vehicleMPG: 0, avgRoundTripMiles: 0, parkingPerEvent: 0,
+    ownerSalary: 0, marketingPerson: 0, eventCoordinator: 0,
+    vehiclePayment: 0, vehicleInsurance: 0, vehicleMaintenance: 0,
+    crmSoftware: 0, websiteHosting: 0, aiChatbot: 0, cloudServices: 0, phonePlan: 0,
+    contentCreation: 0, graphicDesign: 0,
+    storageRent: 0, equipmentAmortization: 0, businessLicenses: 0, miscFixed: 0,
+    customExpenses: [],
+  },
 };
 
-function generateDefaultMonths(): MonthlyProjection[] {
-  const monthNames = ['Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2026', 'Jan 2027', 'Feb 2027'];
-  const bookingsPerMonth = [10, 12, 18, 22, 25, 25, 25, 25, 22, 28, 20, 25];
-  const avgCheck = 993;
-  return monthNames.map((month, i) => {
-    const bookings = bookingsPerMonth[i];
-    const revenue = bookings * avgCheck;
-    const marketing = 2200;
-    const labor = 3 * 20 * 4 * bookings;
-    const supplies = 50 * bookings;
-    const museum = 200 * bookings;
-    const transport = 150 * bookings;
-    return { month, revenue, costs: { marketing, labor, supplies, museum, transport }, profit: revenue - (marketing + labor + supplies + museum + transport) };
-  });
-}
-
 const defaultFinancials: FinancialProjections = {
-  months: generateDefaultMonths(),
-  unitEconomics: { avgCheck: 993, costPerEvent: 450, profitPerEvent: 543, breakEvenEvents: 5 },
+  months: [],
+  unitEconomics: { avgCheck: 0, costPerEvent: 0, profitPerEvent: 0, breakEvenEvents: 0 },
+  seasonCoefficients: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 };
 
 const defaultRisks: RisksDueDiligence = {
@@ -89,7 +85,7 @@ const defaultRisks: RisksDueDiligence = {
   complianceChecklist: [],
 };
 
-const defaultKpis: KpisMetrics = { targets: DEFAULT_KPI_TARGETS };
+const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 } };
 
 const defaultLaunchPlan: LaunchPlan = { stages: [] };
 
@@ -163,7 +159,7 @@ export function Export() {
       });
 
       // 4. Trigger download
-      saveAs(blob, 'fun-box-business-plan.pdf');
+      saveAs(blob, 'business-plan.pdf');
     } catch (err) {
       console.error('PDF generation failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate PDF. Please try again.');
