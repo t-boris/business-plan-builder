@@ -1,4 +1,7 @@
 import type { BusinessType } from "@/types";
+import { getDefaultVariables } from "./variable-templates";
+
+export { getDefaultVariables as getTemplateVariables };
 
 export interface BusinessTypeTemplate {
   type: BusinessType;

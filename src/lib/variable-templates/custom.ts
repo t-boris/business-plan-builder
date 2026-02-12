@@ -1,0 +1,81 @@
+import type { VariableDefinition } from "@/types/business";
+
+export const CUSTOM_VARIABLES: VariableDefinition[] = [
+  // --- Revenue inputs ---
+  {
+    id: "monthlyRevenue",
+    label: "Monthly Revenue",
+    type: "input",
+    category: "revenue",
+    unit: "currency",
+    value: 0,
+    defaultValue: 0,
+    description: "Total monthly revenue",
+    min: 0,
+    step: 1,
+  },
+
+  // --- Cost inputs ---
+  {
+    id: "monthlyCosts",
+    label: "Monthly Costs",
+    type: "input",
+    category: "costs",
+    unit: "currency",
+    value: 0,
+    defaultValue: 0,
+    description: "Total monthly costs",
+    min: 0,
+    step: 1,
+  },
+
+  // --- Computed ---
+  {
+    id: "monthlyProfit",
+    label: "Monthly Profit",
+    type: "computed",
+    category: "unitEconomics",
+    unit: "currency",
+    value: 0,
+    defaultValue: 0,
+    formula: "monthlyRevenue - monthlyCosts",
+    dependsOn: ["monthlyRevenue", "monthlyCosts"],
+    description: "Net monthly profit",
+  },
+  {
+    id: "profitMargin",
+    label: "Profit Margin",
+    type: "computed",
+    category: "unitEconomics",
+    unit: "percent",
+    value: 0,
+    defaultValue: 0,
+    formula: "monthlyRevenue > 0 ? monthlyProfit / monthlyRevenue : 0",
+    dependsOn: ["monthlyProfit", "monthlyRevenue"],
+    description: "Profit as % of revenue",
+  },
+  {
+    id: "annualRevenue",
+    label: "Annual Revenue",
+    type: "computed",
+    category: "revenue",
+    unit: "currency",
+    value: 0,
+    defaultValue: 0,
+    formula: "monthlyRevenue * 12",
+    dependsOn: ["monthlyRevenue"],
+    description: "Projected annual revenue",
+  },
+  {
+    id: "annualProfit",
+    label: "Annual Profit",
+    type: "computed",
+    category: "unitEconomics",
+    unit: "currency",
+    value: 0,
+    defaultValue: 0,
+    formula: "monthlyProfit * 12",
+    dependsOn: ["monthlyProfit"],
+    description: "Projected annual profit",
+  },
+];
