@@ -26,6 +26,7 @@ import type {
   BusinessScenario,
   BusinessRole,
   Scenario,
+  VariableDefinition,
 } from "@/types";
 
 // =============================================================================
@@ -519,6 +520,44 @@ export async function saveScenarioPreferences(
   await setDoc(
     doc(db, "businesses", businessId, "state", "preferences"),
     state,
+    { merge: true }
+  );
+}
+
+// =============================================================================
+// Business Variables (state/variables document)
+// =============================================================================
+
+// Firestore path: businesses/{businessId}/state/variables
+// Document shape: { definitions: Record<string, VariableDefinition> }
+
+/**
+ * Get business variable definitions.
+ * Returns null if no variables have been saved yet.
+ */
+export async function getBusinessVariables(
+  businessId: string
+): Promise<Record<string, VariableDefinition> | null> {
+  // Firestore path: businesses/{businessId}/state/variables
+  const snap = await getDoc(
+    doc(db, "businesses", businessId, "state", "variables")
+  );
+  if (!snap.exists()) return null;
+  return (snap.data()?.definitions as Record<string, VariableDefinition>) ?? null;
+}
+
+/**
+ * Save business variable definitions (full replace with merge).
+ * Stores the entire variable set as one atomic operation.
+ */
+export async function saveBusinessVariables(
+  businessId: string,
+  variables: Record<string, VariableDefinition>
+): Promise<void> {
+  // Firestore path: businesses/{businessId}/state/variables
+  await setDoc(
+    doc(db, "businesses", businessId, "state", "variables"),
+    { definitions: variables },
     { merge: true }
   );
 }

@@ -1,5 +1,5 @@
 import { atom } from 'jotai';
-import type { Business } from '@/types';
+import type { Business, VariableDefinition } from '@/types';
 
 // The list of businesses the current user has access to
 export const businessListAtom = atom<Business[]>([]);
@@ -22,3 +22,9 @@ export const activeBusinessAtom = atom<Business | null>((get) => {
 
 // Derived: loading state (not yet loaded)
 export const businessesLoadingAtom = atom((get) => !get(businessesLoadedAtom));
+
+// Business variable definitions for the active business
+export const businessVariablesAtom = atom<Record<string, VariableDefinition> | null>(null);
+
+// Whether variables have been loaded from Firestore for the active business
+export const businessVariablesLoadedAtom = atom<boolean>(false);
