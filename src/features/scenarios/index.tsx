@@ -6,6 +6,7 @@ import { ScenarioControls } from './scenario-controls.tsx';
 import { ScenarioDashboard } from './scenario-dashboard.tsx';
 import { ScenarioManager } from './scenario-manager.tsx';
 import { ScenarioComparison } from './scenario-comparison.tsx';
+import { VariableEditor } from './variable-editor.tsx';
 
 export function Scenarios() {
   const [scenarioName, setScenarioName] = useAtom(scenarioNameAtom);
@@ -33,6 +34,7 @@ export function Scenarios() {
       <Tabs defaultValue="editor">
         <TabsList>
           <TabsTrigger value="editor">Editor</TabsTrigger>
+          <TabsTrigger value="variables">Variables</TabsTrigger>
           <TabsTrigger value="compare">Compare</TabsTrigger>
         </TabsList>
 
@@ -46,6 +48,10 @@ export function Scenarios() {
               <ScenarioDashboard />
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="variables">
+          <VariableEditor />
         </TabsContent>
 
         <TabsContent value="compare">
