@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SectionSlug } from '@/types';
+import type { SectionSlug, BusinessType } from '@/types';
 
 // ---- Zod Schemas mirroring TypeScript interfaces from @/types/plan.ts ----
 
@@ -322,12 +322,59 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
 };
 
+// ---- Industry-specific overlays for generate action ----
+
+const INDUSTRY_OVERLAYS: Partial<Record<BusinessType, Partial<Record<SectionSlug, string>>>> = {
+  saas: {
+    'market-analysis': 'Focus on: TAM/SAM/SOM with bottom-up and top-down estimates. Competitor analysis should include pricing tiers, feature comparison matrix, funding status, and market positioning. Include technology adoption lifecycle stage. Address switching costs and lock-in factors. Demographics should focus on company size segments, industry verticals, and buying committee roles.',
+    'financial-projections': 'Emphasize SaaS-specific metrics: MRR/ARR growth trajectory, churn rate (logo and revenue), LTV:CAC ratio, months to payback, net revenue retention, expansion revenue. Model cohort-based revenue patterns rather than simple linear growth.',
+    operations: 'Focus on: engineering team structure, sprint velocity, cloud infrastructure costs by tier, customer support staffing ratios, deployment pipeline. Cost breakdown should emphasize cloud infrastructure, third-party APIs, developer tooling, and customer success headcount.',
+    'marketing-strategy': 'Focus on: content marketing and SEO, product-led acquisition funnels, free trial/freemium conversion rates, developer relations if applicable. Consider inbound vs outbound mix. CAC should be broken down by channel.',
+  },
+  restaurant: {
+    'market-analysis': 'Focus on: location-specific foot traffic data, nearby anchor tenants, parking availability, delivery radius and third-party delivery platform presence (DoorDash, UberEats). Competitor analysis should include seating capacity, average ticket, Yelp/Google ratings, cuisine overlap, and peak hour patterns. Demographics should focus on daytime vs evening population, household income, dining-out frequency.',
+    'financial-projections': 'Emphasize restaurant-specific metrics: food cost percentage (target 28-32%), labor cost percentage (target 25-30%), prime cost, revenue per available seat hour (RevPASH), average covers per day. Model seasonal variations in covers if the location has tourism patterns.',
+    operations: 'Focus on: kitchen layout and stations, FOH/BOH staffing by shift, food cost percentage targets, inventory turnover, prep schedules, health code compliance, and vendor relationships. Cost breakdown should emphasize food cost, labor, rent, utilities, POS system, and waste reduction.',
+    'marketing-strategy': 'Focus on: local SEO and Google Business Profile optimization, delivery platform presence and commission impact, review management strategy (Yelp/Google), loyalty programs, community events. Emphasize cost-per-cover acquisition.',
+  },
+  retail: {
+    'market-analysis': 'Focus on: trade area analysis, foot traffic patterns and peak hours, anchor tenant proximity, online-to-offline conversion potential, seasonal demand curves. Competitor analysis should include price positioning, product assortment overlap, store formats, and loyalty programs. Demographics should focus on household income, spending patterns by category.',
+    'financial-projections': 'Emphasize retail-specific metrics: inventory turnover rate, gross margin return on investment (GMROI), sell-through rate, average transaction value (ATV), markdown strategy impact. Model seasonal revenue patterns by quarter.',
+    operations: 'Focus on: store layout and merchandising zones, staffing by shift and season, inventory management and reorder points, POS systems, loss prevention, seasonal staffing plans. Cost breakdown should emphasize COGS, labor, rent, shrinkage, and logistics.',
+    'marketing-strategy': 'Focus on: foot traffic driving tactics, seasonal promotions calendar, loyalty program design, omnichannel attribution (online-to-store, store-to-online), local advertising. Emphasize cost-per-transaction acquisition.',
+  },
+  service: {
+    'market-analysis': 'Focus on: serviceable market by geography/specialty, client acquisition channels, referral network potential, competitive landscape by specialization. Demographics should focus on target client profiles (B2B: company size and industry; B2C: income and life stage).',
+    'financial-projections': 'Emphasize service-specific metrics: utilization rate, average billable rate, revenue per employee, client lifetime value, project profitability. Model capacity constraints and growth scenarios.',
+    operations: 'Focus on: team structure and specializations, capacity planning and utilization targets, service delivery workflow, quality assurance processes, client communication cadence. Cost breakdown should emphasize labor (largest cost), professional development, tools/software, and insurance.',
+    'marketing-strategy': 'Focus on: referral programs, professional networking, thought leadership content, case studies and testimonials, partnership channels. Emphasize cost-per-client acquisition and client retention rates.',
+  },
+  event: {
+    'market-analysis': 'Focus on: event market by type and season, venue availability and pricing, local competition for similar events, seasonal demand patterns. Demographics should focus on target attendee profiles, corporate vs consumer segments, willingness to pay.',
+    'financial-projections': 'Emphasize event-specific metrics: per-event revenue and cost, capacity utilization, booking lead time, seasonal revenue distribution, break-even number of events per month. Model seasonal curves explicitly.',
+    operations: 'Focus on: event logistics and setup/teardown, staffing per event type, equipment inventory and maintenance, venue partnerships, safety protocols and insurance. Cost breakdown should emphasize per-event variable costs vs monthly fixed overhead.',
+    'marketing-strategy': 'Focus on: social media and visual marketing, event listing platforms, partnership and cross-promotion, early-bird and group pricing strategies, email marketing for repeat clients. Emphasize booking conversion rate from inquiries.',
+  },
+  manufacturing: {
+    'market-analysis': 'Focus on: supply chain geography, raw material sourcing and pricing trends, trade regulations and tariffs, capacity utilization benchmarks in the industry. Competitor analysis should include production capabilities, quality certifications, and pricing models (cost-plus vs market-based).',
+    'financial-projections': 'Emphasize manufacturing-specific metrics: unit COGS breakdown (materials, labor, overhead), yield rate, capacity utilization impact on unit cost, raw material cost sensitivity analysis. Model production ramp-up scenarios.',
+    operations: 'Focus on: production line layout, shift scheduling and labor planning, quality control checkpoints, equipment maintenance schedules, supplier management and lead times. Cost breakdown should emphasize raw materials, direct labor, manufacturing overhead, and logistics.',
+    'marketing-strategy': 'Focus on: trade shows and industry events, B2B sales cycle and pipeline management, distributor/channel partner relationships, technical documentation and specs, certifications as marketing leverage. Emphasize customer acquisition cost for B2B sales.',
+  },
+};
+
 /**
  * Get the prompt instruction for a given section and action.
+ * When businessType is provided and action is 'generate', appends industry-specific overlay.
  */
 export function getSectionPrompt(
   slug: SectionSlug,
   action: AiAction,
+  businessType?: BusinessType,
 ): string {
-  return SECTION_PROMPTS[slug][action];
+  const base = SECTION_PROMPTS[slug][action];
+  if (!businessType || businessType === 'custom' || action !== 'generate') return base;
+  const overlay = INDUSTRY_OVERLAYS[businessType]?.[slug];
+  if (!overlay) return base;
+  return `${base}\n\nINDUSTRY-SPECIFIC FOCUS (${businessType}):\n${overlay}`;
 }
