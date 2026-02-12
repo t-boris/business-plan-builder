@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 6 — Variable Library (In progress)
+**Current focus:** Phase 6 — Variable Library (Complete)
 
 ## Current Position
 
 Phase: 6 of 12 (Variable Library)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-12 — Completed 06-03-PLAN.md
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-02-12 — Completed 06-04-PLAN.md
 
-Progress: █████░░░░░ 55%
+Progress: █████░░░░░ 58%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 3 min
-- Total execution time: 50 min
+- Total execution time: 52 min
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: █████░░░░░ 55%
 | 03-dynamic-business-context | 2/2 | 6 min | 3 min |
 | 04-strip-hardcoded-content | 3/3 | 19 min | 6 min |
 | 05-business-profile-section-config | 2/2 | 3 min | 2 min |
-| 06-variable-library | 3/4 | 7 min | 2 min |
+| 06-variable-library | 4/4 | 9 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-02 (1 min), 06-01 (1 min), 06-02 (4 min), 06-03 (2 min)
+- Last 5 plans: 06-01 (1 min), 06-02 (4 min), 06-03 (2 min), 06-04 (2 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -90,6 +90,9 @@ Progress: █████░░░░░ 55%
 | 06-03 | Store variables as { definitions: Record } in state/variables doc | Avoids Firestore flattening individual variable objects; single field is atomic |
 | 06-03 | Fire-and-forget Firestore saves with optimistic local updates | Same pattern as useBusinesses.updateProfile; keeps UI responsive |
 | 06-03 | VariableLoader placed between BusinessLoader and ScenarioSync | Follows dependency order; variables need business context but are independent of scenarios |
+| 06-04 | Evaluation result and error computed together in single useMemo | Avoids side effects inside useMemo; error state derived from computation |
+| 06-04 | Percent values displayed as *100 in inputs, stored as decimals | Consistent with RESEARCH.md convention; user sees 30%, formula uses 0.30 |
+| 06-04 | Add Variable form uses Collapsible from shadcn | Power-user feature hidden by default; keeps main UI clean |
 
 ### Deferred Issues
 
@@ -102,5 +105,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 06-03-PLAN.md
+Stopped at: Completed 06-04-PLAN.md (Phase 6 complete)
 Resume file: None

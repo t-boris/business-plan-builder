@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
 - [x] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
 - [x] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
-- [ ] **Phase 6: Variable Library** - Predefined business variables organized by business type
+- [x] **Phase 6: Variable Library** - Predefined business variables organized by business type
 - [ ] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
 - [ ] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
 - [ ] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
@@ -95,8 +95,8 @@ Plans:
 Plans:
 - [x] 06-01: Define variable library data model (VariableDefinition, VariableCategory, BusinessTypeTemplate)
 - [x] 06-02: Populate variable library with templates for all 7 business types
-- [ ] 06-03: Variable picker UI (browse by category, select variables, preview derived metrics)
-- [ ] 06-04: Formula engine integration and variable evaluation
+- [x] 06-03: Variable picker UI (browse by category, select variables, preview derived metrics)
+- [x] 06-04: Formula engine integration and variable evaluation
 
 ### Phase 7: Generic Scenario Engine
 **Goal**: Refactor the scenario engine from hardcoded Fun Box atoms to dynamic atoms driven by the variable library. Derived metrics compute automatically based on selected variables. Scenario comparison works with any variable set.
@@ -176,7 +176,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
 | 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
 | 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
-| 6. Variable Library | 3/4 | In progress | - |
+| 6. Variable Library | 4/4 | Complete | 2026-02-12 |
 | 7. Generic Scenario Engine | 0/3 | Not started | - |
 | 8. Business-Aware AI | 0/2 | Not started | - |
 | 9. Sharing & Access | 0/2 | Not started | - |
