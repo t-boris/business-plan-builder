@@ -10,13 +10,16 @@ import {
   Sparkles,
   Plus,
   Trash2,
+  Briefcase,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useBusinesses } from "@/hooks/use-businesses";
 import { BUSINESS_TYPE_TEMPLATES } from "@/lib/business-templates";
-import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
 import { DeleteBusinessDialog } from "./delete-business-dialog";
 import type { Business, BusinessType } from "@/types";
@@ -29,6 +32,17 @@ const ICON_MAP: Record<string, LucideIcon> = {
   PartyPopper,
   Factory,
   Sparkles,
+};
+
+/** Accent color per business type for left-border visual accent */
+const TYPE_COLOR_MAP: Record<BusinessType, string> = {
+  saas: "border-l-blue-500",
+  service: "border-l-emerald-500",
+  retail: "border-l-amber-500",
+  restaurant: "border-l-orange-500",
+  event: "border-l-purple-500",
+  manufacturing: "border-l-slate-500",
+  custom: "border-l-pink-500",
 };
 
 function getTemplateForType(type: BusinessType) {
@@ -65,55 +79,32 @@ function formatRelativeTime(isoDate: string): string {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-48" />
+    <div className="page-container">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
         <Skeleton className="h-9 w-36" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="py-4">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-5 w-5 rounded" />
-                <Skeleton className="h-5 w-32" />
+          <div key={i} className="card-elevated rounded-lg border-l-4 border-l-muted p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <Skeleton className="size-9 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-16 mt-1.5" />
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <div className="flex items-center justify-between pt-2">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <Skeleton className="h-3.5 w-full mt-2" />
+            <Skeleton className="h-3.5 w-3/4 mt-1" />
+            <div className="flex items-center justify-between pt-3 mt-3 border-t">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="mx-auto max-w-md text-center space-y-6">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-          <Sparkles className="h-8 w-8 text-primary" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Welcome to Business Planner
-          </h1>
-          <p className="text-muted-foreground">
-            Create your first business plan to get started. Each business gets
-            its own sections, scenarios, and financial projections.
-          </p>
-        </div>
-        <Button asChild size="lg">
-          <Link to="/businesses/new">Create Your First Business Plan</Link>
-        </Button>
       </div>
     </div>
   );
@@ -130,48 +121,52 @@ function BusinessCard({ business, onSelect, onDelete }: BusinessCardProps) {
   const template = getTemplateForType(business.profile.type);
   const typeName = template?.name ?? "Custom";
   const sectionCount = business.enabledSections.length;
+  const accentColor = TYPE_COLOR_MAP[business.profile.type] ?? "border-l-muted";
 
   return (
     <Card
-      className="py-4 cursor-pointer transition-colors hover:bg-accent/50"
+      className={cn(
+        "card-elevated cursor-pointer group border-l-4 p-5",
+        accentColor
+      )}
       onClick={onSelect}
     >
-      <CardHeader>
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <CardTitle className="truncate text-base">
-            {business.profile.name}
-          </CardTitle>
-        </div>
-        <CardAction>
+      <CardContent className="p-0">
+        {/* Top row: icon + name + delete */}
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+            <Icon className="size-4 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold truncate">
+              {business.profile.name}
+            </h3>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground mt-0.5">
+              {typeName}
+            </span>
+          </div>
           <Button
             variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground hover:text-destructive"
+            size="icon"
+            className="size-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="size-3.5" />
           </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <span
-          className={cn(
-            "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
-            "bg-secondary text-secondary-foreground"
-          )}
-        >
-          {typeName}
-        </span>
+        </div>
+
+        {/* Description */}
         {business.profile.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-3">
             {business.profile.description}
           </p>
         )}
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+
+        {/* Footer: sections + last updated */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 mt-3 border-t">
           <span>{sectionCount} of 9 sections</span>
           <span>{formatRelativeTime(business.updatedAt)}</span>
         </div>
@@ -187,19 +182,40 @@ export function BusinessList() {
   const [deleteTarget, setDeleteTarget] = useState<Business | null>(null);
 
   if (isLoading) return <LoadingSkeleton />;
-  if (businesses.length === 0) return <EmptyState />;
+
+  if (businesses.length === 0) {
+    return (
+      <div className="page-container">
+        <PageHeader
+          title="Your Businesses"
+          description="Manage and access your business plans"
+        />
+        <EmptyState
+          icon={Briefcase}
+          title="No businesses yet"
+          description="Create your first business plan to get started"
+          action={{
+            label: "Create Business",
+            onClick: () => navigate("/businesses/new"),
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Your Businesses</h1>
+    <div className="page-container">
+      <PageHeader
+        title="Your Businesses"
+        description="Manage and access your business plans"
+      >
         <Button asChild>
           <Link to="/businesses/new">
-            <Plus className="h-4 w-4" />
+            <Plus className="size-4" />
             New Business
           </Link>
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {businesses.map((business) => (
@@ -223,7 +239,6 @@ export function BusinessList() {
         onConfirm={async () => {
           if (deleteTarget) {
             await removeBusiness(deleteTarget.id);
-            // Navigate to first remaining business or stay on list
             const remaining = businesses.filter((b) => b.id !== deleteTarget.id);
             if (remaining.length > 0) {
               navigate(`/business/${remaining[0].id}`);
