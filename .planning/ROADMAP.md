@@ -174,7 +174,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
 | 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
 | 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
-| 5. Business Profile & Section Config | 0/2 | Not started | - |
+| 5. Business Profile & Section Config | 1/2 | In progress | - |
 | 6. Variable Library | 0/3 | Not started | - |
 | 7. Generic Scenario Engine | 0/3 | Not started | - |
 | 8. Business-Aware AI | 0/2 | Not started | - |
