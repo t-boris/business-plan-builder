@@ -6,52 +6,78 @@ service cloud.firestore {
     // --- Templates: read-only for authenticated users ---
     match /templates/{templateId} {
       allow read: if request.auth != null;
-      allow write: if false;  // Admin-only via Firebase Admin SDK
+      allow write: if false;
     }
 
     // --- Businesses: role-based access via roles map ---
     match /businesses/{businessId} {
 
-      // Helper: check if user has one of the specified roles
       function hasRole(roles) {
         return request.auth != null
           && request.auth.uid in resource.data.roles
           && resource.data.roles[request.auth.uid] in roles;
       }
 
+      function isOnlySelfAddToRoles() {
+        let rolesDiff = request.resource.data.roles.diff(resource.data.roles);
+        return rolesDiff.addedKeys().hasOnly([request.auth.uid])
+          && rolesDiff.addedKeys().size() == 1
+          && rolesDiff.changedKeys().size() == 0
+          && rolesDiff.removedKeys().size() == 0
+          && request.resource.data.roles[request.auth.uid] in ['editor', 'viewer'];
+      }
+
+      function isValidInviteAcceptance(businessId) {
+        let inviteId = request.resource.data._acceptingInviteId;
+        let invite = get(/databases/$(database)/documents/invites/$(inviteId));
+        return invite != null
+          && invite.data.status == 'active'
+          && invite.data.businessId == businessId
+          && request.resource.data.roles[request.auth.uid] == invite.data.role;
+      }
+
       // Any authenticated user can create a business (they become owner)
       allow create: if request.auth != null
         && request.resource.data.roles[request.auth.uid] == 'owner';
 
-      // Owner and editor can read
-      allow read: if hasRole(['owner', 'editor']);
+      // Owner, editor, and viewer can read
+      allow read: if hasRole(['owner', 'editor', 'viewer']);
 
-      // Owner and editor can update
-      allow update: if hasRole(['owner', 'editor']);
+      // Owner and editor can update normally
+      // OR: any authenticated user can accept a valid invite (self-add to roles)
+      allow update: if hasRole(['owner', 'editor'])
+        || (
+          request.auth != null
+          && '_acceptingInviteId' in request.resource.data
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['roles', 'updatedAt', '_acceptingInviteId'])
+          && isOnlySelfAddToRoles()
+          && isValidInviteAcceptance(businessId)
+        );
 
       // Only owner can delete
       allow delete: if hasRole(['owner']);
 
-      // --- Sections: inherit access from parent business ---
+      // --- Sections: owner+editor write, viewer read-only ---
       match /sections/{sectionKey} {
         allow read: if get(/databases/$(database)/documents/businesses/$(businessId))
-                       .data.roles[request.auth.uid] in ['owner', 'editor'];
+                       .data.roles[request.auth.uid] in ['owner', 'editor', 'viewer'];
         allow write: if get(/databases/$(database)/documents/businesses/$(businessId))
                         .data.roles[request.auth.uid] in ['owner', 'editor'];
       }
 
-      // --- Scenarios: inherit access from parent business ---
+      // --- Scenarios: owner+editor write, viewer read-only ---
       match /scenarios/{scenarioId} {
         allow read: if get(/databases/$(database)/documents/businesses/$(businessId))
-                       .data.roles[request.auth.uid] in ['owner', 'editor'];
+                       .data.roles[request.auth.uid] in ['owner', 'editor', 'viewer'];
         allow write: if get(/databases/$(database)/documents/businesses/$(businessId))
                         .data.roles[request.auth.uid] in ['owner', 'editor'];
       }
 
-      // --- Business state/preferences ---
+      // --- Business state/preferences: owner+editor write, viewer read-only ---
       match /state/{stateDoc} {
         allow read: if get(/databases/$(database)/documents/businesses/$(businessId))
-                       .data.roles[request.auth.uid] in ['owner', 'editor'];
+                       .data.roles[request.auth.uid] in ['owner', 'editor', 'viewer'];
         allow write: if get(/databases/$(database)/documents/businesses/$(businessId))
                         .data.roles[request.auth.uid] in ['owner', 'editor'];
       }
@@ -62,24 +88,30 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // --- Invites: owner creates, invited user reads/accepts ---
+    // --- Invites ---
     match /invites/{inviteId} {
-      // Anyone authenticated can read an invite (they need the token/ID to find it)
+      // Any authenticated user can read an invite (they need the ID to find it)
       allow read: if request.auth != null;
 
       // Only business owner can create invites
-      // (validated by checking the business document's roles)
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdBy == request.auth.uid
+        && get(/databases/$(database)/documents/businesses/$(request.resource.data.businessId))
+             .data.roles[request.auth.uid] == 'owner';
 
-      // Update for acceptance (by the invited user)
-      allow update: if request.auth != null;
+      // Only creator can revoke (update status to 'revoked')
+      allow update: if request.auth != null
+        && resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'revoked'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
 
-      // Only creator can delete/revoke
+      // Only creator can delete
       allow delete: if request.auth != null
         && resource.data.createdBy == request.auth.uid;
     }
 
-    // --- Legacy: keep existing plans path working until Phase 3 migration ---
+    // --- Legacy: keep existing plans path working ---
     match /plans/{planId}/{document=**} {
       allow read, write: if request.auth != null;
     }
