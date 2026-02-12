@@ -3,7 +3,6 @@ import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
-import { DEFAULT_MARKETING_CHANNELS } from '@/lib/constants';
 import type {
   MarketingStrategy as MarketingStrategyType,
   MarketingChannel,
@@ -19,7 +18,37 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
+import {
+  Plus,
+  Trash2,
+  AlertCircle,
+  DollarSign,
+  Users,
+  Target,
+  CalendarCheck,
+  AtSign,
+  Search,
+  Share2,
+  Handshake,
+  HelpCircle,
+  Gift,
+  ExternalLink,
+  Link,
+} from 'lucide-react';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from 'recharts';
 
 const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
   'meta-ads': 'Meta Ads',
@@ -28,18 +57,61 @@ const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
   partnerships: 'Partnerships',
 };
 
+const CHANNEL_ICONS: Record<MarketingChannelName, React.ReactNode> = {
+  'meta-ads': <AtSign className="size-5" />,
+  'google-ads': <Search className="size-5" />,
+  'organic-social': <Share2 className="size-5" />,
+  partnerships: <Handshake className="size-5" />,
+};
+
+const CHANNEL_STYLES: Record<MarketingChannelName, { border: string; badge: string; iconBg: string }> = {
+  'meta-ads': {
+    border: 'border-blue-200 dark:border-blue-800',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+    iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400',
+  },
+  'google-ads': {
+    border: 'border-green-200 dark:border-green-800',
+    badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+    iconBg: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400',
+  },
+  'organic-social': {
+    border: 'border-purple-200 dark:border-purple-800',
+    badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+    iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400',
+  },
+  partnerships: {
+    border: 'border-amber-200 dark:border-amber-800',
+    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+    iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400',
+  },
+};
+
+const PIE_COLORS = ['#3b82f6', '#22c55e', '#8b5cf6', '#f59e0b'];
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+}
+
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <HelpCircle className="size-3 text-muted-foreground cursor-help inline-block ml-1" />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px]">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 const defaultMarketing: MarketingStrategyType = {
-  channels: DEFAULT_MARKETING_CHANNELS,
-  offers: [
-    'Free slime lab for March bookings',
-    'Free professional photos for April parties',
-    'Free custom cake topper',
-    'Free Museum Jellyfish tickets for birthday child',
-  ],
+  channels: [],
+  offers: [],
   landingPage: {
     url: '',
-    description:
-      'Landing page with service tiers, photo/video gallery, booking form, trust signals (reviews, safety certifications), and bilingual content (English/Spanish).',
+    description: '',
   },
 };
 
@@ -69,7 +141,24 @@ export function MarketingStrategy() {
     if (suggested) updateData(() => suggested);
   }
 
-  const totalMonthlyAdSpend = displayData.channels.reduce((sum, ch) => sum + ch.budget, 0);
+  const totalBudget = displayData.channels.reduce((sum, ch) => sum + ch.budget, 0);
+  const totalLeads = displayData.channels.reduce((sum, ch) => sum + ch.expectedLeads, 0);
+  const avgCAC = totalLeads > 0 ? totalBudget / totalLeads : 0;
+  const estimatedBookings = Math.round(totalLeads * 0.2);
+
+  function addChannel() {
+    updateData((prev) => ({
+      ...prev,
+      channels: [...prev.channels, { name: 'meta-ads' as MarketingChannelName, budget: 0, expectedLeads: 0, expectedCAC: 0, description: '', tactics: [] }],
+    }));
+  }
+
+  function removeChannel(index: number) {
+    updateData((prev) => ({
+      ...prev,
+      channels: prev.channels.filter((_, i) => i !== index),
+    }));
+  }
 
   function updateChannel(index: number, field: keyof MarketingChannel, value: string | number | string[]) {
     updateData((prev) => {
@@ -123,133 +212,314 @@ export function MarketingStrategy() {
     updateData((prev) => ({ ...prev, offers: prev.offers.filter((_, i) => i !== index) }));
   }
 
-  const sectionContent = (
-    <div className="space-y-6">
-      {/* Total Monthly Ad Spend Summary */}
-      <div className="rounded-lg border bg-muted/50 p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">Total Monthly Ad Spend</span>
-          <span className="text-2xl font-bold">${totalMonthlyAdSpend.toLocaleString()}</span>
-        </div>
-      </div>
+  // Pie chart data — only channels with budget > 0
+  const budgetPieData = displayData.channels
+    .filter((ch) => ch.budget > 0)
+    .map((ch) => ({
+      name: CHANNEL_DISPLAY_NAMES[ch.name],
+      value: ch.budget,
+    }));
 
-      {/* Marketing Channels */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Marketing Channels</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {displayData.channels.map((channel, chIndex) => (
-            <Card key={chIndex}>
-              <CardHeader>
-                <div className="space-y-3">
-                  <CardTitle>{CHANNEL_DISPLAY_NAMES[channel.name] || channel.name}</CardTitle>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Budget</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                        <Input type="number" className="pl-7" value={channel.budget} onChange={(e) => updateChannel(chIndex, 'budget', Number(e.target.value))} readOnly={isPreview} />
+  const sectionContent = (
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* KPI Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="rounded-md bg-amber-100 p-1.5 dark:bg-amber-900">
+                  <DollarSign className="size-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground">Total Ad Spend</p>
+              </div>
+              <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{formatCurrency(totalBudget)}</p>
+              <p className="text-xs text-muted-foreground mt-1">per month</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900">
+                  <Users className="size-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Expected Leads
+                  <InfoTooltip text="Number of new leads expected per month from all channels" />
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalLeads}</p>
+              <p className="text-xs text-muted-foreground mt-1">per month</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/30">
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="rounded-md bg-purple-100 p-1.5 dark:bg-purple-900">
+                  <Target className="size-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Average CAC
+                  <InfoTooltip text="Customer Acquisition Cost — average cost to acquire one lead across all channels" />
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{formatCurrency(avgCAC)}</p>
+              <p className="text-xs text-muted-foreground mt-1">per lead</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30">
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="rounded-md bg-green-100 p-1.5 dark:bg-green-900">
+                  <CalendarCheck className="size-4 text-green-600 dark:text-green-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground">Est. Monthly Bookings</p>
+              </div>
+              <p className="text-2xl font-bold text-green-700 dark:text-green-300">{estimatedBookings}</p>
+              <p className="text-xs text-muted-foreground mt-1">at 20% conversion</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Budget Allocation Pie Chart */}
+        {budgetPieData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold">Budget Allocation</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={budgetPieData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      dataKey="value"
+                      label={({ name, percent }: { name?: string; percent?: number }) =>
+                        `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
+                      }
+                      labelLine={false}
+                    >
+                      {budgetPieData.map((_, index) => (
+                        <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Marketing Channels */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Marketing Channels</h2>
+            {!isPreview && (
+              <Button variant="outline" size="sm" onClick={addChannel}>
+                <Plus className="size-4" />
+                Add Channel
+              </Button>
+            )}
+          </div>
+          {displayData.channels.length === 0 && (
+            <p className="text-sm text-muted-foreground py-2">No marketing channels yet. Use AI Generate to create a marketing strategy, or add channels manually.</p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {displayData.channels.map((channel, chIndex) => {
+              const style = CHANNEL_STYLES[channel.name];
+              return (
+                <Card key={chIndex} className={style.border}>
+                  <CardHeader>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-lg p-2 ${style.iconBg}`}>
+                          {CHANNEL_ICONS[channel.name]}
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle>{CHANNEL_DISPLAY_NAMES[channel.name] || channel.name}</CardTitle>
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.badge}`}>
+                          {channel.budget > 0 ? 'Paid' : 'Organic'}
+                        </span>
+                        {!isPreview && (
+                          <Button variant="ghost" size="icon-xs" onClick={() => removeChannel(chIndex)}>
+                            <Trash2 className="size-3" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Budget
+                            <InfoTooltip text="Monthly spend allocated to this channel" />
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                            <Input type="number" className="pl-7" value={channel.budget} onChange={(e) => updateChannel(chIndex, 'budget', Number(e.target.value))} readOnly={isPreview} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Expected Leads
+                            <InfoTooltip text="Number of new leads expected per month from this channel" />
+                          </label>
+                          <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={isPreview} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            CAC
+                            <InfoTooltip text="Customer Acquisition Cost — cost to acquire one lead through this channel" />
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                            <Input type="number" className="pl-7" value={channel.expectedCAC} onChange={(e) => updateChannel(chIndex, 'expectedCAC', Number(e.target.value))} readOnly={isPreview} />
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">Expected Leads</label>
-                      <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={isPreview} />
+                      <label className="text-xs font-medium text-muted-foreground">Description</label>
+                      <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={isPreview} />
                     </div>
+
+                    {/* Campaign/Tracking URL */}
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">Expected CAC</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                        <Input type="number" className="pl-7" value={channel.expectedCAC} onChange={(e) => updateChannel(chIndex, 'expectedCAC', Number(e.target.value))} readOnly={isPreview} />
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Link className="size-3" />
+                        Campaign URL
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={channel.url ?? ''}
+                          onChange={(e) => updateChannel(chIndex, 'url', e.target.value)}
+                          placeholder="https://..."
+                          readOnly={isPreview}
+                          className="text-sm"
+                        />
+                        {channel.url && (
+                          <a href={channel.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                            <Button variant="ghost" size="icon-xs" type="button">
+                              <ExternalLink className="size-3 text-muted-foreground" />
+                            </Button>
+                          </a>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Description</label>
-                  <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={isPreview} />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-muted-foreground">Tactics</label>
+
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Tactics
+                          <InfoTooltip text="Specific actions and campaigns run within this channel" />
+                        </label>
+                        {!isPreview && (
+                          <Button variant="ghost" size="xs" onClick={() => addTactic(chIndex)}>
+                            <Plus className="size-3" />
+                            Add Tactic
+                          </Button>
+                        )}
+                      </div>
+                      {channel.tactics.map((tactic, tacticIndex) => (
+                        <div key={tacticIndex} className="flex items-center gap-2">
+                          <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={isPreview} />
+                          {!isPreview && (
+                            <Button variant="ghost" size="icon-xs" onClick={() => removeTactic(chIndex, tacticIndex)}>
+                              <Trash2 className="size-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Promotional Offers */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Promotional Offers</h2>
+            {!isPreview && (
+              <Button variant="outline" size="sm" onClick={addOffer}>
+                <Plus className="size-4" />
+                Add Offer
+              </Button>
+            )}
+          </div>
+          <Card>
+            <CardContent>
+              <div className="space-y-3">
+                {displayData.offers.map((offer, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Gift className="size-4 text-pink-500 dark:text-pink-400" />
+                      <span className="text-xs font-bold text-muted-foreground w-5 text-right">{index + 1}.</span>
+                    </div>
+                    <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={isPreview} />
                     {!isPreview && (
-                      <Button variant="ghost" size="xs" onClick={() => addTactic(chIndex)}>
-                        <Plus className="size-3" />
-                        Add Tactic
+                      <Button variant="ghost" size="icon-xs" onClick={() => removeOffer(index)}>
+                        <Trash2 className="size-3" />
                       </Button>
                     )}
                   </div>
-                  {channel.tactics.map((tactic, tacticIndex) => (
-                    <div key={tacticIndex} className="flex items-center gap-2">
-                      <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={isPreview} />
-                      {!isPreview && (
-                        <Button variant="ghost" size="icon-xs" onClick={() => removeTactic(chIndex, tacticIndex)}>
-                          <Trash2 className="size-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                ))}
+                {displayData.offers.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-2">No offers yet. Click "Add Offer" to get started.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      <Separator />
+        <Separator />
 
-      {/* Offers Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Promotional Offers</h2>
-          {!isPreview && (
-            <Button variant="outline" size="sm" onClick={addOffer}>
-              <Plus className="size-4" />
-              Add Offer
-            </Button>
-          )}
-        </div>
-        <Card>
-          <CardContent>
-            <div className="space-y-3">
-              {displayData.offers.map((offer, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={isPreview} />
-                  {!isPreview && (
-                    <Button variant="ghost" size="icon-xs" onClick={() => removeOffer(index)}>
-                      <Trash2 className="size-3" />
-                    </Button>
+        {/* Landing Page Section */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Landing Page</h2>
+          <Card>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">URL</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={displayData.landingPage.url}
+                    onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, url: e.target.value } }))}
+                    placeholder="https://yourbusiness.com"
+                    readOnly={isPreview}
+                  />
+                  {displayData.landingPage.url && (
+                    <a href={displayData.landingPage.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                      <Button variant="ghost" size="icon-xs" type="button">
+                        <ExternalLink className="size-4 text-muted-foreground" />
+                      </Button>
+                    </a>
                   )}
                 </div>
-              ))}
-              {displayData.offers.length === 0 && (
-                <p className="text-sm text-muted-foreground py-2">No offers yet. Click "Add Offer" to get started.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Description</label>
+                <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={isPreview} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      <Separator />
-
-      {/* Landing Page Section */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Landing Page</h2>
-        <Card>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">URL</label>
-              <Input value={displayData.landingPage.url} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, url: e.target.value } }))} placeholder="https://funboxparty.com" readOnly={isPreview} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Description</label>
-              <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={isPreview} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    </TooltipProvider>
   );
 
   return (
