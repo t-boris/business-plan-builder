@@ -14,6 +14,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/app-sidebar";
+import { BusinessHeaderBar } from "@/components/business-header-bar";
 import { activeBusinessAtom } from "@/store/business-atoms";
 
 // Slug-to-title mapping for business-scoped sections
@@ -68,6 +69,7 @@ export function DashboardLayout() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+        <BusinessHeaderBar />
         <div className="flex-1 p-6">
           <Outlet />
         </div>
