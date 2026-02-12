@@ -2,10 +2,10 @@
 // All interfaces are serializable (no methods) for Firestore compatibility.
 
 export interface ScenarioVariables {
-  // Package pricing
-  priceStarter: number;
-  priceExplorer: number;
-  priceVIP: number;
+  // Pricing tiers
+  priceTier1: number;
+  priceTier2: number;
+  priceTier3: number;
 
   // Lead & conversion
   monthlyLeads: number;
@@ -17,8 +17,8 @@ export interface ScenarioVariables {
   monthlyAdBudgetGoogle: number;
 
   // Operations
-  crewCount: number;
-  costPerEvent: number;
+  staffCount: number;
+  costPerUnit: number;
   bookingsPerMonth: number;
 }
 

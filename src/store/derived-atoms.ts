@@ -1,16 +1,15 @@
 import { atom } from 'jotai';
 import {
-  priceStarterAtom,
-  priceExplorerAtom,
-  priceVIPAtom,
+  priceTier1Atom,
+  priceTier2Atom,
+  priceTier3Atom,
   monthlyLeadsAtom,
   conversionRateAtom,
   monthlyAdBudgetMetaAtom,
   monthlyAdBudgetGoogleAtom,
-  crewCountAtom,
-  costPerEventAtom,
+  costPerUnitAtom,
 } from './scenario-atoms.ts';
-import { CREW_HOURLY_RATE, AVG_HOURS_PER_EVENT } from '@/lib/constants.ts';
+import { MONTHLY_FIXED_COSTS } from '@/lib/constants.ts';
 import type { ScenarioVariables } from '@/types';
 
 // ---- Pure function for computing derived metrics (used in comparison view) ----
@@ -31,13 +30,12 @@ export interface ComputedMetrics {
 /** Compute all derived metrics from scenario variables (pure function, no atoms). */
 export function computeDerivedMetrics(v: ScenarioVariables): ComputedMetrics {
   const monthlyBookings = Math.round(v.monthlyLeads * v.conversionRate);
-  const avgCheck = (v.priceStarter + v.priceExplorer + v.priceVIP) / 3;
+  const avgCheck = (v.priceTier1 + v.priceTier2 + v.priceTier3) / 3;
   const monthlyRevenue = monthlyBookings * avgCheck;
   const totalMonthlyAdSpend = v.monthlyAdBudgetMeta + v.monthlyAdBudgetGoogle;
   const cacPerBooking = monthlyBookings === 0 ? 0 : totalMonthlyAdSpend / monthlyBookings;
-  const laborCost = v.crewCount * CREW_HOURLY_RATE * AVG_HOURS_PER_EVENT * monthlyBookings;
-  const eventCosts = v.costPerEvent * monthlyBookings;
-  const monthlyCosts = laborCost + totalMonthlyAdSpend + eventCosts;
+  const eventCosts = v.costPerUnit * monthlyBookings;
+  const monthlyCosts = totalMonthlyAdSpend + eventCosts + MONTHLY_FIXED_COSTS;
   const monthlyProfit = monthlyRevenue - monthlyCosts;
   const annualRevenue = monthlyRevenue * 12;
   const annualProfit = monthlyProfit * 12;
@@ -62,10 +60,10 @@ export const monthlyBookingsAtom = atom((get) =>
   Math.round(get(monthlyLeadsAtom) * get(conversionRateAtom))
 );
 
-// avgCheck = weighted average of package prices (equal distribution)
+// avgCheck = weighted average of pricing tiers (equal distribution)
 export const avgCheckAtom = atom(
   (get) =>
-    (get(priceStarterAtom) + get(priceExplorerAtom) + get(priceVIPAtom)) / 3
+    (get(priceTier1Atom) + get(priceTier2Atom) + get(priceTier3Atom)) / 3
 );
 
 // monthlyRevenue = monthlyBookings * avgCheck
@@ -85,14 +83,12 @@ export const cacPerBookingAtom = atom((get) => {
   return get(totalMonthlyAdSpendAtom) / bookings;
 });
 
-// monthlyCosts = (crewCount * hourlyRate * avgHoursPerEvent * monthlyBookings) + totalMonthlyAdSpend + (costPerEvent * monthlyBookings)
+// monthlyCosts = adSpend + (costPerUnit * bookings) + fixedCosts
 export const monthlyCostsAtom = atom((get) => {
   const bookings = get(monthlyBookingsAtom);
-  const laborCost =
-    get(crewCountAtom) * CREW_HOURLY_RATE * AVG_HOURS_PER_EVENT * bookings;
   const adSpend = get(totalMonthlyAdSpendAtom);
-  const eventCosts = get(costPerEventAtom) * bookings;
-  return laborCost + adSpend + eventCosts;
+  const eventCosts = get(costPerUnitAtom) * bookings;
+  return adSpend + eventCosts + MONTHLY_FIXED_COSTS;
 });
 
 // monthlyProfit = monthlyRevenue - monthlyCosts
