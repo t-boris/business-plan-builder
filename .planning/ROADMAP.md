@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
 - [x] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
 - [x] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
-- [ ] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
+- [x] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
 - [ ] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
 
 ## Phase Details
@@ -149,8 +149,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: Business plan view updates (dynamic sections based on business config, generic content rendering)
-- [ ] 11-02: PDF export fix (dynamic cover page, section-aware document structure, variable-driven financial tables)
+- [x] 11-01: Business plan view updates (dynamic sections based on business config, generic content rendering)
+- [x] 11-02: PDF export fix (dynamic cover page, section-aware document structure, variable-driven financial tables)
 
 ### Phase 12: Integration & Polish
 **Goal**: End-to-end verification of the full multi-business flow. Fix edge cases, improve error handling, UI polish.
@@ -182,5 +182,5 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 8. Business-Aware AI | 2/2 | Complete | 2026-02-12 |
 | 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
 | 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
-| 11. Export Updates | 0/2 | Not started | - |
+| 11. Export Updates | 2/2 | Complete | 2026-02-12 |
 | 12. Integration & Polish | 0/2 | Not started | - |

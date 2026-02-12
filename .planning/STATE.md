@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 10 complete -- ready for Phase 11
+**Current focus:** Phase 11 complete -- ready for Phase 12
 
 ## Current Position
 
-Phase: 10 of 12 (Dashboard & Navigation) -- COMPLETE
-Plan: 1 of 1 in current phase -- COMPLETE
+Phase: 11 of 12 (Export Updates) -- COMPLETE
+Plan: 2 of 2 in current phase -- COMPLETE
 Status: Phase complete
-Last activity: 2026-02-11 -- Completed 10-01-PLAN.md
+Last activity: 2026-02-12 -- Completed 11-02-PLAN.md
 
-Progress: █████████░ 87%
+Progress: ██████████░ 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 29
+- Total plans completed: 31
 - Average duration: 3 min
-- Total execution time: 87 min
+- Total execution time: 97 min
 
 **By Phase:**
 
@@ -37,9 +37,10 @@ Progress: █████████░ 87%
 | 08-business-aware-ai | 2/2 | 5 min | 3 min |
 | 09-sharing-access | 3/3 | 8 min | 3 min |
 | 10-dashboard-navigation | 1/1 | 5 min | 5 min |
+| 11-export-updates | 2/2 | 10 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 09-01 (2 min), 09-02 (3 min), 09-03 (5 min), 10-01 (5 min)
+- Last 5 plans: 09-03 (5 min), 10-01 (5 min), 11-01 (5 min), 11-02 (5 min)
 - Trend: Consistent execution velocity
 
 ## Accumulated Context
@@ -128,6 +129,11 @@ Progress: █████████░ 87%
 | 10-01 | Limit chart to 3 currency variables | More than 3 series makes area charts unreadable |
 | 10-01 | Label-based semantic color matching | Any business type gets appropriate colors without configuration |
 | 10-01 | Read businessId from useParams | Dashboard within /business/:businessId route; URL is source of truth |
+| 11-01 | Reuse Phase 10 unitPriority sorting pattern | Consistent KPI ordering across dashboard and export views |
+| 11-01 | Keep all 9 useSection hooks unconditionally | React hooks can't be conditional; conditional rendering handles visibility |
+| 11-02 | Top 4 metrics by unit priority on cover page | Currency metrics most impactful; consistent with dashboard/web view sorting |
+| 11-02 | try/catch in PDF formatCurrency | @react-pdf/renderer runs in worker; graceful fallback prevents PDF generation failure |
+| 11-02 | Sanitized business name in PDF filename | Safe filename from any business name input |
 
 ### Deferred Issues
 
@@ -139,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11
-Stopped at: Completed Phase 10 (1 plan)
+Last session: 2026-02-12
+Stopped at: Completed Phase 11 (2 plans)
 Resume file: None
