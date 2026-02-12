@@ -173,7 +173,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
 | 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
 | 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
-| 4. Strip Hardcoded Content | 0/3 | Not started | - |
+| 4. Strip Hardcoded Content | 1/3 | In progress | - |
 | 5. Business Profile & Section Config | 0/2 | Not started | - |
 | 6. Variable Library | 0/3 | Not started | - |
 | 7. Generic Scenario Engine | 0/3 | Not started | - |

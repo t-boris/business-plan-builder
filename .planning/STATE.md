@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 4 — Strip Hardcoded Content (Planned, ready to execute)
+**Current focus:** Phase 4 — Strip Hardcoded Content (In progress)
 
 ## Current Position
 
 Phase: 4 of 12 (Strip Hardcoded Content)
-Plan: 0 of 3 in current phase (3 plans created, none executed)
-Status: Planning complete, ready to execute
-Last activity: 2026-02-11 — Created 04-01/02/03-PLAN.md
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-12 — Completed 04-01-PLAN.md
 
-Progress: ███░░░░░░░ 30%
+Progress: ███░░░░░░░ 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 2 min
-- Total execution time: 21 min
+- Total plans completed: 10
+- Average duration: 3 min
+- Total execution time: 26 min
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: ███░░░░░░░ 30%
 | 03-dynamic-business-context | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (1 min), 02-04 (5 min), 02-05 (1 min), 03-01 (3 min), 03-02 (3 min)
+- Last 5 plans: 02-04 (5 min), 02-05 (1 min), 03-01 (3 min), 03-02 (3 min), 04-01 (5 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -64,6 +64,9 @@ Progress: ███░░░░░░░ 30%
 | 03-02 | loadBusinesses stripped of activeBusinessId selection logic | Router handles business context; hook stays pure data-only |
 | 03-02 | removeBusiness handles data only, caller handles navigation | Keeps hook decoupled from routing concerns |
 | 03-02 | Sidebar section filtering uses slug matching against enabledSections | Slug values in enabledSections match URL path segments exactly |
+| 04-01 | Zeroed all DEFAULT_SCENARIO_VARIABLES | Per-business population deferred to Phase 7 |
+| 04-01 | MONTHLY_FIXED_COSTS set to 0, formula preserved | Phase 7 will make dynamic |
+| 04-01 | CostBreakdownSchema descriptions genericized | Removed business-specific descriptions (craft/slime, museum) |
 
 ### Deferred Issues
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11
-Stopped at: Completed Phase 4 planning — 3 PLAN.md files created
+Last session: 2026-02-12
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
