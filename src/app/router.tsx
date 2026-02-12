@@ -17,6 +17,7 @@ import { Export } from "@/features/export";
 import { BusinessList } from "@/features/businesses";
 import { CreateBusiness } from "@/features/businesses/create-business";
 import { LoginPage } from "@/features/auth/login-page";
+import { AcceptInvite } from "@/features/sharing/accept-invite";
 import { authStatusAtom } from "@/store/auth-atoms";
 import {
   activeBusinessIdAtom,
@@ -115,13 +116,22 @@ export function AppRoutes() {
   }
 
   if (status !== "authenticated") {
-    return <LoginPage />;
+    // Render routes for unauthenticated users: invite acceptance + login fallback
+    return (
+      <Routes>
+        <Route path="/invite/:inviteId" element={<AcceptInvite />} />
+        <Route path="*" element={<LoginPage />} />
+      </Routes>
+    );
   }
 
   return (
     <Routes>
       {/* Root redirect */}
       <Route index element={<RootRedirect />} />
+
+      {/* Invite acceptance (no sidebar layout) */}
+      <Route path="/invite/:inviteId" element={<AcceptInvite />} />
 
       {/* Business management routes (no sidebar layout) */}
       <Route path="/businesses" element={<BusinessListLayout />}>
