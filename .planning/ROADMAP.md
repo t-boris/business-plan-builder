@@ -164,7 +164,7 @@ Plans:
 - [ ] 12-03: Dashboard & navigation polish — KPI cards, chart framing, sidebar refinement, layout shell
 - [ ] 12-04: Section editors part 1 — Executive Summary, Market Analysis, Product/Service, Marketing Strategy
 - [ ] 12-05: Section editors part 2 — Operations, Financial Projections, Risks, KPIs, Launch Plan
-- [ ] 12-06: Scenario engine & export polish — scenario modeling tool, business plan view, AI components
+- [x] 12-06: Scenario engine & export polish — scenario modeling tool, business plan view, AI components
 
 ## Progress
 
@@ -187,4 +187,4 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
 | 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
 | 11. Export Updates | 2/2 | Complete | 2026-02-12 |
-| 12. Integration & Polish | 2/6 | In progress | - |
+| 12. Integration & Polish | 5/6 | In progress | - |
