@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
 - [x] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
 - [x] **Phase 6: Variable Library** - Predefined business variables organized by business type
-- [ ] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
+- [x] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
 - [ ] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
 - [ ] **Phase 9: Sharing & Access** - Shareable URLs, access granting, multi-user business list
 - [ ] **Phase 10: Dashboard & Navigation** - Multi-business dashboard, updated sidebar and breadcrumbs
@@ -109,7 +109,7 @@ Plans:
 - [x] 07-01: Dynamic atom architecture (add scenarioValuesAtom, evaluatedValuesAtom, DynamicScenario type alongside existing atoms)
 - [x] 07-02: Migrate scenario persistence (Firestore functions, sync hook, provider, manager to dynamic atoms)
 - [x] 07-03: Migrate scenario UI (dynamic controls from variable definitions, dynamic dashboard, merge tabs)
-- [ ] 07-04: Comparison, main dashboard, and legacy cleanup (rewrite remaining consumers, remove all hardcoded atoms/types)
+- [x] 07-04: Comparison, main dashboard, and legacy cleanup (rewrite remaining consumers, remove all hardcoded atoms/types)
 
 ### Phase 8: Business-Aware AI
 **Goal**: AI system prompt dynamically built from business profile (name, type, location, context). Section prompts adapt to the business type and its selected variables. AI generates content relevant to the specific business.
@@ -178,7 +178,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
 | 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
 | 6. Variable Library | 4/4 | Complete | 2026-02-12 |
-| 7. Generic Scenario Engine | 3/4 | In progress | - |
+| 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
 | 8. Business-Aware AI | 0/2 | Not started | - |
 | 9. Sharing & Access | 0/2 | Not started | - |
 | 10. Dashboard & Navigation | 0/2 | Not started | - |

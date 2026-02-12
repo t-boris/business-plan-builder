@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 7 — Generic Scenario Engine (In progress)
+**Current focus:** Phase 7 complete -- ready for Phase 8
 
 ## Current Position
 
 Phase: 7 of 12 (Generic Scenario Engine)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-12 — Completed 07-03-PLAN.md
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-02-12 -- Completed 07-04-PLAN.md
 
-Progress: ██████░░░░ 66%
+Progress: ███████░░░ 69%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: 3 min
-- Total execution time: 58 min
+- Total execution time: 64 min
 
 **By Phase:**
 
@@ -33,11 +33,11 @@ Progress: ██████░░░░ 66%
 | 04-strip-hardcoded-content | 3/3 | 19 min | 6 min |
 | 05-business-profile-section-config | 2/2 | 3 min | 2 min |
 | 06-variable-library | 4/4 | 9 min | 2 min |
-| 07-generic-scenario-engine | 3/4 | 6 min | 2 min |
+| 07-generic-scenario-engine | 4/4 | 12 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-04 (2 min), 07-01 (2 min), 07-02 (2 min), 07-03 (2 min)
-- Trend: Consistent
+- Last 5 plans: 07-01 (2 min), 07-02 (2 min), 07-03 (2 min), 07-04 (6 min)
+- Trend: Consistent, 07-04 larger due to cleanup scope
 
 ## Accumulated Context
 
@@ -101,6 +101,10 @@ Progress: ██████░░░░ 66%
 | 07-03 | Keep export name ScenarioDashboard (not DynamicScenarioDashboard) | Minimizes downstream import changes in index.tsx |
 | 07-03 | Flat 12-month chart projection (no ramp factors) | Ramp was Fun Box-specific; flat projection is generic |
 | 07-03 | Semantic coloring by label pattern matching | Labels containing profit/margin/cost/revenue get appropriate colors |
+| 07-04 | ScenarioComparison evaluates scenarios with evaluateVariables | Ad-hoc evaluation merges scenario.values into definitions |
+| 07-04 | Dashboard primary/secondary KPIs from first 4/next 4 computed vars | Simple slicing provides consistent layout without hardcoded names |
+| 07-04 | Export and AI migrated to evaluatedValuesAtom during cleanup | Prevents leaving dead references; completes migration in one pass |
+| 07-04 | context-builder accepts Record<string, number> | Generic type replaces hardcoded ComputedMetrics interface |
 
 ### Deferred Issues
 
@@ -113,5 +117,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 07-03-PLAN.md
+Stopped at: Completed 07-04-PLAN.md (Phase 7 complete)
 Resume file: None
