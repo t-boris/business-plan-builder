@@ -11,9 +11,10 @@ import {
   getUserBusinesses,
   createBusiness,
   deleteBusiness,
+  updateBusiness,
 } from '@/lib/business-firestore';
 import { BUSINESS_TYPE_TEMPLATES } from '@/lib/business-templates';
-import type { BusinessType } from '@/types';
+import type { BusinessType, BusinessProfile } from '@/types';
 
 export function useBusinesses() {
   // State access
@@ -96,6 +97,43 @@ export function useBusinesses() {
     }
   }
 
+  // Update profile fields on the active business
+  // Optimistic local update + background Firestore persistence
+  function updateProfile(fields: Partial<BusinessProfile>) {
+    if (!activeBusiness) return;
+    const updatedProfile = { ...activeBusiness.profile, ...fields };
+    setBusinessList((prev) =>
+      prev.map((b) =>
+        b.id === activeBusiness.id
+          ? { ...b, profile: updatedProfile, updatedAt: new Date().toISOString() }
+          : b
+      )
+    );
+    updateBusiness(activeBusiness.id, { profile: updatedProfile }).catch(
+      (err) => console.error("Failed to update profile:", err)
+    );
+  }
+
+  // Toggle a section slug on/off for the active business
+  // Optimistic local update + immediate Firestore persistence
+  function toggleSection(slug: string) {
+    if (!activeBusiness) return;
+    const current = activeBusiness.enabledSections;
+    const newSections = current.includes(slug)
+      ? current.filter((s) => s !== slug)
+      : [...current, slug];
+    setBusinessList((prev) =>
+      prev.map((b) =>
+        b.id === activeBusiness.id
+          ? { ...b, enabledSections: newSections, updatedAt: new Date().toISOString() }
+          : b
+      )
+    );
+    updateBusiness(activeBusiness.id, { enabledSections: newSections }).catch(
+      (err) => console.error("Failed to toggle section:", err)
+    );
+  }
+
   return {
     businesses,
     activeBusiness,
@@ -104,5 +142,7 @@ export function useBusinesses() {
     switchBusiness,
     createNewBusiness,
     removeBusiness,
+    updateProfile,
+    toggleSection,
   };
 }
