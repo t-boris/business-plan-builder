@@ -4,7 +4,6 @@ import { listScenarioData } from '@/lib/business-firestore.ts';
 import { activeBusinessIdAtom, businessVariablesAtom } from '@/store/business-atoms.ts';
 import { evaluateVariables } from '@/lib/formula-engine.ts';
 import type { DynamicScenario, VariableDefinition, VariableUnit } from '@/types';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -51,7 +50,7 @@ function DiffCell({ diff, formatted, lowerIsBetter }: { diff: number; formatted:
   const isImprovement = lowerIsBetter ? diff < 0 : diff > 0;
   const sign = diff > 0 ? '+' : '';
   return (
-    <span className={isImprovement ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+    <span className={`tabular-nums font-medium ${isImprovement ? 'text-emerald-600' : 'text-red-600'}`}>
       {sign}{formatted}
     </span>
   );
@@ -205,7 +204,7 @@ export function ScenarioComparison() {
 
   if (!businessId) {
     return (
-      <div className="flex items-center justify-center p-12 text-muted-foreground">
+      <div className="flex items-center justify-center p-12 text-muted-foreground text-sm">
         Select a business to compare scenarios.
       </div>
     );
@@ -213,7 +212,7 @@ export function ScenarioComparison() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12 text-muted-foreground">
+      <div className="flex items-center justify-center p-12 text-muted-foreground text-sm">
         Loading scenarios...
       </div>
     );
@@ -231,7 +230,7 @@ export function ScenarioComparison() {
 
   if (scenarios.length < 2) {
     return (
-      <div className="flex items-center justify-center p-12 text-muted-foreground">
+      <div className="flex items-center justify-center p-12 text-muted-foreground text-sm">
         Save at least 2 scenarios to compare them side by side.
       </div>
     );
@@ -281,115 +280,113 @@ export function ScenarioComparison() {
       {scenarioA && scenarioB && evaluatedA && evaluatedB && (
         <>
           {/* Input Variables Comparison Table */}
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-sm font-semibold">Input Variables Comparison</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Variable</th>
-                      <th className="text-right py-2 px-4 font-medium text-blue-700">
-                        {scenarioA.metadata.name}
-                      </th>
-                      <th className="text-right py-2 px-4 font-medium text-emerald-700">
-                        {scenarioB.metadata.name}
-                      </th>
-                      <th className="text-right py-2 pl-4 font-medium text-muted-foreground">Diff</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {inputRows.map((row) => {
-                      const valA = scenarioA.values[row.id] ?? 0;
-                      const valB = scenarioB.values[row.id] ?? 0;
-                      const diff = valB - valA;
-                      return (
-                        <tr key={row.id} className="border-b last:border-0">
-                          <td className="py-2 pr-4">{row.label}</td>
-                          <td className="text-right py-2 px-4">{formatValue(valA, row.unit)}</td>
-                          <td className="text-right py-2 px-4">{formatValue(valB, row.unit)}</td>
-                          <td className="text-right py-2 pl-4">
-                            <DiffCell
-                              diff={diff}
-                              formatted={formatValue(Math.abs(diff), row.unit)}
-                              lowerIsBetter={row.lowerIsBetter}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="card-elevated rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b">
+              <h3 className="text-sm font-semibold">Input Variables</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Variable</th>
+                    <th className="text-right py-2.5 px-4 font-medium text-blue-700">
+                      {scenarioA.metadata.name}
+                    </th>
+                    <th className="text-right py-2.5 px-4 font-medium text-emerald-700">
+                      {scenarioB.metadata.name}
+                    </th>
+                    <th className="text-right py-2.5 px-4 font-medium text-muted-foreground">Diff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inputRows.map((row, i) => {
+                    const valA = scenarioA.values[row.id] ?? 0;
+                    const valB = scenarioB.values[row.id] ?? 0;
+                    const diff = valB - valA;
+                    return (
+                      <tr key={row.id} className={`border-b last:border-0 ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
+                        <td className="py-2 px-4">{row.label}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valA, row.unit)}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valB, row.unit)}</td>
+                        <td className="text-right py-2 px-4">
+                          <DiffCell
+                            diff={diff}
+                            formatted={formatValue(Math.abs(diff), row.unit)}
+                            lowerIsBetter={row.lowerIsBetter}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
           {/* Derived Metrics Comparison Table */}
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-sm font-semibold">Derived Metrics Comparison</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Metric</th>
-                      <th className="text-right py-2 px-4 font-medium text-blue-700">
-                        {scenarioA.metadata.name}
-                      </th>
-                      <th className="text-right py-2 px-4 font-medium text-emerald-700">
-                        {scenarioB.metadata.name}
-                      </th>
-                      <th className="text-right py-2 px-4 font-medium text-muted-foreground">Diff</th>
-                      <th className="text-center py-2 pl-4 font-medium text-muted-foreground">Winner</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {computedRows.map((row) => {
-                      const valA = evaluatedA[row.id] ?? 0;
-                      const valB = evaluatedB[row.id] ?? 0;
-                      const diff = valB - valA;
-                      const significant = isSignificantDiff(valA, valB);
-                      const aWins = row.lowerIsBetter ? valA < valB : valA > valB;
-                      const rowBg = significant
-                        ? aWins
-                          ? 'bg-blue-50/50'
-                          : 'bg-emerald-50/50'
+          <div className="card-elevated rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b">
+              <h3 className="text-sm font-semibold">Derived Metrics</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Metric</th>
+                    <th className="text-right py-2.5 px-4 font-medium text-blue-700">
+                      {scenarioA.metadata.name}
+                    </th>
+                    <th className="text-right py-2.5 px-4 font-medium text-emerald-700">
+                      {scenarioB.metadata.name}
+                    </th>
+                    <th className="text-right py-2.5 px-4 font-medium text-muted-foreground">Diff</th>
+                    <th className="text-center py-2.5 px-4 font-medium text-muted-foreground">Winner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {computedRows.map((row, i) => {
+                    const valA = evaluatedA[row.id] ?? 0;
+                    const valB = evaluatedB[row.id] ?? 0;
+                    const diff = valB - valA;
+                    const significant = isSignificantDiff(valA, valB);
+                    const aWins = row.lowerIsBetter ? valA < valB : valA > valB;
+                    const rowBg = significant
+                      ? aWins
+                        ? 'bg-blue-50/50'
+                        : 'bg-emerald-50/50'
+                      : i % 2 === 1
+                        ? 'bg-muted/20'
                         : '';
-                      return (
-                        <tr key={row.id} className={`border-b last:border-0 ${rowBg}`}>
-                          <td className="py-2 pr-4 font-medium">{row.label}</td>
-                          <td className="text-right py-2 px-4">{formatValue(valA, row.unit)}</td>
-                          <td className="text-right py-2 px-4">{formatValue(valB, row.unit)}</td>
-                          <td className="text-right py-2 px-4">
-                            <DiffCell
-                              diff={diff}
-                              formatted={formatValue(Math.abs(diff), row.unit)}
-                              lowerIsBetter={row.lowerIsBetter}
-                            />
-                          </td>
-                          <td className="text-center py-2 pl-4">
-                            <WinnerBadge a={valA} b={valB} lowerIsBetter={row.lowerIsBetter} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    return (
+                      <tr key={row.id} className={`border-b last:border-0 ${rowBg}`}>
+                        <td className="py-2 px-4 font-medium">{row.label}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valA, row.unit)}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valB, row.unit)}</td>
+                        <td className="text-right py-2 px-4">
+                          <DiffCell
+                            diff={diff}
+                            formatted={formatValue(Math.abs(diff), row.unit)}
+                            lowerIsBetter={row.lowerIsBetter}
+                          />
+                        </td>
+                        <td className="text-center py-2 px-4">
+                          <WinnerBadge a={valA} b={valB} lowerIsBetter={row.lowerIsBetter} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
           {/* Comparison Bar Chart */}
           {chartData.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
+            <div className="card-elevated rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b">
                 <h3 className="text-sm font-semibold">Visual Comparison</h3>
-              </CardHeader>
-              <CardContent>
+              </div>
+              <div className="p-4">
                 <div className="h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
@@ -413,8 +410,8 @@ export function ScenarioComparison() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </>
       )}

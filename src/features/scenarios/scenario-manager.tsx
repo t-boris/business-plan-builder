@@ -21,7 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 
 export function ScenarioManager() {
   const businessId = useAtomValue(activeBusinessIdAtom);
@@ -83,18 +94,22 @@ export function ScenarioManager() {
   const currentMeta = scenarioList.find((m) => m.id === currentId);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
+    <div className={`flex flex-wrap items-center gap-2 ${!canEdit ? 'opacity-60 pointer-events-none' : ''}`}>
       {/* Scenario switcher */}
       {scenarioList.length > 0 && (
-        <Select value={currentId} onValueChange={handleSwitch}>
-          <SelectTrigger className="w-[200px] h-8 text-sm">
+        <Select value={currentId} onValueChange={handleSwitch} disabled={!canEdit}>
+          <SelectTrigger className="w-[180px] h-8 text-sm">
             <SelectValue placeholder="Select scenario" />
           </SelectTrigger>
           <SelectContent>
             {scenarioList.map((meta) => (
               <SelectItem key={meta.id} value={meta.id}>
-                {meta.name}
-                {meta.isBaseline && ' (Baseline)'}
+                <span className="flex items-center gap-2">
+                  {meta.name}
+                  {meta.isBaseline && (
+                    <span className="text-[10px] font-medium text-muted-foreground">(Baseline)</span>
+                  )}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -103,44 +118,54 @@ export function ScenarioManager() {
 
       {/* Baseline badge */}
       {currentMeta?.isBaseline && (
-        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+        <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
           Baseline
         </span>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 ml-auto">
-        <Button variant="outline" size="sm" onClick={handleNew} disabled={!canEdit}>
-          <Plus className="size-4 mr-1" />
-          New
-        </Button>
+      <Button variant="outline" size="sm" onClick={handleNew} disabled={!canEdit} className="h-7 text-xs">
+        <Plus className="size-3.5" />
+        New
+      </Button>
 
-        {canEdit && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            disabled={scenarioList.length <= 1 || isLoading}
-          >
-            <Trash2 className="size-4 mr-1" />
-            Delete
-          </Button>
-        )}
-      </div>
-
-      {/* Auto-save indicator */}
-      <span className="text-xs text-muted-foreground">Auto-saved</span>
-
-      {/* Offline indicator */}
-      {isOffline && (
-        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-          Offline mode
-        </span>
+      {canEdit && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={scenarioList.length <= 1 || isLoading}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete scenario?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete "{currentMeta?.name}". This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
 
       {/* Loading indicator */}
-      {isLoading && (
-        <span className="text-xs text-muted-foreground">Loading...</span>
+      {isLoading && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+
+      {/* Offline indicator */}
+      {isOffline && (
+        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+          Offline
+        </span>
       )}
     </div>
   );
