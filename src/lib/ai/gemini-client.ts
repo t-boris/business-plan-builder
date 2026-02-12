@@ -6,7 +6,7 @@ export const isAiAvailable = !!apiKey;
 
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3-flash-preview';
 
 /**
  * Generate free-text content using Gemini.

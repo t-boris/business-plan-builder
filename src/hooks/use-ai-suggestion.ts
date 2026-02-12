@@ -46,6 +46,7 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
       try {
         const prompt = buildPrompt(
           { sectionSlug, action, userInstruction },
+          null,
           sectionData,
           evaluated,
         );
