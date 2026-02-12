@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useAtomValue } from 'jotai';
 import { computeDerivedMetrics, type ComputedMetrics } from '@/store/derived-atoms.ts';
-import { listScenarios } from '@/lib/firestore.ts';
+import { listScenarioData } from '@/lib/business-firestore.ts';
+import { activeBusinessIdAtom } from '@/store/business-atoms.ts';
 import type { Scenario, ScenarioVariables } from '@/types';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import {
@@ -21,8 +23,6 @@ import {
   Legend,
 } from 'recharts';
 
-const PLAN_ID = 'default';
-
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -42,16 +42,16 @@ const VARIABLE_ROWS: {
   format: (v: number) => string;
   lowerIsBetter?: boolean;
 }[] = [
-  { key: 'priceStarter', label: 'Starter Price', format: formatCurrency },
-  { key: 'priceExplorer', label: 'Explorer Price', format: formatCurrency },
-  { key: 'priceVIP', label: 'VIP Price', format: formatCurrency },
+  { key: 'priceTier1', label: 'Price Tier 1', format: formatCurrency },
+  { key: 'priceTier2', label: 'Price Tier 2', format: formatCurrency },
+  { key: 'priceTier3', label: 'Price Tier 3', format: formatCurrency },
   { key: 'monthlyLeads', label: 'Monthly Leads', format: (v) => String(v) },
   { key: 'conversionRate', label: 'Conversion Rate', format: formatPercent },
   { key: 'cacPerLead', label: 'CAC per Lead', format: formatCurrency, lowerIsBetter: true },
   { key: 'monthlyAdBudgetMeta', label: 'Meta Ads Budget', format: formatCurrency },
   { key: 'monthlyAdBudgetGoogle', label: 'Google Ads Budget', format: formatCurrency },
-  { key: 'crewCount', label: 'Crew Count', format: (v) => String(v) },
-  { key: 'costPerEvent', label: 'Cost per Event', format: formatCurrency, lowerIsBetter: true },
+  { key: 'staffCount', label: 'Staff Count', format: (v) => String(v) },
+  { key: 'costPerUnit', label: 'Cost per Unit', format: formatCurrency, lowerIsBetter: true },
 ];
 
 // Metric display config for the derived metrics table
@@ -109,6 +109,7 @@ function isSignificantDiff(a: number, b: number): boolean {
 }
 
 export function ScenarioComparison() {
+  const businessId = useAtomValue(activeBusinessIdAtom);
   const [scenarioAId, setScenarioAId] = useState<string>('');
   const [scenarioBId, setScenarioBId] = useState<string>('');
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -117,10 +118,11 @@ export function ScenarioComparison() {
 
   // Load all scenarios from Firestore for comparison
   useEffect(() => {
+    if (!businessId) return;
     let mounted = true;
     setLoading(true);
 
-    listScenarios(PLAN_ID)
+    listScenarioData(businessId)
       .then((list) => {
         if (!mounted) return;
         setScenarios(list);
@@ -141,7 +143,7 @@ export function ScenarioComparison() {
       });
 
     return () => { mounted = false; };
-  }, []);
+  }, [businessId]);
 
   const scenarioA = scenarios.find((s) => s.metadata.id === scenarioAId);
   const scenarioB = scenarios.find((s) => s.metadata.id === scenarioBId);
@@ -165,6 +167,14 @@ export function ScenarioComparison() {
       { category: 'Ad Spend', A: metricsA.totalMonthlyAdSpend, B: metricsB.totalMonthlyAdSpend },
     ];
   }, [metricsA, metricsB]);
+
+  if (!businessId) {
+    return (
+      <div className="flex items-center justify-center p-12 text-muted-foreground">
+        Select a business to compare scenarios.
+      </div>
+    );
+  }
 
   if (loading) {
     return (

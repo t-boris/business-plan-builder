@@ -1,15 +1,15 @@
 import { useAtom } from 'jotai';
 import {
-  priceStarterAtom,
-  priceExplorerAtom,
-  priceVIPAtom,
+  priceTier1Atom,
+  priceTier2Atom,
+  priceTier3Atom,
   monthlyLeadsAtom,
   conversionRateAtom,
   cacPerLeadAtom,
   monthlyAdBudgetMetaAtom,
   monthlyAdBudgetGoogleAtom,
-  crewCountAtom,
-  costPerEventAtom,
+  staffCountAtom,
+  costPerUnitAtom,
 } from '@/store/scenario-atoms.ts';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -115,16 +115,16 @@ function NumberInput({ label, value, onChange, prefix, min, max }: NumberInputPr
 }
 
 export function ScenarioControls() {
-  const [priceStarter, setPriceStarter] = useAtom(priceStarterAtom);
-  const [priceExplorer, setPriceExplorer] = useAtom(priceExplorerAtom);
-  const [priceVIP, setPriceVIP] = useAtom(priceVIPAtom);
+  const [priceTier1, setPriceTier1] = useAtom(priceTier1Atom);
+  const [priceTier2, setPriceTier2] = useAtom(priceTier2Atom);
+  const [priceTier3, setPriceTier3] = useAtom(priceTier3Atom);
   const [monthlyLeads, setMonthlyLeads] = useAtom(monthlyLeadsAtom);
   const [conversionRate, setConversionRate] = useAtom(conversionRateAtom);
   const [cacPerLead, setCacPerLead] = useAtom(cacPerLeadAtom);
   const [adBudgetMeta, setAdBudgetMeta] = useAtom(monthlyAdBudgetMetaAtom);
   const [adBudgetGoogle, setAdBudgetGoogle] = useAtom(monthlyAdBudgetGoogleAtom);
-  const [crewCount, setCrewCount] = useAtom(crewCountAtom);
-  const [costPerEvent, setCostPerEvent] = useAtom(costPerEventAtom);
+  const [staffCount, setStaffCount] = useAtom(staffCountAtom);
+  const [costPerUnit, setCostPerUnit] = useAtom(costPerUnitAtom);
 
   return (
     <div className="space-y-4">
@@ -135,23 +135,23 @@ export function ScenarioControls() {
         </CardHeader>
         <CardContent className="space-y-3">
           <NumberInput
-            label="Ocean Starter"
-            value={priceStarter}
-            onChange={setPriceStarter}
+            label="Price Tier 1"
+            value={priceTier1}
+            onChange={setPriceTier1}
             prefix="$"
             min={0}
           />
           <NumberInput
-            label="Ocean Explorer"
-            value={priceExplorer}
-            onChange={setPriceExplorer}
+            label="Price Tier 2"
+            value={priceTier2}
+            onChange={setPriceTier2}
             prefix="$"
             min={0}
           />
           <NumberInput
-            label="Ocean VIP"
-            value={priceVIP}
-            onChange={setPriceVIP}
+            label="Price Tier 3"
+            value={priceTier3}
+            onChange={setPriceTier3}
             prefix="$"
             min={0}
           />
@@ -224,17 +224,17 @@ export function ScenarioControls() {
         </CardHeader>
         <CardContent className="space-y-4">
           <SliderInput
-            label="Crew Count"
-            value={crewCount}
-            onChange={setCrewCount}
+            label="Staff Count"
+            value={staffCount}
+            onChange={setStaffCount}
             min={1}
             max={10}
             step={1}
           />
           <NumberInput
-            label="Cost per Event"
-            value={costPerEvent}
-            onChange={setCostPerEvent}
+            label="Cost per Unit"
+            value={costPerUnit}
+            onChange={setCostPerUnit}
             prefix="$"
             min={0}
           />
