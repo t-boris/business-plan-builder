@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 6 — Variable Library (Complete)
+**Current focus:** Phase 7 — Generic Scenario Engine (In progress)
 
 ## Current Position
 
-Phase: 6 of 12 (Variable Library)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-02-12 — Completed 06-04-PLAN.md
+Phase: 7 of 12 (Generic Scenario Engine)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-12 — Completed 07-01-PLAN.md
 
-Progress: █████░░░░░ 58%
+Progress: ██████░░░░ 59%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 3 min
-- Total execution time: 52 min
+- Total execution time: 54 min
 
 **By Phase:**
 
@@ -33,9 +33,10 @@ Progress: █████░░░░░ 58%
 | 04-strip-hardcoded-content | 3/3 | 19 min | 6 min |
 | 05-business-profile-section-config | 2/2 | 3 min | 2 min |
 | 06-variable-library | 4/4 | 9 min | 2 min |
+| 07-generic-scenario-engine | 1/4 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-01 (1 min), 06-02 (4 min), 06-03 (2 min), 06-04 (2 min)
+- Last 5 plans: 06-02 (4 min), 06-03 (2 min), 06-04 (2 min), 07-01 (2 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -93,6 +94,8 @@ Progress: █████░░░░░ 58%
 | 06-04 | Evaluation result and error computed together in single useMemo | Avoids side effects inside useMemo; error state derived from computation |
 | 06-04 | Percent values displayed as *100 in inputs, stored as decimals | Consistent with RESEARCH.md convention; user sees 30%, formula uses 0.30 |
 | 06-04 | Add Variable form uses Collapsible from shadcn | Power-user feature hidden by default; keeps main UI clean |
+| 07-01 | Purely additive: new atoms coexist with old hardcoded atoms | Old atoms remain until 07-04 cleanup; no breaking changes |
+| 07-01 | evaluatedValuesAtom catches circular dependency errors | Falls back to raw .value from merged definitions on formula engine error |
 
 ### Deferred Issues
 
@@ -105,5 +108,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 06-04-PLAN.md (Phase 6 complete)
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
