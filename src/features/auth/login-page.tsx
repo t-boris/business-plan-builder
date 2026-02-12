@@ -3,7 +3,6 @@ import { FirebaseError } from 'firebase/app';
 import { Briefcase } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
@@ -86,59 +85,92 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Briefcase className="size-5" />
+    <div className="flex min-h-svh items-center justify-center bg-background p-4 bg-[radial-gradient(circle_at_50%_50%,_oklch(0.92_0_0)_1px,_transparent_1px)] bg-[length:24px_24px]">
+      <div className="w-full max-w-md">
+        <div className="card-elevated rounded-xl p-8">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Briefcase className="size-6" />
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sign in to your business planning workspace
+            </p>
           </div>
-          <CardTitle>Welcome</CardTitle>
-          <CardDescription>Sign in to access the business planner</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleEmailSignIn} className="space-y-3">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
+
+          {/* Email sign-in form */}
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="login-email" className="text-sm font-medium leading-none">
+                Email address
+              </label>
+              <Input
+                id="login-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="login-password" className="text-sm font-medium leading-none">
+                Password
+              </label>
+              <Input
+                id="login-password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="h-10"
+              />
+            </div>
+
+            <Button type="submit" className="w-full h-10" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
 
-          <div className="relative my-4">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              or
-            </span>
+          {/* Error display */}
+          {error && (
+            <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/10 p-3">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
+
+          {/* Separator */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or</span>
+            </div>
           </div>
 
+          {/* Google sign-in */}
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full h-10"
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
             <GoogleIcon className="size-4" />
             Continue with Google
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Business Planning Platform
+        </p>
+      </div>
     </div>
   );
 }
