@@ -25,6 +25,7 @@ import type {
   BusinessSection,
   BusinessScenario,
   BusinessRole,
+  BusinessInvite,
   DynamicScenario,
   VariableDefinition,
 } from "@/types";
@@ -391,6 +392,94 @@ export async function removeBusinessRole(
   await updateDoc(doc(db, "businesses", businessId), {
     [`roles.${uid}`]: deleteField(),
     updatedAt: new Date().toISOString(),
+  });
+}
+
+// =============================================================================
+// Invites
+// =============================================================================
+
+// Firestore path: invites/{inviteId}
+
+/**
+ * Create a reusable invite link for a business.
+ * The invite document ID is the share token (UUID v4).
+ * Returns the invite ID (which IS the URL token).
+ */
+export async function createInvite(
+  businessId: string,
+  role: BusinessRole,
+  createdBy: string
+): Promise<string> {
+  const inviteId = crypto.randomUUID();
+  await setDoc(doc(db, "invites", inviteId), {
+    businessId,
+    role,
+    createdBy,
+    status: "active",
+    createdAt: new Date().toISOString(),
+  });
+  return inviteId;
+}
+
+/**
+ * Get an invite by ID (the share token).
+ */
+export async function getInvite(
+  inviteId: string
+): Promise<BusinessInvite | null> {
+  const snap = await getDoc(doc(db, "invites", inviteId));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as BusinessInvite;
+}
+
+/**
+ * List active invites for a business (for the owner's share panel).
+ * Requires composite index: invites (businessId ASC, status ASC).
+ */
+export async function listBusinessInvites(
+  businessId: string
+): Promise<BusinessInvite[]> {
+  const q = query(
+    collection(db, "invites"),
+    where("businessId", "==", businessId),
+    where("status", "==", "active")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as BusinessInvite);
+}
+
+/**
+ * Revoke an invite (sets status to 'revoked').
+ */
+export async function revokeInvite(inviteId: string): Promise<void> {
+  await updateDoc(doc(db, "invites", inviteId), {
+    status: "revoked",
+  });
+}
+
+/**
+ * Delete an invite document entirely.
+ */
+export async function deleteInvite(inviteId: string): Promise<void> {
+  await deleteDoc(doc(db, "invites", inviteId));
+}
+
+/**
+ * Accept an invite — add the accepting user to the business roles map.
+ * Uses _acceptingInviteId for security rule verification via get().
+ * The invite stays 'active' (reusable link pattern).
+ */
+export async function acceptInvite(
+  inviteId: string,
+  businessId: string,
+  role: BusinessRole,
+  uid: string
+): Promise<void> {
+  await updateDoc(doc(db, "businesses", businessId), {
+    [`roles.${uid}`]: role,
+    updatedAt: new Date().toISOString(),
+    _acceptingInviteId: inviteId,
   });
 }
 

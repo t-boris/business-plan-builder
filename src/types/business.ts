@@ -5,7 +5,7 @@
 
 // --- Business Role & Type Unions ---
 
-export type BusinessRole = "owner" | "editor";
+export type BusinessRole = "owner" | "editor" | "viewer";
 
 export type BusinessType =
   | "saas"
@@ -151,16 +151,13 @@ export interface UserProfile {
 
 // --- Invite Types ---
 
-export type InviteStatus = "pending" | "accepted" | "expired" | "revoked";
+export type InviteStatus = "active" | "revoked";
 
 export interface BusinessInvite {
   id: string;
   businessId: string;
   role: BusinessRole;
   createdBy: string;
-  token: string;
-  expiresAt: string;
-  acceptedBy?: string;
-  acceptedAt?: string;
   status: InviteStatus;
+  createdAt: string;
 }
