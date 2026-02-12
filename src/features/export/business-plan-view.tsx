@@ -1,17 +1,9 @@
 import { useAtomValue } from 'jotai';
 import { useSection } from '@/hooks/use-section';
 import { SECTION_SLUGS, SECTION_LABELS } from '@/lib/constants';
-import {
-  scenarioNameAtom,
-  snapshotScenarioAtom,
-} from '@/store/scenario-atoms';
-import {
-  monthlyRevenueAtom,
-  monthlyProfitAtom,
-  profitMarginAtom,
-  monthlyBookingsAtom,
-  annualRevenueAtom,
-} from '@/store/derived-atoms';
+import { scenarioNameAtom } from '@/store/scenario-atoms';
+import { evaluatedValuesAtom } from '@/store/derived-atoms';
+import { businessVariablesAtom } from '@/store/business-atoms';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -196,12 +188,13 @@ export interface BusinessPlanViewProps {
 export function BusinessPlanView({ chartAnimationDisabled = false, chartContainerRef }: BusinessPlanViewProps) {
   // Scenario data
   const scenarioName = useAtomValue(scenarioNameAtom);
-  const scenarioVars = useAtomValue(snapshotScenarioAtom);
-  const monthlyRevenue = useAtomValue(monthlyRevenueAtom);
-  const monthlyProfit = useAtomValue(monthlyProfitAtom);
-  const profitMargin = useAtomValue(profitMarginAtom);
-  const monthlyBookings = useAtomValue(monthlyBookingsAtom);
-  const annualRevenue = useAtomValue(annualRevenueAtom);
+  const definitions = useAtomValue(businessVariablesAtom);
+  const evaluated = useAtomValue(evaluatedValuesAtom);
+  const monthlyRevenue = evaluated['monthly_revenue'] ?? 0;
+  const monthlyProfit = evaluated['monthly_profit'] ?? 0;
+  const profitMargin = evaluated['profit_margin'] ?? 0;
+  const monthlyBookings = evaluated['monthly_bookings'] ?? 0;
+  const annualRevenue = evaluated['annual_revenue'] ?? 0;
 
   // Load all 9 sections
   const { data: execSummary, isLoading: l1 } = useSection<ExecutiveSummary>('executive-summary', defaultExecutiveSummary);
@@ -516,21 +509,28 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
           </div>
         </div>
 
-        {/* Scenario Parameters */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Scenario Parameters</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Price Tier 1</span><span className="font-medium">{formatCurrency(scenarioVars.priceTier1)}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Price Tier 2</span><span className="font-medium">{formatCurrency(scenarioVars.priceTier2)}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Price Tier 3</span><span className="font-medium">{formatCurrency(scenarioVars.priceTier3)}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Monthly Leads</span><span className="font-medium">{scenarioVars.monthlyLeads}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Conversion Rate</span><span className="font-medium">{(scenarioVars.conversionRate * 100).toFixed(0)}%</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">CAC/Lead</span><span className="font-medium">{formatCurrency(scenarioVars.cacPerLead)}</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Meta Ads</span><span className="font-medium">{formatCurrency(scenarioVars.monthlyAdBudgetMeta)}/mo</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Google Ads</span><span className="font-medium">{formatCurrency(scenarioVars.monthlyAdBudgetGoogle)}/mo</span></div>
-            <div className="flex justify-between border-b py-1"><span className="text-muted-foreground">Staff Count</span><span className="font-medium">{scenarioVars.staffCount}</span></div>
+        {/* Scenario Parameters (dynamic from variable definitions) */}
+        {definitions && (
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Scenario Parameters</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+              {Object.values(definitions)
+                .filter((v) => v.type === 'input')
+                .map((v) => (
+                  <div key={v.id} className="flex justify-between border-b py-1">
+                    <span className="text-muted-foreground">{v.label}</span>
+                    <span className="font-medium">
+                      {v.unit === 'currency'
+                        ? formatCurrency(evaluated[v.id] ?? 0)
+                        : v.unit === 'percent'
+                          ? `${((evaluated[v.id] ?? 0) * 100).toFixed(0)}%`
+                          : String(evaluated[v.id] ?? 0)}
+                    </span>
+                  </div>
+                ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Unit Economics */}
         <div>

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAtomValue } from 'jotai';
-import { snapshotScenarioAtom } from '@/store/scenario-atoms';
-import { computeDerivedMetrics } from '@/store/derived-atoms';
+import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import {
   isAiAvailable,
   generateSectionContent,
@@ -25,7 +24,7 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
     error: null,
   });
 
-  const scenarioVars = useAtomValue(snapshotScenarioAtom);
+  const evaluated = useAtomValue(evaluatedValuesAtom);
 
   const generate = useCallback(
     async (
@@ -45,11 +44,10 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
       setState({ status: 'loading', suggested: null, error: null });
 
       try {
-        const metrics = computeDerivedMetrics(scenarioVars);
         const prompt = buildPrompt(
           { sectionSlug, action, userInstruction },
           sectionData,
-          metrics,
+          evaluated,
         );
         const schema = getSectionSchema(sectionSlug);
 
@@ -74,7 +72,7 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
         });
       }
     },
-    [sectionSlug, scenarioVars],
+    [sectionSlug, evaluated],
   );
 
   const accept = useCallback((): T | null => {

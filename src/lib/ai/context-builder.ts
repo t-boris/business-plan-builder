@@ -1,17 +1,21 @@
 import type { SectionSlug } from '@/types';
-import type { ComputedMetrics } from '@/store/derived-atoms';
 import { getSectionPrompt } from './section-prompts';
 
 /** Compressed business overview (generic placeholder until Phase 8 makes dynamic). */
 export function buildBusinessOverview(): string {
-  return `BUSINESS: [Not configured — business profile will be set in Phase 8]
+  return `BUSINESS: [Not configured -- business profile will be set in Phase 8]
 PACKAGES: See product-service section data
 TARGETS: See scenario metrics`;
 }
 
-/** Format scenario metrics as text context. */
-export function buildScenarioContext(metrics: ComputedMetrics): string {
-  return `SCENARIO METRICS: Monthly Revenue: $${metrics.monthlyRevenue.toLocaleString()}, Monthly Profit: $${metrics.monthlyProfit.toLocaleString()}, Profit Margin: ${(metrics.profitMargin * 100).toFixed(1)}%, Monthly Bookings: ${metrics.monthlyBookings}, CAC/Booking: $${metrics.cacPerBooking.toFixed(0)}, Annual Revenue: $${metrics.annualRevenue.toLocaleString()}`;
+/** Format evaluated scenario metrics as text context. */
+export function buildScenarioContext(metrics: Record<string, number>): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(metrics)) {
+    const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    parts.push(`${label}: ${value.toLocaleString()}`);
+  }
+  return `SCENARIO METRICS: ${parts.join(', ')}`;
 }
 
 /** Serialize the current section data as JSON context. */
@@ -33,7 +37,7 @@ export function buildPrompt(
     userInstruction?: string;
   },
   sectionData: unknown,
-  scenarioMetrics: ComputedMetrics,
+  scenarioMetrics: Record<string, number>,
 ): string {
   const businessOverview = buildBusinessOverview();
   const scenarioContext = buildScenarioContext(scenarioMetrics);

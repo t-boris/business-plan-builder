@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { scenarioNameAtom } from '@/store/scenario-atoms';
-import {
-  monthlyRevenueAtom,
-  monthlyProfitAtom,
-  profitMarginAtom,
-  monthlyBookingsAtom,
-  annualRevenueAtom,
-} from '@/store/derived-atoms';
+import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import { useSection } from '@/hooks/use-section';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -91,11 +85,12 @@ const defaultLaunchPlan: LaunchPlan = { stages: [] };
 
 export function Export() {
   const scenarioName = useAtomValue(scenarioNameAtom);
-  const monthlyRevenue = useAtomValue(monthlyRevenueAtom);
-  const monthlyProfit = useAtomValue(monthlyProfitAtom);
-  const profitMargin = useAtomValue(profitMarginAtom);
-  const monthlyBookings = useAtomValue(monthlyBookingsAtom);
-  const annualRevenue = useAtomValue(annualRevenueAtom);
+  const evaluated = useAtomValue(evaluatedValuesAtom);
+  const monthlyRevenue = evaluated['monthly_revenue'] ?? 0;
+  const monthlyProfit = evaluated['monthly_profit'] ?? 0;
+  const profitMargin = evaluated['profit_margin'] ?? 0;
+  const monthlyBookings = evaluated['monthly_bookings'] ?? 0;
+  const annualRevenue = evaluated['annual_revenue'] ?? 0;
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',

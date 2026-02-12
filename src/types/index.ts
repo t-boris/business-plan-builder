@@ -37,10 +37,7 @@ export type {
 } from './plan.ts';
 
 export type {
-  ScenarioVariables,
   ScenarioMetadata,
-  Scenario,
-  DerivedMetrics,
   DynamicScenario,
 } from './scenario.ts';
 

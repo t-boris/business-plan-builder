@@ -3,7 +3,6 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   businessListAtom,
   activeBusinessAtom,
-  activeBusinessIdAtom,
   businessesLoadedAtom,
   businessesLoadingAtom,
 } from '@/store/business-atoms';
@@ -24,7 +23,6 @@ export function useBusinesses() {
   const activeBusiness = useAtomValue(activeBusinessAtom);
   const isLoading = useAtomValue(businessesLoadingAtom);
   const setBusinessList = useSetAtom(businessListAtom);
-  const setActiveBusinessId = useSetAtom(activeBusinessIdAtom);
   const setBusinessesLoaded = useSetAtom(businessesLoadedAtom);
   const { user } = useAuth();
 
