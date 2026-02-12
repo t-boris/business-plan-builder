@@ -94,7 +94,7 @@ export function buildPrompt(
     variableDefinitions,
   );
   const sectionContext = buildSectionContext(config.sectionSlug, sectionData);
-  const taskInstruction = getSectionPrompt(config.sectionSlug, config.action);
+  const taskInstruction = getSectionPrompt(config.sectionSlug, config.action, profile?.type);
 
   let prompt = `<business_profile>
 ${businessProfile}

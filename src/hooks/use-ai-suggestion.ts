@@ -6,9 +6,10 @@ import {
   generateSectionContent,
   generateStructuredContent,
 } from '@/lib/ai/gemini-client';
-import { SYSTEM_INSTRUCTION } from '@/lib/ai/system-prompt';
+import { buildSystemPrompt } from '@/lib/ai/system-prompt';
 import { buildPrompt } from '@/lib/ai/context-builder';
 import { getSectionSchema } from '@/lib/ai/section-prompts';
+import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
 import type { SectionSlug } from '@/types';
 
 export interface AiSuggestionState<T> {
@@ -25,6 +26,8 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
   });
 
   const evaluated = useAtomValue(evaluatedValuesAtom);
+  const business = useAtomValue(activeBusinessAtom);
+  const variableDefinitions = useAtomValue(businessVariablesAtom);
 
   const generate = useCallback(
     async (
@@ -44,11 +47,17 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
       setState({ status: 'loading', suggested: null, error: null });
 
       try {
+        const profile = business?.profile ?? null;
+        const systemInstruction = buildSystemPrompt(profile ?? {
+          name: '', type: 'custom', industry: '', location: '', description: '', currency: 'USD',
+        });
+
         const prompt = buildPrompt(
           { sectionSlug, action, userInstruction },
-          null,
+          profile,
           sectionData,
           evaluated,
+          variableDefinitions ?? undefined,
         );
         const schema = getSectionSchema(sectionSlug);
 
@@ -56,11 +65,11 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
         if (schema) {
           result = await generateStructuredContent<T>(
             prompt,
-            SYSTEM_INSTRUCTION,
+            systemInstruction,
             schema,
           );
         } else {
-          const text = await generateSectionContent(prompt, SYSTEM_INSTRUCTION);
+          const text = await generateSectionContent(prompt, systemInstruction);
           result = text as unknown as T;
         }
 
@@ -73,7 +82,7 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
         });
       }
     },
-    [sectionSlug, evaluated],
+    [sectionSlug, evaluated, business, variableDefinitions],
   );
 
   const accept = useCallback((): T | null => {

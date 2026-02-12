@@ -46,15 +46,3 @@ OUTPUT FORMAT:
   return prompt;
 }
 
-/**
- * Backwards-compatible fallback for consumers not yet updated to use buildSystemPrompt().
- * Will be removed once Plan 08-02 wires all consumers to pass BusinessProfile.
- */
-export const SYSTEM_INSTRUCTION = buildSystemPrompt({
-  name: '',
-  type: 'custom',
-  industry: '',
-  location: '',
-  description: '',
-  currency: 'USD',
-});
