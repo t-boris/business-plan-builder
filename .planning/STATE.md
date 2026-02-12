@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 6 of 12 (Variable Library)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-12 — Completed 06-02-PLAN.md
+Last activity: 2026-02-12 — Completed 06-03-PLAN.md
 
-Progress: █████░░░░░ 52%
+Progress: █████░░░░░ 55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 3 min
-- Total execution time: 48 min
+- Total execution time: 50 min
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: █████░░░░░ 52%
 | 03-dynamic-business-context | 2/2 | 6 min | 3 min |
 | 04-strip-hardcoded-content | 3/3 | 19 min | 6 min |
 | 05-business-profile-section-config | 2/2 | 3 min | 2 min |
-| 06-variable-library | 2/4 | 5 min | 3 min |
+| 06-variable-library | 3/4 | 7 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (2 min), 05-02 (1 min), 06-01 (1 min), 06-02 (4 min)
+- Last 5 plans: 05-02 (1 min), 06-01 (1 min), 06-02 (4 min), 06-03 (2 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -87,6 +87,9 @@ Progress: █████░░░░░ 52%
 | 06-01 | Graceful degradation on formula errors (return 0) | Keeps UI functional; logs warning for debugging |
 | 06-02 | Construct VariableDefinition objects directly (no helpers) | Plan 06-01 runs in parallel; direct construction avoids cross-plan dependency |
 | 06-02 | Re-export getDefaultVariables as getTemplateVariables | Keeps template objects lean; consumers use existing business-templates.ts import point |
+| 06-03 | Store variables as { definitions: Record } in state/variables doc | Avoids Firestore flattening individual variable objects; single field is atomic |
+| 06-03 | Fire-and-forget Firestore saves with optimistic local updates | Same pattern as useBusinesses.updateProfile; keeps UI responsive |
+| 06-03 | VariableLoader placed between BusinessLoader and ScenarioSync | Follows dependency order; variables need business context but are independent of scenarios |
 
 ### Deferred Issues
 
@@ -99,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 06-02-PLAN.md
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None
