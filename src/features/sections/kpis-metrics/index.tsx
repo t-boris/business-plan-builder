@@ -4,7 +4,6 @@ import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
-import { DEFAULT_KPI_TARGETS } from '@/lib/constants';
 import type { KpisMetrics as KpisMetricsType, KpiTargets } from '@/types';
 import {
   Card,
@@ -19,7 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 
 const defaultKpis: KpisMetricsType = {
-  targets: DEFAULT_KPI_TARGETS,
+  targets: { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 },
 };
 
 const KPI_FIELDS: {
@@ -139,7 +138,7 @@ export function KpisMetrics() {
   function updateActual(field: keyof KpiTargets, value: number) {
     updateData((prev) => ({
       ...prev,
-      actuals: { ...(prev.actuals ?? { ...DEFAULT_KPI_TARGETS, monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 }), [field]: value },
+      actuals: { ...(prev.actuals ?? { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 }), [field]: value },
     }));
   }
 

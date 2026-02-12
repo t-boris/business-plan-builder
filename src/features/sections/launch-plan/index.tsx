@@ -34,41 +34,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 const defaultLaunchPlan: LaunchPlanType = {
-  stages: [
-    {
-      name: 'Preparation',
-      startDate: '2026-01-15',
-      endDate: '2026-02-28',
-      tasks: [
-        { task: 'Package 3 service tiers', status: 'pending' },
-        { task: 'Shoot video and photo content', status: 'pending' },
-        { task: 'Build landing page', status: 'pending' },
-        { task: 'Set up CRM or tracking spreadsheet', status: 'pending' },
-      ],
-    },
-    {
-      name: 'Soft Launch',
-      startDate: '2026-03-01',
-      endDate: '2026-03-14',
-      tasks: [
-        { task: 'Launch ads with small budget', status: 'pending' },
-        { task: 'Test ad creatives', status: 'pending' },
-        { task: 'Test promotional offers', status: 'pending' },
-        { task: 'Collect initial feedback', status: 'pending' },
-      ],
-    },
-    {
-      name: 'Scale',
-      startDate: '2026-03-15',
-      endDate: '2026-06-30',
-      tasks: [
-        { task: 'Increase ad budget', status: 'pending' },
-        { task: 'Launch Google Ads', status: 'pending' },
-        { task: 'Activate partnerships', status: 'pending' },
-        { task: 'Build review collection system', status: 'pending' },
-      ],
-    },
-  ],
+  stages: [],
 };
 
 export function LaunchPlan() {
@@ -289,6 +255,12 @@ export function LaunchPlan() {
           ))}
         </div>
       </div>
+
+      {displayData.stages.length === 0 && (
+        <p className="text-sm text-muted-foreground py-4">
+          No launch stages yet. Use AI Generate to create a launch plan, or add stages manually.
+        </p>
+      )}
 
       {/* Add Stage Button */}
       {!isPreview && (
