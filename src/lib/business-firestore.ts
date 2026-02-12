@@ -25,7 +25,7 @@ import type {
   BusinessSection,
   BusinessScenario,
   BusinessRole,
-  Scenario,
+  DynamicScenario,
   VariableDefinition,
 } from "@/types";
 
@@ -433,33 +433,33 @@ export async function saveSectionData(
 }
 
 // =============================================================================
-// Scenario Data (legacy Scenario type for useScenarioSync)
+// Scenario Data (DynamicScenario type for useScenarioSync)
 // =============================================================================
 
-// Uses existing Scenario type at businesses/{businessId}/scenarios/{scenarioId}
-// Phase 7 will migrate to BusinessScenario with dynamic VariableDefinition variables.
+// Uses DynamicScenario type at businesses/{businessId}/scenarios/{scenarioId}
+// Scenarios stored as { metadata, values: Record<string, number> }.
 
 /**
- * Get a scenario by ID using the legacy Scenario type.
+ * Get a scenario by ID using the DynamicScenario type.
  */
 export async function getScenarioData(
   businessId: string,
   scenarioId: string
-): Promise<Scenario | null> {
+): Promise<DynamicScenario | null> {
   // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
   const snap = await getDoc(
     doc(db, "businesses", businessId, "scenarios", scenarioId)
   );
   if (!snap.exists()) return null;
-  return snap.data() as Scenario;
+  return snap.data() as DynamicScenario;
 }
 
 /**
- * Save a scenario using the legacy Scenario type (merge update).
+ * Save a scenario using the DynamicScenario type (merge update).
  */
 export async function saveScenarioData(
   businessId: string,
-  scenario: Scenario
+  scenario: DynamicScenario
 ): Promise<void> {
   // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
   await setDoc(
@@ -470,16 +470,16 @@ export async function saveScenarioData(
 }
 
 /**
- * List all scenarios for a business using the legacy Scenario type.
+ * List all scenarios for a business using the DynamicScenario type.
  */
 export async function listScenarioData(
   businessId: string
-): Promise<Scenario[]> {
+): Promise<DynamicScenario[]> {
   // Firestore path: businesses/{businessId}/scenarios
   const snap = await getDocs(
     collection(db, "businesses", businessId, "scenarios")
   );
-  return snap.docs.map((d) => d.data() as Scenario);
+  return snap.docs.map((d) => d.data() as DynamicScenario);
 }
 
 /**

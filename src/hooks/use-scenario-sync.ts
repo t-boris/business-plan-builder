@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import {
-  snapshotScenarioAtom,
+  snapshotInputValuesAtom,
   scenarioNameAtom,
   currentScenarioIdAtom,
   scenarioListAtom,
@@ -9,11 +9,11 @@ import {
 } from '@/store/scenario-atoms';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { saveScenarioData, saveScenarioPreferences } from '@/lib/business-firestore';
-import type { Scenario } from '@/types';
+import type { DynamicScenario } from '@/types';
 
 export function useScenarioSync() {
   const businessId = useAtomValue(activeBusinessIdAtom);
-  const variables = useAtomValue(snapshotScenarioAtom);
+  const inputValues = useAtomValue(snapshotInputValuesAtom);
   const scenarioName = useAtomValue(scenarioNameAtom);
   const currentId = useAtomValue(currentScenarioIdAtom);
   const scenarioList = useAtomValue(scenarioListAtom);
@@ -34,7 +34,7 @@ export function useScenarioSync() {
     debounceRef.current = setTimeout(async () => {
       const existingMeta = scenarioList.find((m) => m.id === currentId);
 
-      const scenario: Scenario = {
+      const scenario: DynamicScenario = {
         metadata: {
           id: currentId,
           name: scenarioName,
@@ -42,7 +42,7 @@ export function useScenarioSync() {
           createdAt: existingMeta?.createdAt ?? new Date().toISOString(),
           isBaseline: existingMeta?.isBaseline ?? currentId === 'baseline',
         },
-        variables,
+        values: inputValues,
       };
 
       try {
@@ -71,5 +71,5 @@ export function useScenarioSync() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [variables, scenarioName, currentId, syncReady, businessId, scenarioList, setScenarioList]);
+  }, [inputValues, scenarioName, currentId, syncReady, businessId, scenarioList, setScenarioList]);
 }
