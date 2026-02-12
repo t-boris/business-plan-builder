@@ -3,21 +3,16 @@ import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
+import { PageHeader } from '@/components/page-header';
+import { EmptyState } from '@/components/empty-state';
 import type {
   MarketingStrategy as MarketingStrategyType,
   MarketingChannel,
   MarketingChannelName,
 } from '@/types';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
   TooltipTrigger,
@@ -40,6 +35,7 @@ import {
   Gift,
   ExternalLink,
   Link,
+  Megaphone,
 } from 'lucide-react';
 import {
   PieChart,
@@ -58,36 +54,32 @@ const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
 };
 
 const CHANNEL_ICONS: Record<MarketingChannelName, React.ReactNode> = {
-  'meta-ads': <AtSign className="size-5" />,
-  'google-ads': <Search className="size-5" />,
-  'organic-social': <Share2 className="size-5" />,
-  partnerships: <Handshake className="size-5" />,
+  'meta-ads': <AtSign className="size-4" />,
+  'google-ads': <Search className="size-4" />,
+  'organic-social': <Share2 className="size-4" />,
+  partnerships: <Handshake className="size-4" />,
 };
 
-const CHANNEL_STYLES: Record<MarketingChannelName, { border: string; badge: string; iconBg: string }> = {
+const CHANNEL_STYLES: Record<MarketingChannelName, { borderColor: string; iconBg: string }> = {
   'meta-ads': {
-    border: 'border-blue-200 dark:border-blue-800',
-    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-    iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400',
+    borderColor: 'border-l-blue-500',
+    iconBg: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400',
   },
   'google-ads': {
-    border: 'border-green-200 dark:border-green-800',
-    badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-    iconBg: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400',
+    borderColor: 'border-l-green-500',
+    iconBg: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400',
   },
   'organic-social': {
-    border: 'border-purple-200 dark:border-purple-800',
-    badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-    iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400',
+    borderColor: 'border-l-purple-500',
+    iconBg: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400',
   },
   partnerships: {
-    border: 'border-amber-200 dark:border-amber-800',
-    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
-    iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400',
+    borderColor: 'border-l-amber-500',
+    iconBg: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
   },
 };
 
-const PIE_COLORS = ['#3b82f6', '#22c55e', '#8b5cf6', '#f59e0b'];
+const PIE_COLORS = ['var(--chart-profit)', 'var(--chart-revenue)', 'var(--chart-accent-1)', 'var(--chart-cost)'];
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
@@ -97,7 +89,7 @@ function InfoTooltip({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <HelpCircle className="size-3 text-muted-foreground cursor-help inline-block ml-1" />
+        <HelpCircle className="size-3.5 text-muted-foreground cursor-help inline-block ml-1" />
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[220px]">
         {text}
@@ -124,8 +116,8 @@ export function MarketingStrategy() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Marketing Strategy</h1>
+      <div className="page-container">
+        <PageHeader title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -212,7 +204,7 @@ export function MarketingStrategy() {
     updateData((prev) => ({ ...prev, offers: prev.offers.filter((_, i) => i !== index) }));
   }
 
-  // Pie chart data — only channels with budget > 0
+  // Pie chart data -- only channels with budget > 0
   const budgetPieData = displayData.channels
     .filter((ch) => ch.budget > 0)
     .map((ch) => ({
@@ -224,104 +216,84 @@ export function MarketingStrategy() {
     <TooltipProvider>
       <div className="space-y-6">
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="rounded-md bg-amber-100 p-1.5 dark:bg-amber-900">
-                  <DollarSign className="size-4 text-amber-600 dark:text-amber-400" />
-                </div>
-                <p className="text-xs font-medium text-muted-foreground">Total Ad Spend</p>
-              </div>
-              <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{formatCurrency(totalBudget)}</p>
-              <p className="text-xs text-muted-foreground mt-1">per month</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="card-elevated rounded-lg p-4 space-y-1">
+            <div className="flex items-center gap-2">
+              <DollarSign className="size-3.5 text-amber-500" />
+              <span className="text-xs font-medium text-muted-foreground">Total Ad Spend</span>
+            </div>
+            <p className="text-xl font-bold tabular-nums">{formatCurrency(totalBudget)}</p>
+            <p className="text-xs text-muted-foreground">per month</p>
+          </div>
 
-          <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900">
-                  <Users className="size-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  Expected Leads
-                  <InfoTooltip text="Number of new leads expected per month from all channels" />
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalLeads}</p>
-              <p className="text-xs text-muted-foreground mt-1">per month</p>
-            </CardContent>
-          </Card>
+          <div className="card-elevated rounded-lg p-4 space-y-1">
+            <div className="flex items-center gap-2">
+              <Users className="size-3.5 text-blue-500" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Expected Leads
+                <InfoTooltip text="Number of new leads expected per month from all channels" />
+              </span>
+            </div>
+            <p className="text-xl font-bold tabular-nums">{totalLeads}</p>
+            <p className="text-xs text-muted-foreground">per month</p>
+          </div>
 
-          <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/30">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="rounded-md bg-purple-100 p-1.5 dark:bg-purple-900">
-                  <Target className="size-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  Average CAC
-                  <InfoTooltip text="Customer Acquisition Cost — average cost to acquire one lead across all channels" />
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{formatCurrency(avgCAC)}</p>
-              <p className="text-xs text-muted-foreground mt-1">per lead</p>
-            </CardContent>
-          </Card>
+          <div className="card-elevated rounded-lg p-4 space-y-1">
+            <div className="flex items-center gap-2">
+              <Target className="size-3.5 text-purple-500" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Average CAC
+                <InfoTooltip text="Customer Acquisition Cost -- average cost to acquire one lead across all channels" />
+              </span>
+            </div>
+            <p className="text-xl font-bold tabular-nums">{formatCurrency(avgCAC)}</p>
+            <p className="text-xs text-muted-foreground">per lead</p>
+          </div>
 
-          <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="rounded-md bg-green-100 p-1.5 dark:bg-green-900">
-                  <CalendarCheck className="size-4 text-green-600 dark:text-green-400" />
-                </div>
-                <p className="text-xs font-medium text-muted-foreground">Est. Monthly Bookings</p>
-              </div>
-              <p className="text-2xl font-bold text-green-700 dark:text-green-300">{estimatedBookings}</p>
-              <p className="text-xs text-muted-foreground mt-1">at 20% conversion</p>
-            </CardContent>
-          </Card>
+          <div className="card-elevated rounded-lg p-4 space-y-1">
+            <div className="flex items-center gap-2">
+              <CalendarCheck className="size-3.5 text-green-500" />
+              <span className="text-xs font-medium text-muted-foreground">Est. Monthly Bookings</span>
+            </div>
+            <p className="text-xl font-bold tabular-nums">{estimatedBookings}</p>
+            <p className="text-xs text-muted-foreground">at 20% conversion</p>
+          </div>
         </div>
 
         {/* Budget Allocation Pie Chart */}
         {budgetPieData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Budget Allocation</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={budgetPieData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      dataKey="value"
-                      label={({ name, percent }: { name?: string; percent?: number }) =>
-                        `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
-                      }
-                      labelLine={false}
-                    >
-                      {budgetPieData.map((_, index) => (
-                        <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="card-elevated rounded-lg p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Budget Allocation</h2>
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={budgetPieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    dataKey="value"
+                    label={({ name, percent }: { name?: string; percent?: number }) =>
+                      `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
+                    }
+                    labelLine={false}
+                  >
+                    {budgetPieData.map((_, index) => (
+                      <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
 
         {/* Marketing Channels */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Marketing Channels</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Marketing Channels</h2>
             {canEdit && !isPreview && (
               <Button variant="outline" size="sm" onClick={addChannel}>
                 <Plus className="size-4" />
@@ -329,35 +301,36 @@ export function MarketingStrategy() {
               </Button>
             )}
           </div>
-          {displayData.channels.length === 0 && (
-            <p className="text-sm text-muted-foreground py-2">No marketing channels yet. Use AI Generate to create a marketing strategy, or add channels manually.</p>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {displayData.channels.map((channel, chIndex) => {
-              const style = CHANNEL_STYLES[channel.name];
-              return (
-                <Card key={chIndex} className={style.border}>
-                  <CardHeader>
-                    <div className="space-y-3">
+          {displayData.channels.length === 0 ? (
+            <EmptyState
+              icon={Megaphone}
+              title="No marketing channels yet"
+              description="Use AI Generate to create a marketing strategy, or add channels manually."
+              action={canEdit && !isPreview ? { label: 'Add Channel', onClick: addChannel } : undefined}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {displayData.channels.map((channel, chIndex) => {
+                const style = CHANNEL_STYLES[channel.name];
+                return (
+                  <div key={chIndex} className={`card-elevated rounded-lg border-l-2 ${style.borderColor}`}>
+                    {/* Channel Header */}
+                    <div className="px-5 pt-4 pb-3 space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className={`rounded-lg p-2 ${style.iconBg}`}>
+                        <div className={`flex items-center justify-center size-8 rounded-full ${style.iconBg}`}>
                           {CHANNEL_ICONS[channel.name]}
                         </div>
-                        <div className="flex-1">
-                          <CardTitle>{CHANNEL_DISPLAY_NAMES[channel.name] || channel.name}</CardTitle>
-                        </div>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.badge}`}>
-                          {channel.budget > 0 ? 'Paid' : 'Organic'}
-                        </span>
+                        <span className="text-sm font-semibold flex-1">{CHANNEL_DISPLAY_NAMES[channel.name] || channel.name}</span>
+                        <span className="text-xs text-muted-foreground">{channel.budget > 0 ? 'Paid' : 'Organic'}</span>
                         {canEdit && !isPreview && (
                           <Button variant="ghost" size="icon-xs" onClick={() => removeChannel(chIndex)}>
                             <Trash2 className="size-3" />
                           </Button>
                         )}
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground">
+                          <label className="text-sm font-medium">
                             Budget
                             <InfoTooltip text="Monthly spend allocated to this channel" />
                           </label>
@@ -367,16 +340,16 @@ export function MarketingStrategy() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground">
+                          <label className="text-sm font-medium">
                             Expected Leads
                             <InfoTooltip text="Number of new leads expected per month from this channel" />
                           </label>
                           <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={!canEdit || isPreview} />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground">
+                          <label className="text-sm font-medium">
                             CAC
-                            <InfoTooltip text="Customer Acquisition Cost — cost to acquire one lead through this channel" />
+                            <InfoTooltip text="Customer Acquisition Cost -- cost to acquire one lead through this channel" />
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
@@ -385,75 +358,74 @@ export function MarketingStrategy() {
                         </div>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Description</label>
-                      <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit || isPreview} />
-                    </div>
 
-                    {/* Campaign/Tracking URL */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <Link className="size-3" />
-                        Campaign URL
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={channel.url ?? ''}
-                          onChange={(e) => updateChannel(chIndex, 'url', e.target.value)}
-                          placeholder="https://..."
-                          readOnly={!canEdit || isPreview}
-                          className="text-sm"
-                        />
-                        {channel.url && (
-                          <a href={channel.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                            <Button variant="ghost" size="icon-xs" type="button">
-                              <ExternalLink className="size-3 text-muted-foreground" />
-                            </Button>
-                          </a>
-                        )}
+                    {/* Channel Details */}
+                    <div className="px-5 pb-5 space-y-4 border-t pt-4">
+                      <div>
+                        <label className="text-sm font-medium">Description</label>
+                        <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit || isPreview} />
                       </div>
-                    </div>
 
-                    <Separator />
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Tactics
-                          <InfoTooltip text="Specific actions and campaigns run within this channel" />
+                      {/* Campaign/Tracking URL */}
+                      <div>
+                        <label className="text-sm font-medium flex items-center gap-1">
+                          <Link className="size-3" />
+                          Campaign URL
                         </label>
-                        {canEdit && !isPreview && (
-                          <Button variant="ghost" size="xs" onClick={() => addTactic(chIndex)}>
-                            <Plus className="size-3" />
-                            Add Tactic
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={channel.url ?? ''}
+                            onChange={(e) => updateChannel(chIndex, 'url', e.target.value)}
+                            placeholder="https://..."
+                            readOnly={!canEdit || isPreview}
+                            className="text-sm"
+                          />
+                          {channel.url && (
+                            <a href={channel.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                              <Button variant="ghost" size="icon-xs" type="button">
+                                <ExternalLink className="size-3 text-muted-foreground" />
+                              </Button>
+                            </a>
+                          )}
+                        </div>
                       </div>
-                      {channel.tactics.map((tactic, tacticIndex) => (
-                        <div key={tacticIndex} className="flex items-center gap-2">
-                          <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={!canEdit || isPreview} />
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">
+                            Tactics
+                            <InfoTooltip text="Specific actions and campaigns run within this channel" />
+                          </label>
                           {canEdit && !isPreview && (
-                            <Button variant="ghost" size="icon-xs" onClick={() => removeTactic(chIndex, tacticIndex)}>
-                              <Trash2 className="size-3" />
+                            <Button variant="ghost" size="xs" onClick={() => addTactic(chIndex)}>
+                              <Plus className="size-3" />
+                              Add Tactic
                             </Button>
                           )}
                         </div>
-                      ))}
+                        {channel.tactics.map((tactic, tacticIndex) => (
+                          <div key={tacticIndex} className="flex items-center gap-2">
+                            <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={!canEdit || isPreview} />
+                            {canEdit && !isPreview && (
+                              <Button variant="ghost" size="icon-xs" onClick={() => removeTactic(chIndex, tacticIndex)}>
+                                <Trash2 className="size-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-
-        <Separator />
 
         {/* Promotional Offers */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Promotional Offers</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Promotional Offers</h2>
             {canEdit && !isPreview && (
               <Button variant="outline" size="sm" onClick={addOffer}>
                 <Plus className="size-4" />
@@ -461,75 +433,70 @@ export function MarketingStrategy() {
               </Button>
             )}
           </div>
-          <Card>
-            <CardContent>
-              <div className="space-y-3">
-                {displayData.offers.map((offer, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Gift className="size-4 text-pink-500 dark:text-pink-400" />
-                      <span className="text-xs font-bold text-muted-foreground w-5 text-right">{index + 1}.</span>
-                    </div>
-                    <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={!canEdit || isPreview} />
-                    {canEdit && !isPreview && (
-                      <Button variant="ghost" size="icon-xs" onClick={() => removeOffer(index)}>
-                        <Trash2 className="size-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {displayData.offers.length === 0 && (
-                  <p className="text-sm text-muted-foreground py-2">No offers yet. Click "Add Offer" to get started.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {displayData.offers.length === 0 ? (
+            <EmptyState
+              icon={Gift}
+              title="No offers yet"
+              description="Click 'Add Offer' to create promotional offers."
+              action={canEdit && !isPreview ? { label: 'Add Offer', onClick: addOffer } : undefined}
+            />
+          ) : (
+            <div className="card-elevated rounded-lg divide-y">
+              {displayData.offers.map((offer, index) => (
+                <div key={index} className="flex items-center gap-3 px-5 py-3">
+                  <Gift className="size-3.5 shrink-0 text-pink-500 dark:text-pink-400" />
+                  <span className="text-xs font-bold text-muted-foreground w-5 text-right shrink-0">{index + 1}.</span>
+                  <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={!canEdit || isPreview} className="border-0 px-0 shadow-none focus-visible:ring-0" />
+                  {canEdit && !isPreview && (
+                    <Button variant="ghost" size="icon-xs" onClick={() => removeOffer(index)}>
+                      <Trash2 className="size-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-
-        <Separator />
 
         {/* Landing Page Section */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Landing Page</h2>
-          <Card>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">URL</label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={displayData.landingPage.url}
-                    onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, url: e.target.value } }))}
-                    placeholder="https://yourbusiness.com"
-                    readOnly={!canEdit || isPreview}
-                  />
-                  {displayData.landingPage.url && (
-                    <a href={displayData.landingPage.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                      <Button variant="ghost" size="icon-xs" type="button">
-                        <ExternalLink className="size-4 text-muted-foreground" />
-                      </Button>
-                    </a>
-                  )}
-                </div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Landing Page</h2>
+          <div className="card-elevated rounded-lg p-5 space-y-4">
+            <div>
+              <label className="text-sm font-medium">URL</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={displayData.landingPage.url}
+                  onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, url: e.target.value } }))}
+                  placeholder="https://yourbusiness.com"
+                  readOnly={!canEdit || isPreview}
+                />
+                {displayData.landingPage.url && (
+                  <a href={displayData.landingPage.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                    <Button variant="ghost" size="icon-xs" type="button">
+                      <ExternalLink className="size-4 text-muted-foreground" />
+                    </Button>
+                  </a>
+                )}
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Description</label>
-                <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit || isPreview} />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit || isPreview} />
+            </div>
+          </div>
         </div>
       </div>
     </TooltipProvider>
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Marketing Strategy</h1>
+    <div className="page-container">
+      <PageHeader title="Marketing Strategy" description="Channels, budget allocation, and promotional offers">
         {canEdit && (
           <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
         )}
-      </div>
+      </PageHeader>
 
       {aiSuggestion.state.status === 'error' && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
