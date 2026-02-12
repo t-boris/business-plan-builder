@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 5 — Business Profile & Section Config (In progress)
+**Current focus:** Phase 5 — Business Profile & Section Config (Complete)
 
 ## Current Position
 
 Phase: 5 of 12 (Business Profile & Section Config)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-12 — Completed 05-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-12 — Completed 05-02-PLAN.md
 
-Progress: ████░░░░░░ 43%
+Progress: █████░░░░░ 47%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 3 min
-- Total execution time: 42 min
+- Total execution time: 43 min
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: ████░░░░░░ 43%
 | 02-business-crud | 5/5 | 11 min | 2 min |
 | 03-dynamic-business-context | 2/2 | 6 min | 3 min |
 | 04-strip-hardcoded-content | 3/3 | 19 min | 6 min |
-| 05-business-profile-section-config | 1/2 | 2 min | 2 min |
+| 05-business-profile-section-config | 2/2 | 3 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (3 min), 04-01 (5 min), 04-02 (6 min), 04-03 (8 min), 05-01 (2 min)
+- Last 5 plans: 04-01 (5 min), 04-02 (6 min), 04-03 (8 min), 05-01 (2 min), 05-02 (1 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -79,6 +79,8 @@ Progress: ████░░░░░░ 43%
 | 04-03 | CoverPage accepts optional businessName prop | Future Phase 11 will pass dynamic name; falls back to "Business Plan" |
 | 05-01 | Full profile spread for Firestore setDoc merge | Ensures correct deep merge by passing complete profile with overrides |
 | 05-01 | No debouncing at hook level for profile updates | Header bar component (05-02) handles debounce; toggleSection saves immediately |
+| 05-02 | 500ms debounce timer for profile auto-save | Balances responsiveness with avoiding excessive Firestore writes |
+| 05-02 | ChevronDown data-state attribute for CSS rotation | Leverages Radix data attributes rather than React state class toggling |
 
 ### Deferred Issues
 
@@ -91,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 05-01-PLAN.md (Phase 5 in progress)
+Stopped at: Completed 05-02-PLAN.md (Phase 5 complete)
 Resume file: None

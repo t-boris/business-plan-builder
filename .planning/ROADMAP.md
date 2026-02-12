@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
 - [x] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
 - [x] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
-- [ ] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
+- [x] **Phase 5: Business Profile & Section Config** - Business profile editor, configurable sections per business
 - [ ] **Phase 6: Variable Library** - Predefined business variables organized by business type
 - [ ] **Phase 7: Generic Scenario Engine** - Dynamic atoms from variable library, adaptive derived metrics
 - [ ] **Phase 8: Business-Aware AI** - Dynamic system prompt and section prompts from business context
@@ -82,8 +82,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Business profile editor page (name, type, industry, location, description, logo/color)
-- [ ] 05-02: Section configurator (toggle sections on/off per business, section order customization)
+- [x] 05-01: Business profile editor page (name, type, industry, location, description, logo/color)
+- [x] 05-02: Section configurator (toggle sections on/off per business, section order customization)
 
 ### Phase 6: Variable Library
 **Goal**: Define a library of predefined business variables organized by business type (SaaS, retail, service, restaurant, etc.). Users pick which variables apply to their business. This is the foundation for the generic scenario engine.
@@ -174,7 +174,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
 | 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
 | 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
-| 5. Business Profile & Section Config | 1/2 | In progress | - |
+| 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
 | 6. Variable Library | 0/3 | Not started | - |
 | 7. Generic Scenario Engine | 0/3 | Not started | - |
 | 8. Business-Aware AI | 0/2 | Not started | - |
