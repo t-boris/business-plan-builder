@@ -126,11 +126,12 @@ Plans:
 **Depends on**: Phase 2
 **Research**: Likely (Firestore security rules for multi-tenant sharing, URL-based access granting)
 **Research topics**: Firestore security rules for shared documents, invite token patterns, dynamic access control without server functions
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
-- [ ] 09-01: Sharing data model and URL generation (share tokens in Firestore, generate/revoke share links)
-- [ ] 09-02: Accept share flow and access enforcement (open link → add to user's business list, Firestore rules for shared access)
+- [ ] 09-01: Data model, security rules, and auth cleanup (viewer role, invite CRUD, rewrite Firestore rules, remove ALLOWED_EMAILS)
+- [ ] 09-02: Accept invite flow and share dialog UI (AcceptInvite page, /invite route, ShareDialog with role picker and member management)
+- [ ] 09-03: Read-only viewer enforcement (useBusinessRole hook, disable editing for viewers across all sections/scenarios/AI)
 
 ### Phase 10: Dashboard & Navigation
 **Goal**: Dashboard shows business-specific KPIs and projections based on that business's variables and scenarios. Sidebar navigation reflects enabled sections. Breadcrumbs include business name.
