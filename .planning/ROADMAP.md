@@ -90,12 +90,13 @@ Plans:
 **Depends on**: Phase 1
 **Research**: Likely (need to define meaningful variable sets for different business types)
 **Research topics**: Common business metrics by industry, revenue driver categories, cost structure patterns for SaaS/retail/service/restaurant/event businesses
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] 06-01: Define variable library data model (VariableDefinition, VariableCategory, BusinessTypeTemplate)
-- [ ] 06-02: Populate variable library with templates for 5+ business types
+- [x] 06-01: Define variable library data model (VariableDefinition, VariableCategory, BusinessTypeTemplate)
+- [x] 06-02: Populate variable library with templates for all 7 business types
 - [ ] 06-03: Variable picker UI (browse by category, select variables, preview derived metrics)
+- [ ] 06-04: Formula engine integration and variable evaluation
 
 ### Phase 7: Generic Scenario Engine
 **Goal**: Refactor the scenario engine from hardcoded Fun Box atoms to dynamic atoms driven by the variable library. Derived metrics compute automatically based on selected variables. Scenario comparison works with any variable set.
@@ -175,7 +176,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
 | 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
 | 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
-| 6. Variable Library | 1/3 | In progress | - |
+| 6. Variable Library | 2/4 | In progress | - |
 | 7. Generic Scenario Engine | 0/3 | Not started | - |
 | 8. Business-Aware AI | 0/2 | Not started | - |
 | 9. Sharing & Access | 0/2 | Not started | - |
