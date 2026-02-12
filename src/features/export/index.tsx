@@ -6,8 +6,8 @@ import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atom
 import { SECTION_SLUGS } from '@/lib/constants';
 import { useSection } from '@/hooks/use-section';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/page-header';
 import { FileText, Download, Loader2 } from 'lucide-react';
 import { BusinessPlanView } from './business-plan-view';
 import { useChartCapture } from './pdf/useChartCapture';
@@ -178,47 +178,56 @@ export function Export() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Export Business Plan</h1>
+    <div className="page-container">
+      <PageHeader
+        title="Export"
+        description="Preview and download your business plan"
+      />
 
       <Tabs defaultValue="business-plan">
-        <TabsList>
-          <TabsTrigger value="business-plan">
-            <FileText className="size-4 mr-1.5" />
+        <TabsList className="bg-transparent border-b rounded-none w-full justify-start gap-4 px-0 h-auto pb-0">
+          <TabsTrigger
+            value="business-plan"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none bg-transparent px-1 pb-2 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
+          >
+            <FileText className="size-3.5 mr-1.5" />
             Business Plan
           </TabsTrigger>
-          <TabsTrigger value="export">
-            <Download className="size-4 mr-1.5" />
+          <TabsTrigger
+            value="export"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none bg-transparent px-1 pb-2 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground"
+          >
+            <Download className="size-3.5 mr-1.5" />
             Export
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="business-plan">
+        <TabsContent value="business-plan" className="mt-6">
           <BusinessPlanView chartAnimationDisabled={false} chartContainerRef={chartRef} />
         </TabsContent>
 
-        <TabsContent value="export">
-          <Card>
-            <CardHeader>
-              <CardTitle>Export Options</CardTitle>
-              <CardDescription>
+        <TabsContent value="export" className="mt-6">
+          <div className="card-elevated rounded-lg">
+            <div className="p-4 border-b">
+              <h3 className="text-sm font-semibold">Export Options</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Download your business plan as a professionally formatted PDF document.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
+              </p>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="text-sm font-medium">Active Scenario</p>
                   <p className="text-xs text-muted-foreground">
                     Metrics from this scenario will be included in the export.
                   </p>
                 </div>
-                <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium text-blue-800">
+                <span className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
                   {scenarioName}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="text-sm font-medium">Generated on</p>
                   <p className="text-xs text-muted-foreground">{currentDate}</p>
@@ -244,7 +253,7 @@ export function Export() {
               </Button>
 
               {error && (
-                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
                   {error}
                 </div>
               )}
@@ -252,8 +261,8 @@ export function Export() {
               <p className="text-xs text-center text-muted-foreground">
                 The PDF includes all enabled sections, financial charts, and scenario metrics.
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

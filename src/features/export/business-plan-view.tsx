@@ -5,6 +5,7 @@ import { SECTION_SLUGS, SECTION_LABELS } from '@/lib/constants';
 import { scenarioNameAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
+import { StatCard } from '@/components/stat-card';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -112,10 +113,10 @@ function formatCurrency(value: number, currency = 'USD'): string {
 
 function getSemanticColor(label: string): string {
   const lower = label.toLowerCase();
-  if (/revenue|income|sales/.test(lower)) return '#22c55e';
-  if (/cost|expense|spend/.test(lower)) return '#f97316';
-  if (/profit|net|margin/.test(lower)) return '#3b82f6';
-  return '#64748b';
+  if (/revenue|income|sales/.test(lower)) return 'var(--chart-revenue)';
+  if (/cost|expense|spend/.test(lower)) return 'var(--chart-cost)';
+  if (/profit|net|margin/.test(lower)) return 'var(--chart-profit)';
+  return 'var(--chart-neutral)';
 }
 
 const severityStyles: Record<RiskSeverity, string> = {
@@ -168,7 +169,7 @@ const taskStatusLabels: Record<TaskStatus, string> = {
 
 function SectionHeader({ number, title, id }: { number: number; title: string; id: string }) {
   return (
-    <h2 id={id} className="text-xl font-bold tracking-tight border-b pb-2 pt-6 scroll-mt-6">
+    <h2 id={id} className="text-xl font-bold tracking-tight border-b pb-2 pt-8 scroll-mt-6">
       <span className="text-muted-foreground mr-2">{number}.</span>
       {title}
     </h2>
@@ -225,8 +226,8 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
 
   if (isLoading) {
     return (
-      <div className="max-w-[800px] mx-auto py-8 px-4">
-        <p className="text-muted-foreground">Loading business plan...</p>
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <p className="text-muted-foreground text-sm">Loading business plan...</p>
       </div>
     );
   }
@@ -270,27 +271,34 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
 
   const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+  function formatKpiValue(v: { id: string; unit: string }): string {
+    const val = evaluated[v.id] ?? 0;
+    if (v.unit === 'currency') return formatCurrency(val, currencyCode);
+    if (v.unit === 'percent') return `${(val * 100).toFixed(1)}%`;
+    return String(Math.round(val));
+  }
+
   return (
-    <div className="max-w-[800px] mx-auto py-8 px-4 prose prose-sm max-w-none">
+    <div className="max-w-4xl mx-auto py-8 px-6">
       {/* Header */}
-      <div className="text-center pb-6 border-b">
+      <div className="text-center pb-8 border-b">
         <h1 className="text-3xl font-bold tracking-tight mb-1">
           {business?.profile.name || 'Business Plan'}
         </h1>
-        <p className="text-sm text-muted-foreground">Business Plan</p>
-        <p className="text-muted-foreground text-sm">{currentDate}</p>
-        <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium text-blue-800 mt-2">
+        <p className="text-lg text-muted-foreground">Business Plan</p>
+        <p className="text-sm text-muted-foreground mt-2">{currentDate}</p>
+        <span className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20 mt-3">
           Scenario: {scenarioName}
         </span>
       </div>
 
       {/* Table of Contents */}
-      <div className="py-6 border-b">
-        <h2 className="text-lg font-semibold mb-3">Table of Contents</h2>
-        <ol className="list-decimal list-inside space-y-1 text-sm">
+      <div className="py-8 border-b">
+        <h2 className="text-lg font-semibold mb-4">Table of Contents</h2>
+        <ol className="list-decimal list-inside space-y-2 text-sm">
           {enabledSections.map((slug, i) => (
             <li key={slug}>
-              <a href={`#section-${i + 1}`} className="text-blue-600 hover:underline">
+              <a href={`#section-${i + 1}`} className="text-primary hover:underline hover:text-primary/80 transition-colors">
                 {SECTION_LABELS[slug]}
               </a>
             </li>
@@ -408,13 +416,13 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
               {productService.packages.map((pkg, i) => (
                 <div key={i} className="border rounded-lg p-4">
                   <h4 className="font-semibold text-sm">{pkg.name}</h4>
-                  <p className="text-lg font-bold text-blue-600">{formatCurrency(pkg.price, currencyCode)}</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(pkg.price, currencyCode)}</p>
                   <p className="text-xs text-muted-foreground">{pkg.duration} | Up to {pkg.maxParticipants} guests</p>
                   <p className="text-xs mt-2">{pkg.description}</p>
                   <ul className="text-xs mt-2 space-y-0.5">
                     {pkg.includes.map((item, j) => (
                       <li key={j} className="flex items-start gap-1">
-                        <span className="text-green-600 mt-0.5">*</span>
+                        <span className="text-emerald-600 mt-0.5">*</span>
                         {item}
                       </li>
                     ))}
@@ -428,7 +436,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Add-Ons</h3>
                 <ul className="text-sm space-y-0.5">
                   {productService.addOns.map((a, i) => (
-                    <li key={i}>{a.name} — {formatCurrency(a.price, currencyCode)}</li>
+                    <li key={i}>{a.name} -- {formatCurrency(a.price, currencyCode)}</li>
                   ))}
                 </ul>
               </div>
@@ -472,7 +480,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Landing Page</h3>
                 {marketingStrategy.landingPage.url && (
-                  <p className="text-sm text-blue-600">{marketingStrategy.landingPage.url}</p>
+                  <p className="text-sm text-primary">{marketingStrategy.landingPage.url}</p>
                 )}
                 <p className="text-sm">{marketingStrategy.landingPage.description}</p>
               </div>
@@ -501,8 +509,8 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                     {operations.crew.map((m, i) => (
                       <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
                         <td className="py-2 px-3 border-b font-medium">{m.role}</td>
-                        <td className="py-2 px-3 border-b text-right">${m.hourlyRate}/hr</td>
-                        <td className="py-2 px-3 border-b text-right">{m.count}</td>
+                        <td className="py-2 px-3 border-b text-right tabular-nums">${m.hourlyRate}/hr</td>
+                        <td className="py-2 px-3 border-b text-right tabular-nums">{m.count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -513,15 +521,15 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
             <div className="grid grid-cols-3 gap-4">
               <div className="border rounded-lg p-3 text-center">
                 <p className="text-xs text-muted-foreground">Daily Capacity</p>
-                <p className="text-lg font-bold">{operations.capacity.maxBookingsPerDay}</p>
+                <p className="text-lg font-bold tabular-nums">{operations.capacity.maxBookingsPerDay}</p>
               </div>
               <div className="border rounded-lg p-3 text-center">
                 <p className="text-xs text-muted-foreground">Weekly Capacity</p>
-                <p className="text-lg font-bold">{operations.capacity.maxBookingsPerWeek}</p>
+                <p className="text-lg font-bold tabular-nums">{operations.capacity.maxBookingsPerWeek}</p>
               </div>
               <div className="border rounded-lg p-3 text-center">
                 <p className="text-xs text-muted-foreground">Monthly Capacity</p>
-                <p className="text-lg font-bold">{operations.capacity.maxBookingsPerMonth}</p>
+                <p className="text-lg font-bold tabular-nums">{operations.capacity.maxBookingsPerMonth}</p>
               </div>
             </div>
 
@@ -554,22 +562,17 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       {enabledSections.includes('financial-projections') && (
         <>
           <SectionHeader number={getSectionNumber('financial-projections')} title="Financial Projections" id={`section-${getSectionNumber('financial-projections')}`} />
-          <div className="space-y-4 py-4">
-            {/* Scenario KPI cards */}
+          <div className="space-y-6 py-4">
+            {/* Scenario KPI cards using StatCard pattern */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Key Metrics (Scenario: {scenarioName})</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Key Metrics (Scenario: {scenarioName})</h3>
+              <div className="stat-grid">
                 {primaryKpis.map((v) => (
-                  <div key={v.id} className="border rounded-lg p-3 text-center">
-                    <p className="text-xs text-muted-foreground">{v.label}</p>
-                    <p className="text-lg font-bold">
-                      {v.unit === 'currency'
-                        ? formatCurrency(evaluated[v.id] ?? 0, currencyCode)
-                        : v.unit === 'percent'
-                          ? `${((evaluated[v.id] ?? 0) * 100).toFixed(1)}%`
-                          : String(Math.round(evaluated[v.id] ?? 0))}
-                    </p>
-                  </div>
+                  <StatCard
+                    key={v.id}
+                    label={v.label}
+                    value={formatKpiValue(v)}
+                  />
                 ))}
               </div>
             </div>
@@ -584,7 +587,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                     .map((v) => (
                       <div key={v.id} className="flex justify-between border-b py-1">
                         <span className="text-muted-foreground">{v.label}</span>
-                        <span className="font-medium">
+                        <span className="font-medium tabular-nums">
                           {v.unit === 'currency'
                             ? formatCurrency(evaluated[v.id] ?? 0, currencyCode)
                             : v.unit === 'percent'
@@ -601,31 +604,19 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
             {(financials.unitEconomics.avgCheck > 0 || financials.unitEconomics.costPerEvent > 0) && (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Unit Economics</h3>
-                <div className="grid grid-cols-4 gap-3">
-                  <div className="border rounded-lg p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Avg Check</p>
-                    <p className="text-sm font-bold">{formatCurrency(financials.unitEconomics.avgCheck, currencyCode)}</p>
-                  </div>
-                  <div className="border rounded-lg p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Cost/Event</p>
-                    <p className="text-sm font-bold">{formatCurrency(financials.unitEconomics.costPerEvent, currencyCode)}</p>
-                  </div>
-                  <div className="border rounded-lg p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Profit/Event</p>
-                    <p className="text-sm font-bold">{formatCurrency(financials.unitEconomics.profitPerEvent, currencyCode)}</p>
-                  </div>
-                  <div className="border rounded-lg p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Break-Even</p>
-                    <p className="text-sm font-bold">{financials.unitEconomics.breakEvenEvents} events</p>
-                  </div>
+                <div className="stat-grid">
+                  <StatCard label="Avg Check" value={formatCurrency(financials.unitEconomics.avgCheck, currencyCode)} />
+                  <StatCard label="Cost/Event" value={formatCurrency(financials.unitEconomics.costPerEvent, currencyCode)} />
+                  <StatCard label="Profit/Event" value={formatCurrency(financials.unitEconomics.profitPerEvent, currencyCode)} />
+                  <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenEvents} events`} />
                 </div>
               </div>
             )}
 
             {/* Dynamic Financial Chart */}
             {chartVariables.length > 0 && (
-              <div ref={chartContainerRef}>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              <div className="card-elevated rounded-lg p-4" ref={chartContainerRef}>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                   12-Month Financial Projection
                 </h3>
                 <div className="h-[300px] w-full">
@@ -675,9 +666,9 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                         return (
                           <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
                             <td className="py-1.5 px-2 border-b font-medium">{m.month}</td>
-                            <td className="py-1.5 px-2 border-b text-right">{formatCurrency(m.revenue, currencyCode)}</td>
-                            <td className="py-1.5 px-2 border-b text-right">{formatCurrency(totalCosts, currencyCode)}</td>
-                            <td className={`py-1.5 px-2 border-b text-right font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <td className="py-1.5 px-2 border-b text-right tabular-nums">{formatCurrency(m.revenue, currencyCode)}</td>
+                            <td className="py-1.5 px-2 border-b text-right tabular-nums">{formatCurrency(totalCosts, currencyCode)}</td>
+                            <td className={`py-1.5 px-2 border-b text-right font-semibold tabular-nums ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                               {formatCurrency(profit, currencyCode)}
                             </td>
                           </tr>
@@ -696,89 +687,89 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       {enabledSections.includes('risks-due-diligence') && (
         <>
           <SectionHeader number={getSectionNumber('risks-due-diligence')} title="Risks & Due Diligence" id={`section-${getSectionNumber('risks-due-diligence')}`} />
-      <div className="space-y-4 py-4">
-        {/* Investment Verdict Banner */}
-        {risks.investmentVerdict && (
-          <div className={`border-l-4 rounded-lg p-4 ${verdictBorderColors[risks.investmentVerdict.verdict]}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-sm font-semibold">Investment Verdict:</h3>
-              <span className="font-bold text-sm">{verdictLabels[risks.investmentVerdict.verdict]}</span>
-            </div>
-            {risks.investmentVerdict.conditions.length > 0 && (
+          <div className="space-y-4 py-4">
+            {/* Investment Verdict Banner */}
+            {risks.investmentVerdict && (
+              <div className={`border-l-4 rounded-lg p-4 ${verdictBorderColors[risks.investmentVerdict.verdict]}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-sm font-semibold">Investment Verdict:</h3>
+                  <span className="font-bold text-sm">{verdictLabels[risks.investmentVerdict.verdict]}</span>
+                </div>
+                {risks.investmentVerdict.conditions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Conditions</p>
+                    <ol className="list-decimal list-inside text-xs space-y-0.5">
+                      {risks.investmentVerdict.conditions.map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Risk Assessment */}
+            {risks.risks.length > 0 ? (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Risk Assessment</h3>
+                {risks.risks.map((risk, i) => (
+                  <div key={i} className={`border rounded-lg p-4 ${risk.severity === 'critical' ? 'border-l-4 border-l-red-500' : ''}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyles[risk.severity]}`}>
+                        {risk.severity}
+                      </span>
+                      <span className="text-xs text-muted-foreground capitalize">{risk.category}</span>
+                    </div>
+                    <h4 className="font-semibold text-sm">{risk.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-1">{risk.description}</p>
+                    <p className="text-xs mt-1"><span className="font-medium">Mitigation:</span> {risk.mitigation}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyPlaceholder section="Risks" />
+            )}
+
+            {/* Due Diligence Checklist */}
+            {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Conditions</p>
-                <ol className="list-decimal list-inside text-xs space-y-0.5">
-                  {risks.investmentVerdict.conditions.map((c, i) => (
-                    <li key={i}>{c}</li>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Due Diligence Checklist</h3>
+                <div className="space-y-2">
+                  {risks.dueDiligenceChecklist.map((item, i) => (
+                    <div key={i} className="border rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${priorityStyles[item.priority]}`}>
+                          {item.priority}
+                        </span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${complianceStatusStyles[item.status]}`}>
+                          {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
+                        </span>
+                      </div>
+                      <h4 className="font-medium text-sm">{item.item}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                    </div>
                   ))}
-                </ol>
+                </div>
+              </div>
+            )}
+
+            {/* Compliance Checklist */}
+            {risks.complianceChecklist.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Compliance Checklist</h3>
+                <div className="space-y-1">
+                  {risks.complianceChecklist.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 py-1">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${complianceStatusStyles[item.status]}`}>
+                        {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
+                      </span>
+                      <span className="text-sm">{item.item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        )}
-
-        {/* Risk Assessment */}
-        {risks.risks.length > 0 ? (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Risk Assessment</h3>
-            {risks.risks.map((risk, i) => (
-              <div key={i} className={`border rounded-lg p-4 ${risk.severity === 'critical' ? 'border-l-4 border-l-red-500' : ''}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyles[risk.severity]}`}>
-                    {risk.severity}
-                  </span>
-                  <span className="text-xs text-muted-foreground capitalize">{risk.category}</span>
-                </div>
-                <h4 className="font-semibold text-sm">{risk.title}</h4>
-                <p className="text-xs text-muted-foreground mt-1">{risk.description}</p>
-                <p className="text-xs mt-1"><span className="font-medium">Mitigation:</span> {risk.mitigation}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyPlaceholder section="Risks" />
-        )}
-
-        {/* Due Diligence Checklist */}
-        {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Due Diligence Checklist</h3>
-            <div className="space-y-2">
-              {risks.dueDiligenceChecklist.map((item, i) => (
-                <div key={i} className="border rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${priorityStyles[item.priority]}`}>
-                      {item.priority}
-                    </span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${complianceStatusStyles[item.status]}`}>
-                      {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
-                    </span>
-                  </div>
-                  <h4 className="font-medium text-sm">{item.item}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Compliance Checklist */}
-        {risks.complianceChecklist.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Compliance Checklist</h3>
-            <div className="space-y-1">
-              {risks.complianceChecklist.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 py-1">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${complianceStatusStyles[item.status]}`}>
-                    {item.status === 'not-started' ? 'Not Started' : item.status === 'pending' ? 'Pending' : 'Complete'}
-                  </span>
-                  <span className="text-sm">{item.item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
         </>
       )}
 
@@ -788,31 +779,13 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
           <SectionHeader number={getSectionNumber('kpis-metrics')} title="KPIs & Metrics" id={`section-${getSectionNumber('kpis-metrics')}`} />
           <div className="space-y-4 py-4">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Target Metrics</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Monthly Leads</p>
-                <p className="text-lg font-bold">{kpis.targets.monthlyLeads}</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Conversion Rate</p>
-                <p className="text-lg font-bold">{(kpis.targets.conversionRate * 100).toFixed(0)}%</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Average Check</p>
-                <p className="text-lg font-bold">{formatCurrency(kpis.targets.avgCheck, currencyCode)}</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">CAC/Lead</p>
-                <p className="text-lg font-bold">{formatCurrency(kpis.targets.cacPerLead, currencyCode)}</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">CAC/Booking</p>
-                <p className="text-lg font-bold">{formatCurrency(kpis.targets.cacPerBooking, currencyCode)}</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Monthly Bookings</p>
-                <p className="text-lg font-bold">{kpis.targets.monthlyBookings}</p>
-              </div>
+            <div className="stat-grid">
+              <StatCard label="Monthly Leads" value={String(kpis.targets.monthlyLeads)} />
+              <StatCard label="Conversion Rate" value={`${(kpis.targets.conversionRate * 100).toFixed(0)}%`} />
+              <StatCard label="Average Check" value={formatCurrency(kpis.targets.avgCheck, currencyCode)} />
+              <StatCard label="CAC/Lead" value={formatCurrency(kpis.targets.cacPerLead, currencyCode)} />
+              <StatCard label="CAC/Booking" value={formatCurrency(kpis.targets.cacPerBooking, currencyCode)} />
+              <StatCard label="Monthly Bookings" value={String(kpis.targets.monthlyBookings)} />
             </div>
           </div>
         </>
@@ -823,47 +796,47 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
         <>
           <SectionHeader number={getSectionNumber('launch-plan')} title="Launch Plan" id={`section-${getSectionNumber('launch-plan')}`} />
           <div className="space-y-4 py-4">
-        {launchPlan.stages.length > 0 ? (
-          <div className="relative">
-            {launchPlan.stages.length > 1 && (
-              <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-border" />
-            )}
-            <div className="space-y-4">
-              {launchPlan.stages.map((stage, i) => (
-                <div key={i} className="relative pl-10">
-                  <div className="absolute left-1.5 top-1 size-3 rounded-full border-2 border-blue-500 bg-background" />
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-sm">{stage.name}</h4>
-                      <span className="text-xs text-muted-foreground">
-                        {stage.startDate} — {stage.endDate}
-                      </span>
-                    </div>
-                    <div className="space-y-1 mt-2">
-                      {stage.tasks.map((t, j) => (
-                        <div key={j} className="flex items-center gap-2">
-                          <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${taskStatusStyles[t.status]}`}>
-                            {taskStatusLabels[t.status]}
+            {launchPlan.stages.length > 0 ? (
+              <div className="relative">
+                {launchPlan.stages.length > 1 && (
+                  <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-border" />
+                )}
+                <div className="space-y-4">
+                  {launchPlan.stages.map((stage, i) => (
+                    <div key={i} className="relative pl-10">
+                      <div className="absolute left-1.5 top-1 size-3 rounded-full border-2 border-primary bg-background" />
+                      <div className="border rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-sm">{stage.name}</h4>
+                          <span className="text-xs text-muted-foreground">
+                            {stage.startDate} -- {stage.endDate}
                           </span>
-                          <span className="text-xs">{t.task}</span>
                         </div>
-                      ))}
+                        <div className="space-y-1 mt-2">
+                          {stage.tasks.map((t, j) => (
+                            <div key={j} className="flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${taskStatusStyles[t.status]}`}>
+                                {taskStatusLabels[t.status]}
+                              </span>
+                              <span className="text-xs">{t.task}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <EmptyPlaceholder section="Launch Plan" />
+            )}
           </div>
-        ) : (
-          <EmptyPlaceholder section="Launch Plan" />
-        )}
-      </div>
         </>
       )}
 
       {/* Footer */}
-      <div className="text-center pt-8 border-t mt-8">
-        <p className="text-xs text-muted-foreground">
+      <div className="border-t mt-10 pt-6">
+        <p className="text-xs text-muted-foreground text-center">
           {business?.profile.name || 'Business Plan'} | Generated on {currentDate} | Scenario: {scenarioName}
         </p>
       </div>

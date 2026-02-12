@@ -34,9 +34,9 @@ export function AiActionBar({
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
-              <Button variant="outline" size="sm" disabled>
-                <Sparkles className="size-4" />
-                Ask AI
+              <Button variant="outline" size="sm" disabled className="h-8">
+                <Sparkles className="size-3.5" />
+                AI
               </Button>
             </span>
           </TooltipTrigger>
@@ -50,8 +50,8 @@ export function AiActionBar({
 
   if (isLoading) {
     return (
-      <Button variant="outline" size="sm" disabled>
-        <Loader2 className="size-4 animate-spin" />
+      <Button variant="outline" size="sm" disabled className="h-8">
+        <Loader2 className="size-3.5 animate-spin" />
         Generating...
       </Button>
     );
@@ -60,32 +60,32 @@ export function AiActionBar({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Sparkles className="size-4" />
-          Ask AI
+        <Button variant="outline" size="sm" className="h-8">
+          <Sparkles className="size-3.5" />
+          AI
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem onClick={onGenerate}>
           <Wand2 className="size-4" />
-          Generate
-          <span className="ml-auto text-xs text-muted-foreground">
-            Fill from scratch
-          </span>
+          <div className="flex flex-col">
+            <span>Generate</span>
+            <span className="text-xs text-muted-foreground">Fill from scratch</span>
+          </div>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onImprove}>
           <ArrowUpCircle className="size-4" />
-          Improve
-          <span className="ml-auto text-xs text-muted-foreground">
-            Enhance existing
-          </span>
+          <div className="flex flex-col">
+            <span>Improve</span>
+            <span className="text-xs text-muted-foreground">Enhance existing</span>
+          </div>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onExpand}>
           <Expand className="size-4" />
-          Expand
-          <span className="ml-auto text-xs text-muted-foreground">
-            Add more detail
-          </span>
+          <div className="flex flex-col">
+            <span>Expand</span>
+            <span className="text-xs text-muted-foreground">Add more detail</span>
+          </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
