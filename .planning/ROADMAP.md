@@ -156,11 +156,15 @@ Plans:
 **Goal**: End-to-end verification of the full multi-business flow. Fix edge cases, improve error handling, UI polish.
 **Depends on**: All previous phases
 **Research**: Unlikely (verification and polish)
-**Plans**: 2 plans
+**Plans**: 6 plans
 
 Plans:
-- [ ] 12-01: End-to-end flow verification (create business → configure → scenario modeling → AI generation → export)
-- [ ] 12-02: UI polish and edge cases (empty states, loading states, error handling, offline behavior)
+- [ ] 12-01: Design system foundation — global CSS tokens, reusable PageHeader/EmptyState/StatCard components
+- [ ] 12-02: Auth & business management polish — premium login, polished business cards, refined create flow
+- [ ] 12-03: Dashboard & navigation polish — KPI cards, chart framing, sidebar refinement, layout shell
+- [ ] 12-04: Section editors part 1 — Executive Summary, Market Analysis, Product/Service, Marketing Strategy
+- [ ] 12-05: Section editors part 2 — Operations, Financial Projections, Risks, KPIs, Launch Plan
+- [ ] 12-06: Scenario engine & export polish — scenario modeling tool, business plan view, AI components
 
 ## Progress
 
@@ -183,4 +187,4 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
 | 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
 | 11. Export Updates | 2/2 | Complete | 2026-02-12 |
-| 12. Integration & Polish | 0/2 | Not started | - |
+| 12. Integration & Polish | 0/6 | Not started | - |
