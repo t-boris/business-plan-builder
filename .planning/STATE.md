@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 4 of 12 (Strip Hardcoded Content)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-12 — Completed 04-01-PLAN.md
+Last activity: 2026-02-12 — Completed 04-02-PLAN.md
 
-Progress: ███░░░░░░░ 33%
+Progress: ████░░░░░░ 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 3 min
-- Total execution time: 26 min
+- Total execution time: 32 min
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: ███░░░░░░░ 33%
 | 03-dynamic-business-context | 2/2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (5 min), 02-05 (1 min), 03-01 (3 min), 03-02 (3 min), 04-01 (5 min)
+- Last 5 plans: 02-05 (1 min), 03-01 (3 min), 03-02 (3 min), 04-01 (5 min), 04-02 (6 min)
 - Trend: Consistent
 
 ## Accumulated Context
@@ -67,6 +67,10 @@ Progress: ███░░░░░░░ 33%
 | 04-01 | Zeroed all DEFAULT_SCENARIO_VARIABLES | Per-business population deferred to Phase 7 |
 | 04-01 | MONTHLY_FIXED_COSTS set to 0, formula preserved | Phase 7 will make dynamic |
 | 04-01 | CostBreakdownSchema descriptions genericized | Removed business-specific descriptions (craft/slime, museum) |
+| 04-02 | generateMonthsFromCoefficients fully parameterized | No module-level cost constants; all values passed as arguments |
+| 04-02 | Break-even uses first month's overhead as proxy | Data-driven; falls back to 0 if no months exist |
+| 04-02 | Operations cost breakdown defaults all zeroed | Form structure preserved; empty state shows zeros |
+| 04-02 | "Venue / Tickets" replaces "Museum Tickets" | Generic label for operations cost category |
 
 ### Deferred Issues
 
@@ -79,5 +83,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 04-01-PLAN.md
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
