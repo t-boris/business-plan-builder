@@ -1,11 +1,13 @@
-import { Link } from 'react-router';
+import { useMemo } from 'react';
+import { Link, useParams } from 'react-router';
 import { useAtomValue } from 'jotai';
 import { scenarioNameAtom } from '@/store/scenario-atoms.ts';
 import { evaluatedValuesAtom } from '@/store/derived-atoms.ts';
-import { businessVariablesAtom } from '@/store/business-atoms.ts';
+import { businessVariablesAtom, activeBusinessAtom } from '@/store/business-atoms.ts';
 import type { VariableUnit } from '@/types';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   AreaChart,
   Area,
@@ -28,12 +30,47 @@ import {
   Rocket,
 } from 'lucide-react';
 
+// --- Unit priority for smart KPI ordering ---
+
+const unitPriority: Record<VariableUnit, number> = {
+  currency: 0,
+  percent: 1,
+  ratio: 2,
+  count: 3,
+  months: 4,
+  days: 5,
+  hours: 6,
+};
+
+// --- Semantic chart color palette ---
+
+const CHART_COLORS = {
+  revenue: '#22c55e',
+  cost: '#f97316',
+  profit: '#3b82f6',
+  default: '#64748b',
+} as const;
+
+function getChartColor(label: string): string {
+  const lower = label.toLowerCase();
+  if (lower.includes('revenue') || lower.includes('income') || lower.includes('sales')) {
+    return CHART_COLORS.revenue;
+  }
+  if (lower.includes('cost') || lower.includes('expense') || lower.includes('spend')) {
+    return CHART_COLORS.cost;
+  }
+  if (lower.includes('profit') || lower.includes('net') || lower.includes('margin')) {
+    return CHART_COLORS.profit;
+  }
+  return CHART_COLORS.default;
+}
+
 // --- Formatting helpers ---
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, currencyCode: string = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currencyCode,
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -42,8 +79,8 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function formatValue(value: number, unit: VariableUnit): string {
-  if (unit === 'currency') return formatCurrency(value);
+function formatValue(value: number, unit: VariableUnit, currencyCode: string = 'USD'): string {
+  if (unit === 'currency') return formatCurrency(value, currencyCode);
   if (unit === 'percent') return formatPercent(value);
   if (unit === 'ratio') return value.toFixed(2);
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
@@ -153,47 +190,59 @@ const SECTION_LINKS = [
 // --- Main Dashboard Component ---
 
 export function Dashboard() {
+  const { businessId } = useParams<{ businessId: string }>();
   const scenarioName = useAtomValue(scenarioNameAtom);
   const definitions = useAtomValue(businessVariablesAtom);
   const evaluated = useAtomValue(evaluatedValuesAtom);
+  const business = useAtomValue(activeBusinessAtom);
 
-  // Get computed variables for KPI cards
-  const computedVariables = definitions
-    ? Object.values(definitions).filter((v) => v.type === 'computed')
-    : [];
+  const currencyCode = business?.profile.currency ?? 'USD';
 
-  const primaryKpis = computedVariables.slice(0, 4);
-  const secondaryKpis = computedVariables.slice(4, 8);
+  // Get computed variables for KPI cards, sorted by unit priority
+  const sortedComputed = useMemo(() => {
+    if (!definitions) return [];
+    const computed = Object.values(definitions).filter((v) => v.type === 'computed');
+    return [...computed].sort(
+      (a, b) => (unitPriority[a.unit] ?? 99) - (unitPriority[b.unit] ?? 99)
+    );
+  }, [definitions]);
 
-  // Find monthly revenue and monthly costs for chart
-  const allVariables = definitions ? Object.values(definitions) : [];
-  const revenueVar = allVariables.find(
-    (v) => v.id === 'monthly_revenue' || v.label.toLowerCase() === 'monthly revenue'
-  );
-  const costsVar = allVariables.find(
-    (v) => v.id === 'monthly_costs' || v.label.toLowerCase() === 'monthly costs'
-  );
+  const primaryKpis = sortedComputed.slice(0, 4);
+  const secondaryKpis = sortedComputed.slice(4, 8);
 
-  const monthlyRevenue = revenueVar ? (evaluated[revenueVar.id] ?? 0) : null;
-  const monthlyCosts = costsVar ? (evaluated[costsVar.id] ?? 0) : null;
+  // Dynamic chart series: find currency-type variables for charting
+  const chartSeries = useMemo(() => {
+    if (!definitions) return [];
+    const allVars = Object.values(definitions);
+    const currencyVars = allVars.filter((v) => v.unit === 'currency');
+    return currencyVars.slice(0, 3).map((v) => ({
+      id: v.id,
+      label: v.label,
+      color: getChartColor(v.label),
+    }));
+  }, [definitions]);
+
+  const showChart = chartSeries.length > 0;
 
   // 12-month flat projection data
   const monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
-  const showChart = monthlyRevenue !== null || monthlyCosts !== null;
-  const projectionData = showChart
-    ? monthNames.map((month) => {
-        const data: Record<string, unknown> = { month };
-        if (monthlyRevenue !== null) data.Revenue = Math.round(monthlyRevenue);
-        if (monthlyCosts !== null) data.Costs = Math.round(monthlyCosts);
-        if (monthlyRevenue !== null && monthlyCosts !== null) {
-          data.Profit = Math.round(monthlyRevenue) - Math.round(monthlyCosts);
-        }
-        return data;
-      })
-    : [];
+
+  const projectionData = useMemo(() => {
+    if (!showChart) return [];
+    return monthNames.map((month) => {
+      const data: Record<string, unknown> = { month };
+      for (const series of chartSeries) {
+        data[series.label] = Math.round(evaluated[series.id] ?? 0);
+      }
+      return data;
+    });
+  }, [showChart, chartSeries, evaluated]);
+
+  // Empty state: no computed variables
+  const hasNoVariables = !definitions || sortedComputed.length === 0;
 
   return (
     <div className="space-y-6">
@@ -208,6 +257,22 @@ export function Dashboard() {
         </Link>
       </div>
 
+      {/* Empty state */}
+      {hasNoVariables && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground">
+              No scenario variables configured yet.
+            </p>
+            <Button variant="link" asChild>
+              <Link to={`/business/${businessId}/scenarios`}>
+                Configure Scenarios
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPI Summary Cards - Primary row */}
       {primaryKpis.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -217,7 +282,7 @@ export function Dashboard() {
               <KpiCard
                 key={variable.id}
                 label={variable.label}
-                value={formatValue(value, variable.unit)}
+                value={formatValue(value, variable.unit, currencyCode)}
                 colorClass={getSemanticColor(variable.label, value)}
               />
             );
@@ -234,7 +299,7 @@ export function Dashboard() {
               <KpiCard
                 key={variable.id}
                 label={variable.label}
-                value={formatValue(value, variable.unit)}
+                value={formatValue(value, variable.unit, currencyCode)}
                 colorClass={getSemanticColor(variable.label, value)}
                 size="sm"
               />
@@ -243,12 +308,12 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Revenue Projection Chart */}
+      {/* 12-Month Financial Projection Chart */}
       {showChart && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">
-              12-Month Revenue Projection
+              12-Month Financial Projection
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -261,38 +326,19 @@ export function Dashboard() {
                     tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
                     tick={{ fontSize: 11 }}
                   />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value), currencyCode)} />
                   <Legend />
-                  {monthlyRevenue !== null && (
+                  {chartSeries.map((series) => (
                     <Area
+                      key={series.id}
                       type="monotone"
-                      dataKey="Revenue"
-                      stroke="#22c55e"
-                      fill="#22c55e"
+                      dataKey={series.label}
+                      stroke={series.color}
+                      fill={series.color}
                       fillOpacity={0.15}
                       strokeWidth={2}
                     />
-                  )}
-                  {monthlyCosts !== null && (
-                    <Area
-                      type="monotone"
-                      dataKey="Costs"
-                      stroke="#f97316"
-                      fill="#f97316"
-                      fillOpacity={0.1}
-                      strokeWidth={2}
-                    />
-                  )}
-                  {monthlyRevenue !== null && monthlyCosts !== null && (
-                    <Area
-                      type="monotone"
-                      dataKey="Profit"
-                      stroke="#3b82f6"
-                      fill="#3b82f6"
-                      fillOpacity={0.1}
-                      strokeWidth={2}
-                    />
-                  )}
+                  ))}
                 </AreaChart>
               </ResponsiveContainer>
             </div>
