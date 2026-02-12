@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Phase 7 complete -- ready for Phase 8
+**Current focus:** Phase 8 in progress -- business-aware AI infrastructure
 
 ## Current Position
 
-Phase: 7 of 12 (Generic Scenario Engine)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-02-12 -- Completed 07-04-PLAN.md
+Phase: 8 of 12 (Business-Aware AI)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-12 -- Completed 08-01-PLAN.md
 
-Progress: ███████░░░ 69%
+Progress: ███████░░░ 72%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
+- Total plans completed: 23
 - Average duration: 3 min
-- Total execution time: 64 min
+- Total execution time: 66 min
 
 **By Phase:**
 
@@ -34,10 +34,11 @@ Progress: ███████░░░ 69%
 | 05-business-profile-section-config | 2/2 | 3 min | 2 min |
 | 06-variable-library | 4/4 | 9 min | 2 min |
 | 07-generic-scenario-engine | 4/4 | 12 min | 3 min |
+| 08-business-aware-ai | 1/2 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-01 (2 min), 07-02 (2 min), 07-03 (2 min), 07-04 (6 min)
-- Trend: Consistent, 07-04 larger due to cleanup scope
+- Last 5 plans: 07-02 (2 min), 07-03 (2 min), 07-04 (6 min), 08-01 (2 min)
+- Trend: Consistent execution velocity
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Progress: ███████░░░ 69%
 | 07-04 | Dashboard primary/secondary KPIs from first 4/next 4 computed vars | Simple slicing provides consistent layout without hardcoded names |
 | 07-04 | Export and AI migrated to evaluatedValuesAtom during cleanup | Prevents leaving dead references; completes migration in one pass |
 | 07-04 | context-builder accepts Record<string, number> | Generic type replaces hardcoded ComputedMetrics interface |
+| 08-01 | Backwards-compatible SYSTEM_INSTRUCTION via buildSystemPrompt with empty custom profile | Prevents consumer breaks before 08-02 wires real BusinessProfile |
+| 08-01 | buildPrompt profile parameter is BusinessProfile or null | Graceful fallback during transition; null returns "Business profile not configured" |
+| 08-01 | Metric formatting by VariableUnit: currency->$, percent->*100+%, count->rounded | Human-readable values in AI prompts instead of raw numbers |
 
 ### Deferred Issues
 
@@ -117,5 +121,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 07-04-PLAN.md (Phase 7 complete)
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None

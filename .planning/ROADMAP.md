@@ -118,7 +118,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: Dynamic system prompt builder (construct prompt from business profile, active variables, scenario data)
+- [x] 08-01: Dynamic system prompt builder (construct prompt from business profile, active variables, scenario data)
 - [ ] 08-02: Section prompt adaptation (section-specific prompts that reference business context and relevant variables)
 
 ### Phase 9: Sharing & Access
@@ -179,7 +179,7 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
 | 6. Variable Library | 4/4 | Complete | 2026-02-12 |
 | 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
-| 8. Business-Aware AI | 0/2 | Not started | - |
+| 8. Business-Aware AI | 1/2 | In progress | - |
 | 9. Sharing & Access | 0/2 | Not started | - |
 | 10. Dashboard & Navigation | 0/2 | Not started | - |
 | 11. Export Updates | 0/2 | Not started | - |
