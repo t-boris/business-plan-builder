@@ -22,13 +22,18 @@ const MarketAnalysisSchema = z.object({
     ageRange: z.string(),
     location: z.string(),
     radius: z.number(),
+    zipCodes: z.array(z.string()),
   }),
   marketSize: z.string(),
+  tamDollars: z.number(),
+  targetMarketShare: z.string(),
   competitors: z.array(CompetitorSchema),
   demographics: z.object({
     population: z.number(),
     languages: z.array(z.string()),
     income: z.string(),
+    householdsWithKids: z.number(),
+    annualTourists: z.number(),
   }),
 });
 
@@ -75,8 +80,42 @@ const CrewMemberSchema = z.object({
   count: z.number(),
 });
 
+const CostBreakdownSchema = z.object({
+  suppliesPerChild: z.number().describe('Cost of supplies/materials per participant'),
+  participantsPerEvent: z.number().describe('Number of participants per event'),
+  museumTicketPrice: z.number().describe('Venue/ticket cost per person'),
+  ticketsPerEvent: z.number().describe('Number of venue tickets per event'),
+  fuelPricePerGallon: z.number().describe('Current gas price per gallon'),
+  vehicleMPG: z.number().describe('Vehicle fuel efficiency in miles per gallon'),
+  avgRoundTripMiles: z.number().describe('Average round trip miles per event'),
+  parkingPerEvent: z.number().describe('Parking cost per event'),
+  ownerSalary: z.number().describe('Monthly owner/founder salary'),
+  marketingPerson: z.number().describe('Monthly marketing/social media manager salary'),
+  eventCoordinator: z.number().describe('Monthly event coordinator/sales salary'),
+  vehiclePayment: z.number().describe('Monthly vehicle loan/lease payment'),
+  vehicleInsurance: z.number().describe('Monthly vehicle insurance'),
+  vehicleMaintenance: z.number().describe('Monthly maintenance reserve'),
+  crmSoftware: z.number().describe('Monthly CRM and booking platform'),
+  websiteHosting: z.number().describe('Monthly website hosting and domain'),
+  aiChatbot: z.number().describe('Monthly AI chatbot API costs (Gemini, Instagram bot)'),
+  cloudServices: z.number().describe('Monthly cloud services (Firebase, storage)'),
+  phonePlan: z.number().describe('Monthly business phone plan'),
+  contentCreation: z.number().describe('Monthly content creation (video, photo) costs'),
+  graphicDesign: z.number().describe('Monthly graphic design costs'),
+  storageRent: z.number().describe('Monthly storage/warehouse rent'),
+  equipmentAmortization: z.number().describe('Monthly equipment depreciation'),
+  businessLicenses: z.number().describe('Monthly amortized business license cost'),
+  miscFixed: z.number().describe('Monthly miscellaneous/buffer costs'),
+  customExpenses: z.array(z.object({
+    name: z.string().describe('Expense name'),
+    amount: z.number().describe('Dollar amount'),
+    type: z.enum(['per-event', 'monthly']).describe('Whether this is a per-event or monthly cost'),
+  })).describe('Additional custom expenses'),
+});
+
 const OperationsSchema = z.object({
   crew: z.array(CrewMemberSchema),
+  hoursPerEvent: z.number().describe('Average hours crew works per event'),
   capacity: z.object({
     maxBookingsPerDay: z.number(),
     maxBookingsPerWeek: z.number(),
@@ -85,13 +124,14 @@ const OperationsSchema = z.object({
   travelRadius: z.number(),
   equipment: z.array(z.string()),
   safetyProtocols: z.array(z.string()),
+  costBreakdown: CostBreakdownSchema,
 });
 
 const RiskSchema = z.object({
-  category: z.enum(['regulatory', 'operational', 'financial', 'legal']),
+  category: z.enum(['regulatory', 'operational', 'financial', 'legal', 'safety', 'dependency', 'capacity', 'market']),
   title: z.string(),
   description: z.string(),
-  severity: z.enum(['high', 'medium', 'low']),
+  severity: z.enum(['critical', 'high', 'medium', 'low']),
   mitigation: z.string(),
 });
 
@@ -100,9 +140,23 @@ const ComplianceItemSchema = z.object({
   status: z.enum(['complete', 'pending', 'not-started']),
 });
 
+const DueDiligenceItemSchema = z.object({
+  item: z.string().describe('Due diligence item title'),
+  detail: z.string().describe('Detailed description or findings'),
+  priority: z.enum(['required', 'advised']).describe('Whether this is required before launch or advised'),
+  status: z.enum(['complete', 'pending', 'not-started']).describe('Current status'),
+});
+
+const InvestmentVerdictSchema = z.object({
+  verdict: z.enum(['strong-go', 'conditional-go', 'proceed-with-caution', 'defer', 'no-go']).describe('Overall investment verdict'),
+  conditions: z.array(z.string()).describe('Conditions or requirements that must be met'),
+});
+
 const RisksDueDiligenceSchema = z.object({
   risks: z.array(RiskSchema),
   complianceChecklist: z.array(ComplianceItemSchema),
+  investmentVerdict: InvestmentVerdictSchema.optional().describe('Overall investment verdict summary'),
+  dueDiligenceChecklist: z.array(DueDiligenceItemSchema).optional().describe('Detailed due diligence checklist items'),
 });
 
 const KpiTargetsSchema = z.object({
@@ -204,7 +258,7 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   'market-analysis': {
     generate:
-      'Generate market analysis for Fun Box. Include target demographic (age range, location, radius), market size estimate (TAM/SAM/SOM for Miami mobile kids entertainment), competitor analysis (3-5 competitors with pricing, strengths, weaknesses), and demographics (population, languages, income). Use Miami-Dade data: population ~2.7M, 75.3% non-English speakers at home.',
+      'Generate market analysis for the business. Include target demographic (age range, location, radius), market size estimate (TAM/SAM/SOM), competitor analysis (3-5 competitors with pricing, strengths, weaknesses), and demographics (population, languages, income, relevant household data). Use the business context and location data provided.',
     improve:
       'Improve the existing market analysis. Keep all current data, enhance competitor analysis, add more specific market sizing data, and strengthen demographic insights.',
     expand:
@@ -212,7 +266,7 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   'product-service': {
     generate:
-      'Generate product and service descriptions for Fun Box. Include three packages (Ocean Starter $800, Ocean Explorer $980, Ocean VIP $1,200) with duration, max participants (15), includes list, and descriptions. Also suggest 3-5 relevant add-ons with prices.',
+      'Generate product and service descriptions. Include packages with pricing, duration, max participants, includes list, and descriptions. Suggest 3-5 add-ons with prices.',
     improve:
       'Improve the existing product descriptions. Keep all current data, enhance package descriptions to be more compelling, and refine add-on offerings.',
     expand:
@@ -220,7 +274,7 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   'marketing-strategy': {
     generate:
-      'Generate a marketing strategy for Fun Box. Include channels (Meta Ads, Google Ads, Organic Social, Partnerships) with budgets, expected leads, CAC, descriptions, and tactics. Add 4-6 promotional offers, and landing page description. Total monthly ad spend should align with scenario metrics.',
+      'Generate marketing strategy. Include marketing channels with budgets, expected leads, CAC, descriptions, and tactics. Add promotional offers and landing page description. Total monthly ad spend should align with scenario metrics.',
     improve:
       'Improve the existing marketing strategy. Keep all current data, enhance channel descriptions, refine tactics, and strengthen promotional offers.',
     expand:
@@ -228,11 +282,11 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   operations: {
     generate:
-      'Generate operations plan for Fun Box. Include crew members (roles, hourly rates, counts), capacity limits (per day/week/month), travel radius, equipment list, and safety protocols. Factor in Miami-specific considerations (heat, outdoor events, bilingual requirements).',
+      'Generate operations plan. Include staff/crew (roles, hourly rates, counts), hoursPerEvent, capacity limits (per day/week/month), travel radius, equipment list, safety protocols, and full costBreakdown with realistic estimates for the business location.',
     improve:
-      'Improve the existing operations plan. Keep all current data, enhance safety protocols, refine capacity planning, and add operational detail.',
+      'Improve the existing operations plan. Keep all current data, refine cost estimates to be more realistic for the business\'s market, enhance safety protocols, and optimize capacity planning.',
     expand:
-      'Expand the existing operations plan with more detail. Keep all current data, add more equipment items, elaborate on safety protocols, and add operational procedures.',
+      'Expand the existing operations plan with more detail. Keep all current data, add more equipment items, elaborate on safety protocols, refine cost breakdown with more precise estimates.',
   },
   'financial-projections': {
     generate:
@@ -240,19 +294,19 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
     improve:
       'Improve the existing financial narrative. Keep all factual numbers unchanged. Enhance the analysis, add insights about cost optimization, and strengthen the profitability narrative.',
     expand:
-      'Expand the existing financial narrative with more detail. Keep all numbers unchanged. Add deeper analysis of margins, unit economics commentary, and seasonal considerations for Miami market.',
+      'Expand the existing financial narrative with more detail. Keep all numbers unchanged. Add deeper analysis of margins, unit economics commentary, and seasonal considerations for the business\'s market.',
   },
   'risks-due-diligence': {
     generate:
-      'Generate risk assessment for Fun Box using deep research context: Miami-Dade parking regulations for large trailers, Jellyfish Museum contract dependency (opens Feb 2026), FTSA compliance for automated messaging, slime/chemical activity risks (documented dermatitis/burn risk), insurance requirements. Include compliance checklist items. Categorize risks as regulatory/operational/financial/legal with high/medium/low severity.',
+      'Generate investor-grade risk assessment and due diligence for the business. Include risks with categories (regulatory/operational/financial/legal/safety/dependency/capacity/market) and severity levels (critical/high/medium/low). Include investmentVerdict with verdict (strong-go/conditional-go/proceed-with-caution/defer/no-go) and conditions list. Include dueDiligenceChecklist with items (priority: required/advised, detail, status). Include complianceChecklist. Base all risks and due diligence items on the business context provided.',
     improve:
-      'Improve the existing risk assessment. Keep all current risks, enhance mitigation strategies, add more specific regulatory references, and strengthen compliance items.',
+      'Improve the existing risk assessment and due diligence. Keep all current risks, enhance mitigation strategies, add more specific regulatory references, strengthen due diligence items with more detail, and refine the investment verdict conditions.',
     expand:
-      'Expand the existing risk assessment with more detail. Keep all current risks, add more risks if relevant, elaborate on mitigation strategies, and add compliance items.',
+      'Expand the existing risk assessment with more detail. Keep all current risks, add more risks if relevant (especially safety/dependency/capacity/market categories), elaborate on mitigation strategies, add due diligence items, and expand investment verdict conditions.',
   },
   'kpis-metrics': {
     generate:
-      'Generate KPI targets for Fun Box based on the business context. Include monthly leads, conversion rate (as decimal e.g. 0.2 for 20%), average check, CAC per lead, CAC per booking, and monthly bookings. Base targets on the scenario metrics provided.',
+      'Generate KPI targets based on the business context. Include monthly leads, conversion rate (as decimal e.g. 0.2 for 20%), average check, CAC per lead, CAC per booking, and monthly bookings. Base targets on the scenario metrics provided.',
     improve:
       'Improve the existing KPI targets. Keep all current targets, refine values to be more realistic based on context, and ensure consistency with scenario metrics.',
     expand:
@@ -260,7 +314,7 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   'launch-plan': {
     generate:
-      'Generate a launch plan for Fun Box with 3-4 stages: Preparation (Jan-Feb 2026), Soft Launch (Mar 1-14, 2026), Scale (Mar 15 - Jun 2026), and optionally Optimize (Jul-Dec 2026). Each stage should have 4-6 tasks with status "pending". Include specific, actionable tasks relevant to a mobile kids party service in Miami.',
+      'Generate a launch plan with 3-4 stages. Each stage should have 4-6 tasks with status "pending". Include specific, actionable tasks relevant to the business.',
     improve:
       'Improve the existing launch plan. Keep all current stages and tasks, enhance task descriptions to be more specific, and refine timelines.',
     expand:

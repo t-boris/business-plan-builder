@@ -2,13 +2,11 @@ import type { SectionSlug } from '@/types';
 import type { ComputedMetrics } from '@/store/derived-atoms';
 import { getSectionPrompt } from './section-prompts';
 
-/** Compressed business overview (~200 tokens). */
+/** Compressed business overview (generic placeholder until Phase 8 makes dynamic). */
 export function buildBusinessOverview(): string {
-  return `BUSINESS: Fun Box -- premium mobile kids birthday party service, Miami FL
-PACKAGES: Ocean Starter $800, Ocean Explorer $980, Ocean VIP $1,200 (15 pax each)
-TARGETS: 100-150 leads/month, 15-25% conversion, $10-30 CAC/lead
-LAUNCH: March 2026
-MARKET: Miami-Dade, 15-25 mile radius, parents 28-50`;
+  return `BUSINESS: [Not configured — business profile will be set in Phase 8]
+PACKAGES: See product-service section data
+TARGETS: See scenario metrics`;
 }
 
 /** Format scenario metrics as text context. */
