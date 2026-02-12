@@ -159,7 +159,7 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 12-01: Design system foundation — global CSS tokens, reusable PageHeader/EmptyState/StatCard components
+- [x] 12-01: Design system foundation — global CSS tokens, reusable PageHeader/EmptyState/StatCard components
 - [ ] 12-02: Auth & business management polish — premium login, polished business cards, refined create flow
 - [ ] 12-03: Dashboard & navigation polish — KPI cards, chart framing, sidebar refinement, layout shell
 - [ ] 12-04: Section editors part 1 — Executive Summary, Market Analysis, Product/Service, Marketing Strategy
@@ -187,4 +187,4 @@ Phase 9 can start after Phase 2 (independent of Phases 3-8).
 | 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
 | 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
 | 11. Export Updates | 2/2 | Complete | 2026-02-12 |
-| 12. Integration & Polish | 0/6 | Not started | - |
+| 12. Integration & Polish | 1/6 | In progress | - |
