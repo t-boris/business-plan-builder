@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 9 of 12 (Sharing & Access)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-12 -- Completed 09-01-PLAN.md
+Last activity: 2026-02-12 -- Completed 09-02-PLAN.md
 
-Progress: ████████░░ 76%
+Progress: ████████░░ 78%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 25
+- Total plans completed: 26
 - Average duration: 3 min
-- Total execution time: 71 min
+- Total execution time: 74 min
 
 **By Phase:**
 
@@ -35,10 +35,10 @@ Progress: ████████░░ 76%
 | 06-variable-library | 4/4 | 9 min | 2 min |
 | 07-generic-scenario-engine | 4/4 | 12 min | 3 min |
 | 08-business-aware-ai | 2/2 | 5 min | 3 min |
-| 09-sharing-access | 1/3 | 2 min | 2 min |
+| 09-sharing-access | 2/3 | 5 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-04 (6 min), 08-01 (2 min), 08-02 (3 min), 09-01 (2 min)
+- Last 5 plans: 08-01 (2 min), 08-02 (3 min), 09-01 (2 min), 09-02 (3 min)
 - Trend: Consistent execution velocity
 
 ## Accumulated Context
@@ -117,6 +117,9 @@ Progress: ████████░░ 76%
 | 09-01 | Doc ID is the token: crypto.randomUUID() for invite IDs | No separate token field; simplifies data model |
 | 09-01 | No invite expiration for reusable links | Removes expiresAt field; owner can revoke instead |
 | 09-01 | ALLOWED_EMAILS removed: Firestore roles as sole access control | Any authenticated user can use app; business access via roles map |
+| 09-02 | Invite route in both auth branches | Unauthenticated users see sign-in on invite page; URL works regardless of auth state |
+| 09-02 | ShareDialog loads invites on open, not on mount | Avoids unnecessary Firestore reads when dialog is not visible |
+| 09-02 | UIDs displayed for members (not emails) | Roles map keys are UIDs; email resolution deferred to future enhancement |
 
 ### Deferred Issues
 
@@ -129,5 +132,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 09-01-PLAN.md
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
