@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
-import { LogOut, Briefcase } from 'lucide-react';
+import { Briefcase } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,41 +44,12 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export function LoginPage() {
-  const { status, user, signInWithEmail, signInWithGoogle, signOut } = useAuth();
+  const { signInWithEmail, signInWithGoogle } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  if (status === 'denied') {
-    return (
-      <div className="flex min-h-svh items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-muted">
-              <LogOut className="size-5 text-muted-foreground" />
-            </div>
-            <CardTitle>Access Restricted</CardTitle>
-            <CardDescription>
-              The account <span className="font-medium text-foreground">{user?.email}</span> does not
-              have access to this application.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-center text-sm text-muted-foreground">
-              If you believe this is an error, please contact the administrator or try signing in
-              with a different account.
-            </p>
-            <Button variant="outline" className="w-full" onClick={signOut}>
-              <LogOut className="size-4" />
-              Sign out and try another account
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   async function handleEmailSignIn(e: React.FormEvent) {
     e.preventDefault();

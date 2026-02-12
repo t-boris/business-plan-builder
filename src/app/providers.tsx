@@ -3,7 +3,7 @@ import { Provider as JotaiProvider, useSetAtom, useAtomValue } from 'jotai';
 import { onAuthStateChanged } from 'firebase/auth';
 import { BrowserRouter } from 'react-router';
 import { auth } from '@/lib/firebase';
-import { authStateAtom, authStatusAtom, ALLOWED_EMAILS } from '@/store/auth-atoms';
+import { authStateAtom, authStatusAtom } from '@/store/auth-atoms';
 import {
   activeBusinessIdAtom,
   businessVariablesAtom,
@@ -29,11 +29,8 @@ function AuthListener({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const email = user.email?.toLowerCase() ?? '';
-      const isAllowed = ALLOWED_EMAILS.includes(email as typeof ALLOWED_EMAILS[number]);
-
       setAuthState({
-        status: isAllowed ? 'authenticated' : 'denied',
+        status: 'authenticated',
         user,
       });
     });
