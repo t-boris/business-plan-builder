@@ -261,7 +261,7 @@ Plans:
 - [x] 18-05: Comparison + Decision Matrix (risk/timeline/regulatory comparison, weighted score, recommendations)
 - [x] 18-06: AI scenario-aware (context-builder + use-ai-suggestion with active scenario/assumptions/variants)
 - [x] 18-07: Export scenario pack (Base + Scenarios appendix + Comparison table + Decision summary)
-- [ ] 18-08: Tests & quality (merge logic, migration, lint/test/build verification)
+- [x] 18-08: Tests & quality (merge logic, migration, lint/test/build verification)
 
 **Details:**
 
@@ -301,4 +301,4 @@ Key changes:
 | 15. Tests & CI | v2.0 | 3/3 | Complete | 2026-02-18 |
 | 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
 | 17. Generic Product/Service Offerings & Images | v3.0 | 6/6 | Complete | 2026-02-18 |
-| 18. Advanced Scenario Engine | v3.0 | 7/8 | In progress | - |
+| 18. Advanced Scenario Engine | v3.0 | 8/8 | Complete | 2026-02-19 |
