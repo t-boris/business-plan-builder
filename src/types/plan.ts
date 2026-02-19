@@ -142,14 +142,8 @@ export interface ProductService {
 
 // --- Section 4: Marketing Strategy ---
 
-export type MarketingChannelName =
-  | 'meta-ads'
-  | 'google-ads'
-  | 'organic-social'
-  | 'partnerships';
-
 export interface MarketingChannel {
-  name: MarketingChannelName;
+  name: string;
   budget: number;
   expectedLeads: number;
   expectedCAC: number;
@@ -169,66 +163,52 @@ export interface MarketingStrategy {
 
 // --- Section 5: Operations ---
 
-export interface CrewMember {
+export interface WorkforceMember {
   role: string;
-  hourlyRate: number;
   count: number;
+  ratePerHour: number;
 }
 
-export interface CostBreakdown {
-  // Variable costs per event
-  suppliesPerChild: number;
-  participantsPerEvent: number;
-  museumTicketPrice: number;
-  ticketsPerEvent: number;
-  fuelPricePerGallon: number;
-  vehicleMPG: number;
-  avgRoundTripMiles: number;
-  parkingPerEvent: number;
+export interface CapacityConfig {
+  outputUnitLabel: string;
+  plannedOutputPerMonth: number;
+  maxOutputPerDay: number;
+  maxOutputPerWeek: number;
+  maxOutputPerMonth: number;
+  utilizationRate: number;   // 0-100 percentage
+}
 
-  // Monthly team salaries (core team)
-  ownerSalary: number;
-  marketingPerson: number;
-  eventCoordinator: number;
+export type CostDriverType =
+  | 'per-unit'
+  | 'per-order'
+  | 'per-service-hour'
+  | 'per-machine-hour'
+  | 'monthly'
+  | 'quarterly'
+  | 'yearly';
 
-  // Monthly vehicle costs
-  vehiclePayment: number;
-  vehicleInsurance: number;
-  vehicleMaintenance: number;
+export interface CostItem {
+  category: string;
+  type: 'variable' | 'fixed';
+  rate: number;
+  driverType: CostDriverType;
+  driverQuantityPerMonth: number;
+}
 
-  // Monthly IT & software
-  crmSoftware: number;
-  websiteHosting: number;
-  aiChatbot: number;
-  cloudServices: number;
-  phonePlan: number;
-
-  // Monthly marketing overhead (beyond ad spend)
-  contentCreation: number;
-  graphicDesign: number;
-
-  // Monthly other overhead
-  storageRent: number;
-  equipmentAmortization: number;
-  businessLicenses: number;
-  miscFixed: number;
-
-  // Custom expenses (user-defined)
-  customExpenses: { name: string; amount: number; type: 'per-event' | 'monthly' }[];
+export interface OperationalMetric {
+  name: string;
+  unit: string;
+  value: number;
+  target: number;
 }
 
 export interface Operations {
-  crew: CrewMember[];
-  hoursPerEvent: number;
-  capacity: {
-    maxBookingsPerDay: number;
-    maxBookingsPerWeek: number;
-    maxBookingsPerMonth: number;
-  };
-  travelRadius: number;
+  workforce: WorkforceMember[];
+  capacity: CapacityConfig;
+  costItems: CostItem[];
   equipment: string[];
   safetyProtocols: string[];
-  costBreakdown: CostBreakdown;
+  operationalMetrics: OperationalMetric[];
 }
 
 // --- Section 6: Financial Projections ---
