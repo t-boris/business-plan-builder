@@ -287,7 +287,11 @@ Plans:
 - [x] 19-02: Wire AiFieldTrigger into section editors
 
 **Details:**
-[To be added during planning]
+
+Key changes:
+1. **Infrastructure**: `useFieldAi` hook (lightweight, returns string directly), `buildFieldPrompt` (XML-tagged field-scoped prompt), `AiFieldTrigger` component (sparkle icon, auto-detect generate/improve)
+2. **Section wiring**: 11 AiFieldTrigger instances across executive-summary (3), product-service (2 types), marketing-strategy (2 types), market-analysis (1), risks-due-diligence (3 types)
+3. **UX**: Triggers visible only to editors (canEdit && !isPreview), whole-tab AI remains fully functional alongside field-level triggers
 
 ## Progress
 
