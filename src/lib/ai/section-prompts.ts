@@ -17,43 +17,97 @@ const CompetitorSchema = z.object({
   weaknesses: z.string(),
 });
 
+const CustomMetricSchema = z.object({
+  label: z.string().describe('Metric name'),
+  value: z.string().describe('Metric value'),
+  source: z.string().describe('Data source'),
+});
+
+const CalcStepSchema = z.object({
+  label: z.string().describe('Step label, e.g. "Total industry market"'),
+  value: z.number().describe('Step value (dollar amount, percentage, or count)'),
+  type: z.enum(['currency', 'percentage', 'count']).describe('How to interpret the value'),
+});
+
+const TamConfigSchema = z.object({
+  approach: z.enum(['top-down', 'bottom-up', 'custom']).describe('TAM calculation approach'),
+  steps: z.array(CalcStepSchema).describe('Calculation steps whose product equals TAM'),
+});
+
+const SamConfigSchema = z.object({
+  steps: z.array(CalcStepSchema).describe('Filter steps applied to TAM to get SAM'),
+});
+
+const SomConfigSchema = z.object({
+  steps: z.array(CalcStepSchema).describe('Capture steps applied to SAM to get SOM'),
+});
+
+const MarketSizingSchema = z.object({
+  tam: TamConfigSchema.describe('TAM calculation config'),
+  sam: SamConfigSchema.describe('SAM calculation config'),
+  som: SomConfigSchema.describe('SOM calculation config'),
+});
+
+const FunnelStageSchema = z.object({
+  label: z.string().describe('Funnel stage name'),
+  description: z.string().describe('How this stage works, channels used, tactics'),
+  volume: z.number().describe('Number of people/leads at this stage'),
+  conversionRate: z.number().describe('Conversion rate 0-100 to next stage'),
+});
+
+const AdoptionModelSchema = z.object({
+  type: z.enum(['linear', 's-curve']).describe('Adoption curve type'),
+  totalMarket: z.number().describe('Total addressable users'),
+  initialUsers: z.number().describe('Starting user count'),
+  growthRate: z.number().describe('Growth rate parameter'),
+  projectionMonths: z.number().describe('Number of months to project'),
+});
+
+const MarketAnalysisBlocksSchema = z.object({
+  sizing: z.boolean(),
+  competitors: z.boolean(),
+  demographics: z.boolean(),
+  acquisitionFunnel: z.boolean(),
+  adoptionModel: z.boolean(),
+  customMetrics: z.boolean(),
+});
+
 const MarketAnalysisSchema = z.object({
-  targetDemographic: z.object({
-    ageRange: z.string(),
-    location: z.string(),
-    radius: z.number(),
-    zipCodes: z.array(z.string()),
-  }),
-  marketSize: z.string(),
-  tamDollars: z.number(),
-  targetMarketShare: z.string(),
+  enabledBlocks: MarketAnalysisBlocksSchema.describe('Which blocks are enabled'),
+  marketSizing: MarketSizingSchema.describe('TAM/SAM/SOM step-based market sizing. Each level has calculation steps whose product gives the result. TAM steps multiply to TAM, SAM steps filter TAM, SOM steps capture from SAM.'),
+  marketNarrative: z.string().describe('Market opportunity narrative'),
   competitors: z.array(CompetitorSchema),
   demographics: z.object({
     population: z.number(),
-    languages: z.array(z.string()),
     income: z.string(),
-    householdsWithKids: z.number(),
-    annualTourists: z.number(),
+    metrics: z.array(CustomMetricSchema).describe('Additional demographic metrics'),
   }),
+  acquisitionFunnel: z.array(FunnelStageSchema).describe('Customer acquisition funnel stages'),
+  adoptionModel: AdoptionModelSchema.describe('Market adoption projection parameters'),
+  customMetrics: z.array(CustomMetricSchema).describe('User-defined custom metrics'),
 });
 
-const PackageSchema = z.object({
-  name: z.string(),
-  price: z.number(),
-  duration: z.string(),
-  maxParticipants: z.number(),
-  includes: z.array(z.string()),
-  description: z.string(),
+const OfferingSchema = z.object({
+  id: z.string().describe('Unique identifier for the offering'),
+  name: z.string().describe('Clear, descriptive name for this product or service'),
+  description: z.string().describe('Detailed description explaining what this offering includes, who it is for, and what value it delivers. Write 2-4 sentences minimum.'),
+  price: z.number().nullable().describe('Price in dollars. Use null if pricing is "on request" or varies.'),
+  priceLabel: z.string().optional().describe('Pricing qualifier, e.g. "per month", "per hour", "per unit", "starting from"'),
+  addOnIds: z.array(z.string()).describe('IDs of add-ons linked to this offering. Reference IDs from the addOns array.'),
 });
 
 const AddOnSchema = z.object({
-  name: z.string(),
-  price: z.number(),
+  id: z.string().describe('Unique identifier for the add-on'),
+  name: z.string().describe('Clear name for this add-on'),
+  description: z.string().optional().describe('Brief description of what this add-on provides'),
+  price: z.number().describe('Price in dollars'),
+  priceLabel: z.string().optional().describe('Pricing qualifier, e.g. "per unit", "one-time", "per month"'),
 });
 
 const ProductServiceSchema = z.object({
-  packages: z.array(PackageSchema),
-  addOns: z.array(AddOnSchema),
+  overview: z.string().optional().describe('Brief overview of the entire product/service line. 1-3 sentences positioning the business offering.'),
+  offerings: z.array(OfferingSchema).describe('List of products or services offered'),
+  addOns: z.array(AddOnSchema).describe('Optional extras that can be linked to offerings'),
 });
 
 const MarketingChannelSchema = z.object({
@@ -258,19 +312,19 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   'market-analysis': {
     generate:
-      'Generate market analysis for the business. Include target demographic (age range, location, radius), market size estimate (TAM/SAM/SOM), competitor analysis (3-5 competitors with pricing, strengths, weaknesses), and demographics (population, languages, income, relevant household data). Use the business context and location data provided.',
+      'Generate investor-grade market analysis. Include: enabledBlocks (all true), marketSizing with step-based TAM/SAM/SOM calculations (TAM: use top-down approach with 2-3 steps like total industry market as currency + relevant segment as percentage; SAM: 1-2 filter steps as percentages; SOM: 1 capture rate step as percentage), marketNarrative describing the opportunity, 3-5 competitors with pricing/strengths/weaknesses, demographics with population/income and 2-3 additional metrics, a 5-stage acquisitionFunnel (Awareness → Interest → Evaluation → Trial → Customer) with realistic volumes and conversion rates, an s-curve adoptionModel with realistic parameters, and 2-3 customMetrics.',
     improve:
-      'Improve the existing market analysis. Keep all current data, enhance competitor analysis, add more specific market sizing data, and strengthen demographic insights.',
+      'Improve the existing market analysis. Keep all current data, enhance TAM/SAM/SOM calculation steps with better labels and more realistic values, refine competitor analysis, improve funnel conversion rates for realism, and strengthen adoption model parameters.',
     expand:
-      'Expand the existing market analysis with more detail. Keep all current data, add depth to competitor analysis, elaborate on market trends, and include more demographic data points.',
+      'Expand the existing market analysis with more detail. Keep all current data, add more calculation steps to TAM/SAM/SOM for finer granularity, elaborate on market narrative, add more demographic metrics, refine funnel stages, and include more custom metrics.',
   },
   'product-service': {
     generate:
-      'Generate product and service descriptions. Include packages with pricing, duration, max participants, includes list, and descriptions. Suggest 3-5 add-ons with prices.',
+      'Generate a complete product and service catalog for this business. Create 3-5 distinct offerings, each with a descriptive name, detailed description (2-4 sentences explaining value, target audience, and what is included), realistic pricing with appropriate price labels (per month, per hour, per unit, etc.). Generate 3-5 add-ons with prices and brief descriptions. Link relevant add-ons to offerings via addOnIds. Write a brief overview paragraph positioning the overall product/service line. Each offering must have a unique id (use format "off-1", "off-2", etc.) and each add-on must have a unique id (use format "addon-1", "addon-2", etc.). Do NOT use tier labels like Starter, Basic, Pro, Premium, or Enterprise as offering names — use descriptive names that reflect what the offering actually is.',
     improve:
-      'Improve the existing product descriptions. Keep all current data, enhance package descriptions to be more compelling, and refine add-on offerings.',
+      'Improve the existing product and service descriptions. Keep all current offerings and add-ons but enhance descriptions to be more detailed, compelling, and customer-focused. Refine pricing labels for clarity. Improve the overview to better position the business. Preserve all existing ids and addOnId links.',
     expand:
-      'Expand the existing product descriptions with more detail. Keep all current data, add more items to includes lists, elaborate on descriptions, and suggest additional add-ons.',
+      'Expand the existing product and service catalog. Keep all current offerings and add-ons unchanged. Add 1-2 new offerings and 2-3 new add-ons with full descriptions. Link new add-ons to relevant offerings. Enhance the overview if needed. Use unique ids for new items.',
   },
   'marketing-strategy': {
     generate:
@@ -326,37 +380,37 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
 
 const INDUSTRY_OVERLAYS: Partial<Record<BusinessType, Partial<Record<SectionSlug, string>>>> = {
   saas: {
-    'market-analysis': 'Focus on: TAM/SAM/SOM with bottom-up and top-down estimates. Competitor analysis should include pricing tiers, feature comparison matrix, funding status, and market positioning. Include technology adoption lifecycle stage. Address switching costs and lock-in factors. Demographics should focus on company size segments, industry verticals, and buying committee roles.',
+    'market-analysis': 'Focus on: TAM steps starting from global SaaS category spend (currency) then relevant segment (percentage), SAM filter by deployment model (percentage), SOM by outbound capacity (percentage). Funnel: Website → Trial → Active → Paid → Expansion. Competitor analysis should include pricing tiers, funding status, and market positioning. Demographics should focus on company size segments and industry verticals.',
     'financial-projections': 'Emphasize SaaS-specific metrics: MRR/ARR growth trajectory, churn rate (logo and revenue), LTV:CAC ratio, months to payback, net revenue retention, expansion revenue. Model cohort-based revenue patterns rather than simple linear growth.',
     operations: 'Focus on: engineering team structure, sprint velocity, cloud infrastructure costs by tier, customer support staffing ratios, deployment pipeline. Cost breakdown should emphasize cloud infrastructure, third-party APIs, developer tooling, and customer success headcount.',
     'marketing-strategy': 'Focus on: content marketing and SEO, product-led acquisition funnels, free trial/freemium conversion rates, developer relations if applicable. Consider inbound vs outbound mix. CAC should be broken down by channel.',
   },
   restaurant: {
-    'market-analysis': 'Focus on: location-specific foot traffic data, nearby anchor tenants, parking availability, delivery radius and third-party delivery platform presence (DoorDash, UberEats). Competitor analysis should include seating capacity, average ticket, Yelp/Google ratings, cuisine overlap, and peak hour patterns. Demographics should focus on daytime vs evening population, household income, dining-out frequency.',
+    'market-analysis': 'Focus on: TAM steps from local dining market total (currency) then cuisine category share (percentage), SAM filter by location reach (percentage), SOM by seating capacity capture (percentage). Funnel: Awareness → Visit → Return → Regular → Advocate. Competitor analysis should include seating capacity, average ticket, and Yelp/Google ratings. Demographics should focus on daytime vs evening population, household income, and dining-out frequency.',
     'financial-projections': 'Emphasize restaurant-specific metrics: food cost percentage (target 28-32%), labor cost percentage (target 25-30%), prime cost, revenue per available seat hour (RevPASH), average covers per day. Model seasonal variations in covers if the location has tourism patterns.',
     operations: 'Focus on: kitchen layout and stations, FOH/BOH staffing by shift, food cost percentage targets, inventory turnover, prep schedules, health code compliance, and vendor relationships. Cost breakdown should emphasize food cost, labor, rent, utilities, POS system, and waste reduction.',
     'marketing-strategy': 'Focus on: local SEO and Google Business Profile optimization, delivery platform presence and commission impact, review management strategy (Yelp/Google), loyalty programs, community events. Emphasize cost-per-cover acquisition.',
   },
   retail: {
-    'market-analysis': 'Focus on: trade area analysis, foot traffic patterns and peak hours, anchor tenant proximity, online-to-offline conversion potential, seasonal demand curves. Competitor analysis should include price positioning, product assortment overlap, store formats, and loyalty programs. Demographics should focus on household income, spending patterns by category.',
+    'market-analysis': 'Focus on: TAM steps from total retail category in trade area (currency) then product category share (percentage), SAM filter by assortment match (percentage), SOM by foot traffic capture rate (percentage). Funnel: Awareness → Store Visit → Browse → Purchase → Repeat. Competitor analysis should include price positioning, product assortment overlap, and store formats. Demographics should focus on household income and spending patterns.',
     'financial-projections': 'Emphasize retail-specific metrics: inventory turnover rate, gross margin return on investment (GMROI), sell-through rate, average transaction value (ATV), markdown strategy impact. Model seasonal revenue patterns by quarter.',
     operations: 'Focus on: store layout and merchandising zones, staffing by shift and season, inventory management and reorder points, POS systems, loss prevention, seasonal staffing plans. Cost breakdown should emphasize COGS, labor, rent, shrinkage, and logistics.',
     'marketing-strategy': 'Focus on: foot traffic driving tactics, seasonal promotions calendar, loyalty program design, omnichannel attribution (online-to-store, store-to-online), local advertising. Emphasize cost-per-transaction acquisition.',
   },
   service: {
-    'market-analysis': 'Focus on: serviceable market by geography/specialty, client acquisition channels, referral network potential, competitive landscape by specialization. Demographics should focus on target client profiles (B2B: company size and industry; B2C: income and life stage).',
+    'market-analysis': 'Focus on: TAM steps from serviceable market by geography/specialty (currency) then relevant niche (percentage), SAM filter by client type reach (percentage), SOM by capacity and referral network (percentage). Funnel: Lead → Consultation → Proposal → Contract → Repeat. Demographics should focus on target client profiles (B2B: company size and industry; B2C: income and life stage).',
     'financial-projections': 'Emphasize service-specific metrics: utilization rate, average billable rate, revenue per employee, client lifetime value, project profitability. Model capacity constraints and growth scenarios.',
     operations: 'Focus on: team structure and specializations, capacity planning and utilization targets, service delivery workflow, quality assurance processes, client communication cadence. Cost breakdown should emphasize labor (largest cost), professional development, tools/software, and insurance.',
     'marketing-strategy': 'Focus on: referral programs, professional networking, thought leadership content, case studies and testimonials, partnership channels. Emphasize cost-per-client acquisition and client retention rates.',
   },
   event: {
-    'market-analysis': 'Focus on: event market by type and season, venue availability and pricing, local competition for similar events, seasonal demand patterns. Demographics should focus on target attendee profiles, corporate vs consumer segments, willingness to pay.',
+    'market-analysis': 'Focus on: TAM steps from total event spending in market (currency) then event type segment (percentage), SAM filter by geographic reach (percentage), SOM by booking capacity (percentage). Funnel: Awareness → Inquiry → Quote → Booking → Repeat. Demographics should focus on target attendee profiles, corporate vs consumer segments, willingness to pay.',
     'financial-projections': 'Emphasize event-specific metrics: per-event revenue and cost, capacity utilization, booking lead time, seasonal revenue distribution, break-even number of events per month. Model seasonal curves explicitly.',
     operations: 'Focus on: event logistics and setup/teardown, staffing per event type, equipment inventory and maintenance, venue partnerships, safety protocols and insurance. Cost breakdown should emphasize per-event variable costs vs monthly fixed overhead.',
     'marketing-strategy': 'Focus on: social media and visual marketing, event listing platforms, partnership and cross-promotion, early-bird and group pricing strategies, email marketing for repeat clients. Emphasize booking conversion rate from inquiries.',
   },
   manufacturing: {
-    'market-analysis': 'Focus on: supply chain geography, raw material sourcing and pricing trends, trade regulations and tariffs, capacity utilization benchmarks in the industry. Competitor analysis should include production capabilities, quality certifications, and pricing models (cost-plus vs market-based).',
+    'market-analysis': 'Focus on: TAM steps from total industry output (currency) then capability segment (percentage), SAM filter by capability match (percentage), SOM by production capacity (percentage). Funnel: Lead → RFQ → Sample → PO → Repeat. Competitor analysis should include production capabilities, quality certifications, and pricing models.',
     'financial-projections': 'Emphasize manufacturing-specific metrics: unit COGS breakdown (materials, labor, overhead), yield rate, capacity utilization impact on unit cost, raw material cost sensitivity analysis. Model production ramp-up scenarios.',
     operations: 'Focus on: production line layout, shift scheduling and labor planning, quality control checkpoints, equipment maintenance schedules, supplier management and lead times. Cost breakdown should emphasize raw materials, direct labor, manufacturing overhead, and logistics.',
     'marketing-strategy': 'Focus on: trade shows and industry events, B2B sales cycle and pipeline management, distributor/channel partner relationships, technical documentation and specs, certifications as marketing leverage. Emphasize customer acquisition cost for B2B sales.',
