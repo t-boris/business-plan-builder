@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, AlertCircle, ShieldCheck, AlertTriangle, ClipboardCheck, CheckCircle2, Circle, CircleDot } from 'lucide-react';
+import { AiFieldTrigger } from '@/components/ai-field-trigger';
 
 const defaultRisks: RisksDueDiligenceType = {
   investmentVerdict: undefined,
@@ -245,14 +246,46 @@ export function RisksDueDiligence() {
 
                 {/* Description */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Description</label>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    Description
+                    {canEdit && !isPreview && (
+                      <AiFieldTrigger
+                        fieldName="risk-description"
+                        fieldLabel={`Description for risk: ${risk.title || 'Risk'}`}
+                        currentValue={risk.description}
+                        sectionSlug="risks-due-diligence"
+                        sectionData={data as unknown as Record<string, unknown>}
+                        onResult={(val) => updateData((prev) => {
+                          const risks = [...prev.risks];
+                          risks[index] = { ...risks[index], description: val };
+                          return { ...prev, risks };
+                        })}
+                      />
+                    )}
+                  </label>
                   <Textarea value={risk.description} onChange={(e) => updateRisk(index, 'description', e.target.value)} placeholder="Describe the risk..." rows={2} className="text-xs text-muted-foreground" readOnly={!canEdit || isPreview} />
                 </div>
 
                 {/* Mitigation */}
                 {(risk.mitigation || canEdit) && (
                   <div className="border-l-2 border-muted pl-3">
-                    <label className="text-xs font-medium text-muted-foreground">Mitigation</label>
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      Mitigation
+                      {canEdit && !isPreview && (
+                        <AiFieldTrigger
+                          fieldName="risk-mitigation"
+                          fieldLabel={`Mitigation for: ${risk.title || 'Risk'}`}
+                          currentValue={risk.mitigation}
+                          sectionSlug="risks-due-diligence"
+                          sectionData={data as unknown as Record<string, unknown>}
+                          onResult={(val) => updateData((prev) => {
+                            const risks = [...prev.risks];
+                            risks[index] = { ...risks[index], mitigation: val };
+                            return { ...prev, risks };
+                          })}
+                        />
+                      )}
+                    </label>
                     <Textarea value={risk.mitigation} onChange={(e) => updateRisk(index, 'mitigation', e.target.value)} placeholder="Mitigation strategy..." rows={2} className="text-xs" readOnly={!canEdit || isPreview} />
                   </div>
                 )}
@@ -312,7 +345,26 @@ export function RisksDueDiligence() {
                   </div>
                 </div>
                 <div><Input value={item.item} onChange={(e) => updateDDItem(index, 'item', e.target.value)} placeholder="Due diligence item..." className="text-sm font-medium" readOnly={!canEdit || isPreview} /></div>
-                <div><label className="text-xs font-medium text-muted-foreground">Detail</label><Textarea value={item.detail} onChange={(e) => updateDDItem(index, 'detail', e.target.value)} placeholder="Details and findings..." rows={2} className="text-xs" readOnly={!canEdit || isPreview} /></div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    Detail
+                    {canEdit && !isPreview && (
+                      <AiFieldTrigger
+                        fieldName="dd-item-detail"
+                        fieldLabel={`Detail for: ${item.item || 'Item'}`}
+                        currentValue={item.detail}
+                        sectionSlug="risks-due-diligence"
+                        sectionData={data as unknown as Record<string, unknown>}
+                        onResult={(val) => updateData((prev) => {
+                          const list = [...(prev.dueDiligenceChecklist ?? [])];
+                          list[index] = { ...list[index], detail: val };
+                          return { ...prev, dueDiligenceChecklist: list };
+                        })}
+                      />
+                    )}
+                  </label>
+                  <Textarea value={item.detail} onChange={(e) => updateDDItem(index, 'detail', e.target.value)} placeholder="Details and findings..." rows={2} className="text-xs" readOnly={!canEdit || isPreview} />
+                </div>
               </div>
             ))}
           </div>
