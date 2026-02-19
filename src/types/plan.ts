@@ -167,15 +167,38 @@ export interface WorkforceMember {
   role: string;
   count: number;
   ratePerHour: number;
+  hoursPerWeek: number;
 }
 
-export interface CapacityConfig {
+export interface CapacityItem {
+  id: string;
+  name: string;               // e.g. "Standard Package", "Custom Batch", "On-site Service"
+  offeringId?: string;        // optional reference to ProductService.offering.id
   outputUnitLabel: string;
   plannedOutputPerMonth: number;
   maxOutputPerDay: number;
   maxOutputPerWeek: number;
   maxOutputPerMonth: number;
   utilizationRate: number;   // 0-100 percentage
+}
+
+export type VariableComponentSourcing =
+  | 'in-house'
+  | 'purchase-order'
+  | 'on-demand';
+
+export interface VariableCostComponent {
+  id: string;
+  name: string;                    // e.g. "Aluminum sheet", "Cloud API call", "Subcontracted assembly"
+  offeringId?: string;             // optional link to ProductService.offering.id
+  description?: string;
+  supplier?: string;
+  sourcingModel: VariableComponentSourcing;
+  componentUnitLabel: string;      // kg, part, minute, API call, etc.
+  costPerComponentUnit: number;    // cost for one component unit
+  componentUnitsPerOutput: number; // how many component units are needed per one output unit
+  orderQuantity: number;           // batch/MOQ per order (used for purchase-order sourcing)
+  orderFee: number;                // extra cost per order (shipping, handling, customs, etc.)
 }
 
 export type CostDriverType =
@@ -204,7 +227,8 @@ export interface OperationalMetric {
 
 export interface Operations {
   workforce: WorkforceMember[];
-  capacity: CapacityConfig;
+  capacityItems: CapacityItem[];
+  variableComponents: VariableCostComponent[];
   costItems: CostItem[];
   equipment: string[];
   safetyProtocols: string[];
@@ -321,6 +345,115 @@ export interface LaunchPlan {
   stages: LaunchStage[];
 }
 
+// --- Section 10: Growth Timeline ---
+
+export interface HireDelta {
+  role: string;
+  count: number;
+  ratePerHour: number;
+  hoursPerWeek: number;
+}
+
+export interface CostChangeDelta {
+  category: string;
+  costType: 'variable' | 'fixed';
+  rate: number;
+  driverType: CostDriverType;
+  driverQuantityPerMonth: number;
+}
+
+export interface CapacityChangeDelta {
+  capacityItemId?: string;            // specific item, or undefined = all items equally
+  outputDelta: number;
+}
+
+export interface MarketingChangeDelta {
+  monthlyBudget: number;
+}
+
+export interface CustomDelta {
+  label: string;
+  value: number;
+  formula?: string;                   // math expression, e.g. "3000 * 1.2 + 500"
+  target: 'revenue' | 'fixedCost' | 'variableCost' | 'marketing';
+}
+
+export interface FundingRoundDelta {
+  amount: number;
+  legalCosts: number;
+  investmentType: 'equity' | 'debt' | 'grant';
+}
+
+export interface FacilityBuildDelta {
+  constructionCost: number;
+  monthlyRent: number;
+  capacityAdded: number;
+  capacityItemId?: string;
+}
+
+export interface HiringCampaignDelta {
+  totalHires: number;
+  role: string;
+  ratePerHour: number;
+  hoursPerWeek: number;
+  recruitingCostPerHire: number;
+}
+
+export interface PriceChangeDelta {
+  newAvgCheck: number;
+}
+
+export interface EquipmentPurchaseDelta {
+  purchaseCost: number;
+  capacityIncrease: number;
+  maintenanceCostMonthly: number;
+  capacityItemId?: string;
+}
+
+export interface SeasonalCampaignDelta {
+  budgetIncrease: number;
+}
+
+export type GrowthEventType =
+  | 'hire'
+  | 'cost-change'
+  | 'capacity-change'
+  | 'marketing-change'
+  | 'custom'
+  | 'funding-round'
+  | 'facility-build'
+  | 'hiring-campaign'
+  | 'price-change'
+  | 'equipment-purchase'
+  | 'seasonal-campaign';
+
+export type GrowthEventDelta =
+  | { type: 'hire'; data: HireDelta }
+  | { type: 'cost-change'; data: CostChangeDelta }
+  | { type: 'capacity-change'; data: CapacityChangeDelta }
+  | { type: 'marketing-change'; data: MarketingChangeDelta }
+  | { type: 'custom'; data: CustomDelta }
+  | { type: 'funding-round'; data: FundingRoundDelta }
+  | { type: 'facility-build'; data: FacilityBuildDelta }
+  | { type: 'hiring-campaign'; data: HiringCampaignDelta }
+  | { type: 'price-change'; data: PriceChangeDelta }
+  | { type: 'equipment-purchase'; data: EquipmentPurchaseDelta }
+  | { type: 'seasonal-campaign'; data: SeasonalCampaignDelta };
+
+export interface GrowthEvent {
+  id: string;
+  month: number;
+  label: string;
+  delta: GrowthEventDelta;
+  enabled: boolean;
+  durationMonths?: number;
+}
+
+export interface GrowthTimeline {
+  events: GrowthEvent[];
+  autoSync: boolean;
+}
+
 // --- Union & Slug Types ---
 
 export type BusinessPlanSection =
@@ -332,7 +465,8 @@ export type BusinessPlanSection =
   | FinancialProjections
   | RisksDueDiligence
   | KpisMetrics
-  | LaunchPlan;
+  | LaunchPlan
+  | GrowthTimeline;
 
 export type SectionSlug =
   | 'executive-summary'
@@ -343,7 +477,8 @@ export type SectionSlug =
   | 'financial-projections'
   | 'risks-due-diligence'
   | 'kpis-metrics'
-  | 'launch-plan';
+  | 'launch-plan'
+  | 'growth-timeline';
 
 // --- Business Plan Metadata ---
 
