@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BusinessHeaderBar } from "@/components/business-header-bar";
+import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { activeBusinessAtom } from "@/store/business-atoms";
 
 // Slug-to-title mapping for business-scoped sections
@@ -70,6 +71,9 @@ export function DashboardLayout() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto">
+            <SyncStatusIndicator />
+          </div>
         </header>
         <BusinessHeaderBar />
         <div className="flex-1 px-6 py-5">

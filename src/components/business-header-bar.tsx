@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { useBusinesses } from "@/hooks/use-businesses";
 import { SECTION_SLUGS, SECTION_LABELS } from "@/lib/constants";
@@ -23,8 +23,6 @@ import type { BusinessType } from "@/types";
 export function BusinessHeaderBar() {
   const { activeBusiness, updateProfile, toggleSection } = useBusinesses();
   const [isOpen, setIsOpen] = useState(false);
-  const [showSaved, setShowSaved] = useState(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Local state for profile fields (controlled inputs)
   const [localName, setLocalName] = useState("");
@@ -66,21 +64,10 @@ export function BusinessHeaderBar() {
         location: localLocation,
         description: localDescription,
       });
-      // Show "Saved" indicator briefly
-      setShowSaved(true);
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => setShowSaved(false), 2000);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [localName, localType, localIndustry, localLocation, localDescription]);
-
-  // Cleanup save timer on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, []);
 
   if (!activeBusiness) return null;
 
@@ -96,11 +83,6 @@ export function BusinessHeaderBar() {
               <span className="font-medium truncate">
                 {activeBusiness.profile.name}
               </span>
-              {showSaved && (
-                <span className="text-xs text-muted-foreground animate-in fade-in duration-200">
-                  Saved
-                </span>
-              )}
             </div>
             <ChevronDown
               className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 data-[state=open]:rotate-180"
