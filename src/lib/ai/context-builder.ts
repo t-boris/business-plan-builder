@@ -1,4 +1,5 @@
 import type { SectionSlug, BusinessProfile, VariableDefinition } from '@/types';
+import type { ScenarioAssumption, ScenarioStatus } from '@/types/scenario';
 import { getSectionPrompt } from './section-prompts';
 
 /** Build a human-readable business profile block, or a fallback if no profile is available. */
@@ -61,6 +62,50 @@ export function buildScenarioContext(
   return `These are ACTUAL calculated scenario values. Use these exact numbers, do not estimate or round:\n${parts.join('\n')}`;
 }
 
+/** Build an XML-tagged context block for v2 scenario data (assumptions, variants, horizon, status). */
+export function buildScenarioV2Context(config: {
+  scenarioName: string;
+  status: ScenarioStatus;
+  horizonMonths: number;
+  assumptions: ScenarioAssumption[];
+  variantRefs: Record<string, string>;
+  variantNames?: Record<string, string>;
+}): string {
+  const lines: string[] = [];
+  lines.push('<active_scenario>');
+  lines.push(`  <name>${config.scenarioName}</name>`);
+  lines.push(`  <status>${config.status}</status>`);
+  lines.push(`  <horizon>${config.horizonMonths} months</horizon>`);
+
+  if (config.assumptions.length > 0) {
+    lines.push('');
+    lines.push('  <assumptions>');
+    for (const a of config.assumptions) {
+      lines.push(`    - ${a.label}: ${a.value}`);
+    }
+    lines.push('  </assumptions>');
+  }
+
+  const variantEntries = Object.entries(config.variantRefs);
+  if (variantEntries.length > 0) {
+    lines.push('');
+    lines.push('  <section_variants>');
+    for (const [slug] of variantEntries) {
+      const displayName = config.variantNames?.[slug];
+      const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      if (displayName) {
+        lines.push(`    - ${label}: using variant "${displayName}"`);
+      } else {
+        lines.push(`    - ${label}: using variant`);
+      }
+    }
+    lines.push('  </section_variants>');
+  }
+
+  lines.push('</active_scenario>');
+  return lines.join('\n');
+}
+
 /** Serialize the current section data as JSON context. */
 export function buildSectionContext(
   _sectionSlug: SectionSlug,
@@ -82,6 +127,7 @@ export function buildPrompt(
     sectionSlug: SectionSlug;
     action: 'generate' | 'improve' | 'expand';
     userInstruction?: string;
+    scenarioV2Context?: string;
   },
   profile: BusinessProfile | null,
   sectionData: unknown,
@@ -102,14 +148,22 @@ ${businessProfile}
 
 <scenario_metrics>
 ${scenarioContext}
-</scenario_metrics>
+</scenario_metrics>`;
 
-<current_section slug="${config.sectionSlug}">
+  if (config.scenarioV2Context) {
+    prompt += `\n\n${config.scenarioV2Context}`;
+  }
+
+  prompt += `\n\n<current_section slug="${config.sectionSlug}">
 ${sectionContext}
 </current_section>
 
 <task>
 ${taskInstruction}`;
+
+  if (config.scenarioV2Context) {
+    prompt += '\n\nConsider the active scenario context, assumptions, and any section variants when generating content.';
+  }
 
   if (config.userInstruction) {
     prompt += `\n\nAdditional instruction: ${config.userInstruction}`;
