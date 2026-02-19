@@ -12,6 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
+import {
   BarChart,
   Bar,
   XAxis,
@@ -21,6 +26,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { ChevronDown } from 'lucide-react';
 
 // --- Formatting helpers ---
 
@@ -79,6 +85,30 @@ function isSignificantDiff(a: number, b: number): boolean {
   return Math.abs(a - b) / avg > 0.1;
 }
 
+// --- Collapsible section wrapper ---
+
+function ComparisonSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Collapsible defaultOpen={defaultOpen}>
+      <div className="card-elevated rounded-lg overflow-hidden">
+        <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 border-b hover:bg-muted/30 transition-colors cursor-pointer">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>{children}</CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
 // --- Evaluation helper ---
 
 function evaluateScenario(
@@ -109,6 +139,14 @@ function evaluateScenario(
 function isCostCategory(category: string): boolean {
   return category === 'costs';
 }
+
+// --- Status helpers ---
+
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700 ring-gray-300' },
+  active: { label: 'Active', className: 'bg-emerald-50 text-emerald-700 ring-emerald-300' },
+  archived: { label: 'Archived', className: 'bg-amber-50 text-amber-700 ring-amber-300' },
+};
 
 export function ScenarioComparison() {
   const businessId = useAtomValue(activeBusinessIdAtom);
@@ -202,6 +240,57 @@ export function ScenarioComparison() {
     }));
   }, [evaluatedA, evaluatedB, definitions]);
 
+  // Build assumptions comparison data
+  const assumptionsComparison = useMemo(() => {
+    if (!scenarioA || !scenarioB) return null;
+    const aAssumptions = scenarioA.assumptions ?? [];
+    const bAssumptions = scenarioB.assumptions ?? [];
+
+    // Group assumptions by category
+    const allCategories = new Set<string>();
+    for (const a of aAssumptions) allCategories.add(a.category ?? 'General');
+    for (const a of bAssumptions) allCategories.add(a.category ?? 'General');
+
+    const aLabelSet = new Set(aAssumptions.map((a) => a.label.toLowerCase()));
+
+    type AssumptionRow = {
+      label: string;
+      aValue: string | null;
+      bValue: string | null;
+      uniqueTo: 'A' | 'B' | null;
+      category: string;
+    };
+
+    const rows: AssumptionRow[] = [];
+
+    // Add all A assumptions
+    for (const a of aAssumptions) {
+      const matching = bAssumptions.find((b) => b.label.toLowerCase() === a.label.toLowerCase());
+      rows.push({
+        label: a.label,
+        aValue: a.value,
+        bValue: matching?.value ?? null,
+        uniqueTo: matching ? null : 'A',
+        category: a.category ?? 'General',
+      });
+    }
+
+    // Add B-only assumptions
+    for (const b of bAssumptions) {
+      if (!aLabelSet.has(b.label.toLowerCase())) {
+        rows.push({
+          label: b.label,
+          aValue: null,
+          bValue: b.value,
+          uniqueTo: 'B',
+          category: b.category ?? 'General',
+        });
+      }
+    }
+
+    return { rows, categories: Array.from(allCategories).sort() };
+  }, [scenarioA, scenarioB]);
+
   if (!businessId) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground text-sm">
@@ -237,7 +326,7 @@ export function ScenarioComparison() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Scenario Selectors */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="space-y-1">
@@ -279,55 +368,8 @@ export function ScenarioComparison() {
 
       {scenarioA && scenarioB && evaluatedA && evaluatedB && (
         <>
-          {/* Input Variables Comparison Table */}
-          <div className="card-elevated rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b">
-              <h3 className="text-sm font-semibold">Input Variables</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Variable</th>
-                    <th className="text-right py-2.5 px-4 font-medium text-blue-700">
-                      {scenarioA.metadata.name}
-                    </th>
-                    <th className="text-right py-2.5 px-4 font-medium text-emerald-700">
-                      {scenarioB.metadata.name}
-                    </th>
-                    <th className="text-right py-2.5 px-4 font-medium text-muted-foreground">Diff</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inputRows.map((row, i) => {
-                    const valA = scenarioA.values[row.id] ?? 0;
-                    const valB = scenarioB.values[row.id] ?? 0;
-                    const diff = valB - valA;
-                    return (
-                      <tr key={row.id} className={`border-b last:border-0 ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
-                        <td className="py-2 px-4">{row.label}</td>
-                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valA, row.unit)}</td>
-                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valB, row.unit)}</td>
-                        <td className="text-right py-2 px-4">
-                          <DiffCell
-                            diff={diff}
-                            formatted={formatValue(Math.abs(diff), row.unit)}
-                            lowerIsBetter={row.lowerIsBetter}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Derived Metrics Comparison Table */}
-          <div className="card-elevated rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b">
-              <h3 className="text-sm font-semibold">Derived Metrics</h3>
-            </div>
+          {/* Financial Metrics - expanded by default */}
+          <ComparisonSection title="Financial Metrics" defaultOpen>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -378,15 +420,10 @@ export function ScenarioComparison() {
                 </tbody>
               </table>
             </div>
-          </div>
 
-          {/* Comparison Bar Chart */}
-          {chartData.length > 0 && (
-            <div className="card-elevated rounded-lg overflow-hidden">
-              <div className="px-4 py-3 border-b">
-                <h3 className="text-sm font-semibold">Visual Comparison</h3>
-              </div>
-              <div className="p-4">
+            {/* Visual comparison chart */}
+            {chartData.length > 0 && (
+              <div className="p-4 border-t">
                 <div className="h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
@@ -411,8 +448,168 @@ export function ScenarioComparison() {
                   </ResponsiveContainer>
                 </div>
               </div>
+            )}
+          </ComparisonSection>
+
+          {/* Input Variables - collapsed by default */}
+          <ComparisonSection title="Input Variables">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Variable</th>
+                    <th className="text-right py-2.5 px-4 font-medium text-blue-700">
+                      {scenarioA.metadata.name}
+                    </th>
+                    <th className="text-right py-2.5 px-4 font-medium text-emerald-700">
+                      {scenarioB.metadata.name}
+                    </th>
+                    <th className="text-right py-2.5 px-4 font-medium text-muted-foreground">Diff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inputRows.map((row, i) => {
+                    const valA = scenarioA.values[row.id] ?? 0;
+                    const valB = scenarioB.values[row.id] ?? 0;
+                    const diff = valB - valA;
+                    return (
+                      <tr key={row.id} className={`border-b last:border-0 ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
+                        <td className="py-2 px-4">{row.label}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valA, row.unit)}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valB, row.unit)}</td>
+                        <td className="text-right py-2 px-4">
+                          <DiffCell
+                            diff={diff}
+                            formatted={formatValue(Math.abs(diff), row.unit)}
+                            lowerIsBetter={row.lowerIsBetter}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
+          </ComparisonSection>
+
+          {/* Assumptions - collapsed by default */}
+          <ComparisonSection title="Assumptions">
+            {assumptionsComparison && assumptionsComparison.rows.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Assumption</th>
+                      <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Category</th>
+                      <th className="text-left py-2.5 px-4 font-medium text-blue-700">
+                        {scenarioA.metadata.name}
+                      </th>
+                      <th className="text-left py-2.5 px-4 font-medium text-emerald-700">
+                        {scenarioB.metadata.name}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assumptionsComparison.rows.map((row, i) => (
+                      <tr
+                        key={`${row.label}-${i}`}
+                        className={`border-b last:border-0 ${
+                          row.uniqueTo
+                            ? row.uniqueTo === 'A'
+                              ? 'bg-blue-50/40'
+                              : 'bg-emerald-50/40'
+                            : i % 2 === 1
+                              ? 'bg-muted/20'
+                              : ''
+                        }`}
+                      >
+                        <td className="py-2 px-4 font-medium">
+                          {row.label}
+                          {row.uniqueTo && (
+                            <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ring-1 ring-inset ${
+                              row.uniqueTo === 'A'
+                                ? 'bg-blue-50 text-blue-700 ring-blue-700/10'
+                                : 'bg-emerald-50 text-emerald-700 ring-emerald-700/10'
+                            }`}>
+                              Only in {row.uniqueTo}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-4 text-muted-foreground text-xs">{row.category}</td>
+                        <td className="py-2 px-4">{row.aValue ?? <span className="text-muted-foreground">--</span>}</td>
+                        <td className="py-2 px-4">{row.bValue ?? <span className="text-muted-foreground">--</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+                No assumptions defined for the selected scenarios.
+              </div>
+            )}
+          </ComparisonSection>
+
+          {/* Scenario Info - collapsed by default */}
+          <ComparisonSection title="Scenario Info">
+            <div className="p-4 space-y-3">
+              {/* Horizon comparison */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground w-24">Horizon</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-blue-700 font-medium">
+                    {scenarioA.metadata.name}: {scenarioA.horizonMonths ?? 12} months
+                  </span>
+                  <span className="text-muted-foreground">|</span>
+                  <span className="text-emerald-700 font-medium">
+                    {scenarioB.metadata.name}: {scenarioB.horizonMonths ?? 12} months
+                  </span>
+                  {(scenarioA.horizonMonths ?? 12) !== (scenarioB.horizonMonths ?? 12) && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-700/10">
+                      Different
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status comparison */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground w-24">Status</span>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const statusA = scenarioA.status ?? 'draft';
+                    const statusB = scenarioB.status ?? 'draft';
+                    const cfgA = STATUS_LABELS[statusA] ?? STATUS_LABELS.draft;
+                    const cfgB = STATUS_LABELS[statusB] ?? STATUS_LABELS.draft;
+                    return (
+                      <>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cfgA.className}`}>
+                          {scenarioA.metadata.name}: {cfgA.label}
+                        </span>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cfgB.className}`}>
+                          {scenarioB.metadata.name}: {cfgB.label}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Creation date comparison */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground w-24">Created</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-blue-700">
+                    {scenarioA.metadata.name}: {new Date(scenarioA.metadata.createdAt).toLocaleDateString()}
+                  </span>
+                  <span className="text-muted-foreground">|</span>
+                  <span className="text-emerald-700">
+                    {scenarioB.metadata.name}: {new Date(scenarioB.metadata.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </ComparisonSection>
         </>
       )}
     </div>
