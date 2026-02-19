@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAtomValue } from 'jotai';
 import { useSection } from '@/hooks/use-section';
 import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
+import { useImageUpload } from '@/hooks/use-image-upload';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
 import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
 import { normalizeProductService } from './normalize';
-import type { ProductService as ProductServiceType, Offering, AddOn } from '@/types';
+import { activeBusinessAtom } from '@/store/business-atoms';
+import type { ProductService as ProductServiceType, Offering, AddOn, OfferingImage } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift, Link } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift, Link, ImagePlus, X, RefreshCw } from 'lucide-react';
 
 const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
 
@@ -21,9 +24,31 @@ export function ProductService() {
     defaultProductService
   );
   const aiSuggestion = useAiSuggestion<ProductServiceType>('product-service');
+  const { upload, remove: removeImage, isUploading, progress, error: uploadError } = useImageUpload();
+  const business = useAtomValue(activeBusinessAtom);
 
   // Track which offering has its add-on selector open (by offering id)
   const [openAddonSelector, setOpenAddonSelector] = useState<string | null>(null);
+
+  // Track which offering is currently uploading an image (by offering id)
+  const [uploadingOfferingId, setUploadingOfferingId] = useState<string | null>(null);
+  // Track which offering had the last error (persists after upload finishes)
+  const [errorOfferingId, setErrorOfferingId] = useState<string | null>(null);
+
+  // Hidden file input ref for image picker
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Track which offering triggered the file picker
+  const pendingUploadIndexRef = useRef<number | null>(null);
+
+  // Auto-clear upload error after 5 seconds
+  useEffect(() => {
+    if (uploadError && errorOfferingId) {
+      const timer = setTimeout(() => {
+        setErrorOfferingId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadError, errorOfferingId]);
 
   // Normalize legacy data on first load
   const [normalized, setNormalized] = useState(false);
@@ -77,13 +102,63 @@ export function ProductService() {
     }));
   }
 
-  function updateOffering(index: number, field: keyof Offering, value: string | number | null | string[]) {
+  function updateOffering(index: number, field: keyof Offering, value: string | number | null | string[] | OfferingImage | undefined) {
     updateData((prev) => {
       const offerings = [...prev.offerings];
       offerings[index] = { ...offerings[index], [field]: value };
       return { ...prev, offerings };
     });
   }
+
+  // Open file picker for a specific offering
+  const triggerImagePicker = useCallback((offeringIndex: number) => {
+    pendingUploadIndexRef.current = offeringIndex;
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handle file selection from the hidden input
+  const handleFileSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const offeringIndex = pendingUploadIndexRef.current;
+    if (!file || offeringIndex === null) return;
+
+    const offering = rawData.offerings[offeringIndex];
+    if (!offering) return;
+
+    const storagePath = `offerings/${business?.id}/${offering.id}/${file.name}`;
+    setUploadingOfferingId(offering.id);
+    setErrorOfferingId(null);
+
+    try {
+      const { url, storagePath: savedPath } = await upload(file, storagePath);
+      updateOffering(offeringIndex, 'image', { url, storagePath: savedPath, alt: offering.name });
+    } catch {
+      // Error is already set via useImageUpload hook; track which offering it belongs to
+      setErrorOfferingId(offering.id);
+    } finally {
+      setUploadingOfferingId(null);
+      pendingUploadIndexRef.current = null;
+      // Reset file input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [rawData.offerings, business?.id, upload, updateOffering]);
+
+  // Remove image from an offering
+  const handleRemoveImage = useCallback(async (offeringIndex: number) => {
+    const offering = rawData.offerings[offeringIndex];
+    if (!offering?.image) return;
+
+    if (offering.image.storagePath) {
+      try {
+        await removeImage(offering.image.storagePath);
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+    updateOffering(offeringIndex, 'image', undefined);
+  }, [rawData.offerings, removeImage, updateOffering]);
 
   // --- Add-on CRUD ---
 
@@ -134,6 +209,15 @@ export function ProductService() {
 
   const sectionContent = (
     <div className="space-y-6">
+      {/* Hidden file input for image uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
       {/* Overview */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Overview</label>
@@ -166,8 +250,86 @@ export function ProductService() {
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {displayData.offerings.map((offering, offeringIndex) => (
-              <div key={offering.id ?? offeringIndex} className="card-elevated rounded-lg group">
+            {displayData.offerings.map((offering, offeringIndex) => {
+              const isThisUploading = isUploading && uploadingOfferingId === offering.id;
+
+              return (
+              <div key={offering.id ?? offeringIndex} className="card-elevated rounded-lg group overflow-hidden">
+                {/* Image section */}
+                {offering.image?.url ? (
+                  <div className="relative">
+                    <img
+                      src={offering.image.url}
+                      alt={offering.image.alt || offering.name}
+                      className="w-full h-32 object-cover"
+                    />
+                    {/* Upload progress overlay */}
+                    {isThisUploading && (
+                      <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center gap-2">
+                        <div className="w-3/4 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">{progress}%</span>
+                      </div>
+                    )}
+                    {/* Hover overlay with Replace/Remove actions */}
+                    {canEdit && !isPreview && !isThisUploading && (
+                      <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => triggerImagePicker(offeringIndex)}
+                        >
+                          <RefreshCw className="size-3 mr-1" />
+                          Replace
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveImage(offeringIndex)}
+                        >
+                          <X className="size-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : canEdit && !isPreview ? (
+                  <div className="relative w-full h-24 bg-muted/50 flex items-center justify-center">
+                    {isThisUploading ? (
+                      <div className="flex flex-col items-center gap-2 w-3/4">
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">{progress}%</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                        onClick={() => triggerImagePicker(offeringIndex)}
+                      >
+                        <ImagePlus className="size-4 mr-1.5" />
+                        Add image
+                      </Button>
+                    )}
+                  </div>
+                ) : null}
+
+                {/* Upload error message */}
+                {uploadError && errorOfferingId === offering.id && (
+                  <div className="px-3 py-1.5 bg-red-50 dark:bg-red-950/50 text-xs text-red-700 dark:text-red-300">
+                    {uploadError}
+                  </div>
+                )}
+
                 <div className="px-5 pt-4 pb-5 space-y-4">
                   {/* Header with name and delete */}
                   <div className="flex items-start justify-between gap-2">
@@ -218,8 +380,6 @@ export function ProductService() {
                       </span>
                     )}
                   </div>
-
-                  {/* Image upload — added in Plan 05 */}
 
                   {/* Description */}
                   <Textarea
@@ -291,7 +451,8 @@ export function ProductService() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
