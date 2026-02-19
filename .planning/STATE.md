@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 17 next
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 17 complete
 
 ## Current Position
 
 Phase: 17 (Generic Product/Service Offerings & Images)
-Plan: 4 of 6 in current phase
-Status: In progress
-Last activity: 2026-02-18 — Completed 17-03-PLAN.md (parallel with 17-04)
+Plan: 6 of 6 in current phase
+Status: Complete
+Last activity: 2026-02-18 — Completed all 6 plans (3 waves)
 
-Progress: █████░ 56%
+Progress: ██████ 100%
 
 ## Performance Metrics
 
@@ -53,6 +53,12 @@ Progress: █████░ 56%
 | 15-tests-and-ci | 3/3 | Complete |
 | 16-ai-backend-proxy | 2/2 | Complete |
 
+**By Phase (v3.0):**
+
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 17-generic-product-service-offerings | 6/6 | Complete |
+
 ## Accumulated Context
 
 ### Roadmap Evolution
@@ -61,6 +67,7 @@ Progress: █████░ 56%
 - Milestone v2.0 complete: All 4 phases shipped (2026-02-18)
 - Milestone v3.0 created: Section Enhancements
 - Phase 17 added: Generic Product/Service Offerings & Images
+- Phase 17 complete: All 6 plans shipped (2026-02-18)
 
 ### Decisions
 
@@ -74,6 +81,8 @@ Progress: █████░ 56%
 - Phase 17-02: Firebase Storage with uploadBytesResumable, dual validation (client hook + storage rules), emulator on 9199
 - Phase 17-03: Inline toggle checkbox for add-on linking (no Popover), add-on cleanup in removeAddOn, overview above offerings
 - Phase 17-04: Offering-based Zod schemas replace PackageSchema, tier terminology prohibited, 6 industry overlays for product-service
+- Phase 17-05: Per-offering image upload with progress, hover overlay for replace/remove, Storage cleanup on offering deletion
+- Phase 17-06: Web + PDF export updated for Offering model with images, normalizeProductService at read boundary
 
 ### Deferred Issues
 
@@ -86,5 +95,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 17-03-PLAN.md and 17-04-PLAN.md (parallel)
+Stopped at: Phase 17 complete — all 6 plans executed across 3 waves
 Resume file: None
