@@ -19,7 +19,7 @@ function makeOps(overrides: Partial<Operations> = {}): Operations {
 function makeInput(overrides: Partial<GrowthComputeInput> = {}): GrowthComputeInput {
   return {
     operations: makeOps(),
-    baseAvgCheck: 100,
+    basePricePerUnit: 100,
     baseBookings: 50,
     baseMarketingBudget: 1000,
     seasonCoefficients: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -47,11 +47,11 @@ describe('computeGrowthTimeline', () => {
     expect(result.months).toHaveLength(12);
     expect(result.projections).toHaveLength(12);
 
-    // Each month should have same revenue: 50 bookings * 100 avgCheck = 5000
+    // Each month should have same revenue: 50 bookings * 100 pricePerUnit = 5000
     for (const snap of result.months) {
       expect(snap.revenue).toBe(5000);
       expect(snap.bookings).toBe(50);
-      expect(snap.avgCheck).toBe(100);
+      expect(snap.pricePerUnit).toBe(100);
       expect(snap.marketingBudget).toBe(1000);
     }
 
@@ -78,9 +78,9 @@ describe('computeGrowthTimeline', () => {
     expect(result.months[0].workforceCost).toBe(0);
     expect(result.months[1].workforceCost).toBe(0);
 
-    // Month 3+: 50 * 40 * 1 * 4 = 8000/mo
+    // Month 3+: 50 * 40 * 1 * (52/12) ≈ 8666.67/mo
     for (let i = 2; i < 12; i++) {
-      expect(result.months[i].workforceCost).toBe(8000);
+      expect(result.months[i].workforceCost).toBeCloseTo(8666.67, 0);
     }
   });
 
@@ -108,13 +108,13 @@ describe('computeGrowthTimeline', () => {
 
     const result = computeGrowthTimeline(input);
 
-    // Month 1-3: only first hire: 50*40*1*4 = 8000
-    expect(result.months[0].workforceCost).toBe(8000);
-    expect(result.months[2].workforceCost).toBe(8000);
+    // Month 1-3: only first hire: 50*40*1*(52/12) ≈ 8666.67
+    expect(result.months[0].workforceCost).toBeCloseTo(8666.67, 0);
+    expect(result.months[2].workforceCost).toBeCloseTo(8666.67, 0);
 
-    // Month 4+: both hires: 8000 + 40*40*1*4 = 8000 + 6400 = 14400
-    expect(result.months[3].workforceCost).toBe(14400);
-    expect(result.months[11].workforceCost).toBe(14400);
+    // Month 4+: both hires: 8666.67 + 40*40*1*(52/12) ≈ 8666.67 + 6933.33 = 15600
+    expect(result.months[3].workforceCost).toBeCloseTo(15600, 0);
+    expect(result.months[11].workforceCost).toBeCloseTo(15600, 0);
   });
 
   it('applies cost-change event', () => {
@@ -444,14 +444,14 @@ describe('computeGrowthTimeline', () => {
     expect(result.months[0].workforceCost).toBe(0);
     expect(result.months[0].workforce).toHaveLength(1);
 
-    // Month 2+: founder + assistant: 25 * 20 * 1 * 4 = 2000
-    expect(result.months[1].workforceCost).toBe(2000);
+    // Month 2+: founder + assistant: 25 * 20 * 1 * (52/12) ≈ 2166.67
+    expect(result.months[1].workforceCost).toBeCloseTo(2166.67, 0);
     expect(result.months[1].workforce).toHaveLength(2);
   });
 
   // --- New event types (Phase 21) ---
 
-  it('funding-round adds amount to revenue and legalCosts to fixedCost only in event month', () => {
+  it('funding-round adds non-operating cash flow and legalCosts only in event month', () => {
     const input = makeInput({
       events: [
         makeEvent({
@@ -468,17 +468,20 @@ describe('computeGrowthTimeline', () => {
     const result = computeGrowthTimeline(input);
 
     // Base revenue = 50 * 100 = 5000
-    // Month 3: revenue = 5000 + 100000 = 105000, fixedCost includes +5000
-    expect(result.months[2].revenue).toBe(105000);
+    // Month 3: revenue remains operational only, fixedCost includes legal cost
+    expect(result.months[2].revenue).toBe(5000);
     expect(result.months[2].fixedCost).toBe(5000);
+    expect(result.projections[2].nonOperatingCashFlow).toBe(100000);
 
     // Month 4: no one-time additions
     expect(result.months[3].revenue).toBe(5000);
     expect(result.months[3].fixedCost).toBe(0);
+    expect(result.projections[3].nonOperatingCashFlow).toBe(0);
 
     // Month 2: no effect
     expect(result.months[1].revenue).toBe(5000);
     expect(result.months[1].fixedCost).toBe(0);
+    expect(result.projections[1].nonOperatingCashFlow).toBe(0);
   });
 
   it('facility-build spreads construction cost during build and adds rent+capacity after', () => {
@@ -556,18 +559,19 @@ describe('computeGrowthTimeline', () => {
     const result = computeGrowthTimeline(input);
 
     // Each month should add ~1 hire (4 hires / 4 months)
-    // Month 1: floor(4 * 1/4) = 1 hire, workforceCost = 1 * 50 * 40 * 4 = 8000
-    expect(result.months[0].workforceCost).toBe(8000);
-    // Month 2: floor(4 * 2/4) = 2 hires, workforceCost = 2 * 50 * 40 * 4 = 16000
-    expect(result.months[1].workforceCost).toBe(16000);
-    // Month 3: floor(4 * 3/4) = 3 hires
-    expect(result.months[2].workforceCost).toBe(24000);
-    // Month 4: floor(4 * 4/4) = 4 hires
-    expect(result.months[3].workforceCost).toBe(32000);
+    // Per-hire monthly cost = 50 * 40 * (52/12) ≈ 8666.67
+    // Month 1: floor(4 * 1/4) = 1 hire, workforceCost ≈ 8666.67
+    expect(result.months[0].workforceCost).toBeCloseTo(8666.67, 0);
+    // Month 2: floor(4 * 2/4) = 2 hires, workforceCost ≈ 17333.33
+    expect(result.months[1].workforceCost).toBeCloseTo(17333.33, 0);
+    // Month 3: floor(4 * 3/4) = 3 hires ≈ 26000
+    expect(result.months[2].workforceCost).toBeCloseTo(26000, 0);
+    // Month 4: floor(4 * 4/4) = 4 hires ≈ 34666.67
+    expect(result.months[3].workforceCost).toBeCloseTo(34666.67, 0);
 
     // After month 4: all 4 hires ongoing, no recruiting costs
-    expect(result.months[4].workforceCost).toBe(32000);
-    expect(result.months[11].workforceCost).toBe(32000);
+    expect(result.months[4].workforceCost).toBeCloseTo(34666.67, 0);
+    expect(result.months[11].workforceCost).toBeCloseTo(34666.67, 0);
 
     // Recruiting cost: 1 new hire per month during campaign = 2000 one-time each month
     // fixedCost includes recruiting cost as one-time
@@ -580,7 +584,7 @@ describe('computeGrowthTimeline', () => {
     expect(result.months[4].fixedCost).toBe(0);
   });
 
-  it('price-change overrides avgCheck from event month', () => {
+  it('price-change overrides pricePerUnit from event month', () => {
     const input = makeInput({
       events: [
         makeEvent({
@@ -588,7 +592,7 @@ describe('computeGrowthTimeline', () => {
           label: 'Price increase',
           delta: {
             type: 'price-change',
-            data: { newAvgCheck: 200 },
+            data: { newPricePerUnit: 200 },
           },
         }),
       ],
@@ -596,17 +600,38 @@ describe('computeGrowthTimeline', () => {
 
     const result = computeGrowthTimeline(input);
 
-    // Months 1-3: base avgCheck = 100, revenue = 50 * 100 = 5000
+    // Months 1-3: base pricePerUnit = 100, revenue = 50 * 100 = 5000
     for (let i = 0; i < 3; i++) {
       expect(result.months[i].revenue).toBe(5000);
-      expect(result.months[i].avgCheck).toBe(100);
+      expect(result.months[i].pricePerUnit).toBe(100);
     }
 
-    // Month 4+: avgCheck = 200, revenue = 50 * 200 = 10000
+    // Month 4+: pricePerUnit = 200, revenue = 50 * 200 = 10000
     for (let i = 3; i < 12; i++) {
       expect(result.months[i].revenue).toBe(10000);
-      expect(result.months[i].avgCheck).toBe(200);
+      expect(result.months[i].pricePerUnit).toBe(200);
     }
+  });
+
+  it('price-change supports legacy newAvgCheck field', () => {
+    const input = makeInput({
+      events: [
+        makeEvent({
+          month: 2,
+          label: 'Legacy price update',
+          delta: {
+            type: 'price-change',
+            data: { newAvgCheck: 150 },
+          },
+        }),
+      ],
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    expect(result.months[0].pricePerUnit).toBe(100);
+    expect(result.months[1].pricePerUnit).toBe(150);
+    expect(result.months[1].revenue).toBe(7500);
   });
 
   it('equipment-purchase has one-time cost plus ongoing maintenance and capacity', () => {

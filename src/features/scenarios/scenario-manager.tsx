@@ -1,15 +1,23 @@
 import { useCallback, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import {
   currentScenarioIdAtom,
   scenarioListAtom,
   loadDynamicScenarioAtom,
   resetDynamicToDefaultsAtom,
+  scenarioNameAtom,
+  snapshotInputValuesAtom,
+  scenarioStatusAtom,
+  scenarioHorizonAtom,
+  scenarioAssumptionsAtom,
+  scenarioVariantRefsAtom,
+  scenarioSectionOverridesAtom,
 } from '@/store/scenario-atoms.ts';
 import {
   listScenarioData,
   deleteScenarioData,
   saveScenarioPreferences,
+  saveScenarioData,
 } from '@/lib/business-firestore';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { useCanEdit } from '@/hooks/use-business-role';
@@ -33,25 +41,72 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
+import type { DynamicScenario } from '@/types';
 
 export function ScenarioManager() {
   const businessId = useAtomValue(activeBusinessIdAtom);
-  const [currentId] = useAtom(currentScenarioIdAtom);
+  const currentId = useAtomValue(currentScenarioIdAtom);
   const scenarioList = useAtomValue(scenarioListAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
   const loadDynamicScenario = useSetAtom(loadDynamicScenarioAtom);
   const resetDynamicToDefaults = useSetAtom(resetDynamicToDefaultsAtom);
+  const scenarioName = useAtomValue(scenarioNameAtom);
+  const inputValues = useAtomValue(snapshotInputValuesAtom);
+  const scenarioStatus = useAtomValue(scenarioStatusAtom);
+  const scenarioHorizon = useAtomValue(scenarioHorizonAtom);
+  const scenarioAssumptions = useAtomValue(scenarioAssumptionsAtom);
+  const scenarioVariantRefs = useAtomValue(scenarioVariantRefsAtom);
+  const scenarioSectionOverrides = useAtomValue(scenarioSectionOverridesAtom);
 
   const canEdit = useCanEdit();
   const [isLoading, setIsLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
-  // Switch to a different scenario
-  const handleSwitch = useCallback(
-    async (scenarioId: string) => {
+  const saveCurrentScenarioNow = useCallback(async () => {
+    if (!businessId) return;
+    const existingMeta = scenarioList.find((m) => m.id === currentId);
+    if (!existingMeta) return;
+
+    const scenario: DynamicScenario = {
+      metadata: {
+        ...existingMeta,
+        name: scenarioName,
+      },
+      values: inputValues,
+      assumptions: scenarioAssumptions,
+      variantRefs: scenarioVariantRefs,
+      sectionOverrides: scenarioSectionOverrides,
+      status: scenarioStatus,
+      horizonMonths: scenarioHorizon,
+    };
+
+    await saveScenarioData(businessId, scenario);
+    setScenarioList((prev) =>
+      prev.map((m) => (m.id === currentId ? scenario.metadata : m))
+    );
+  }, [
+    businessId,
+    scenarioList,
+    currentId,
+    scenarioName,
+    inputValues,
+    scenarioAssumptions,
+    scenarioVariantRefs,
+    scenarioSectionOverrides,
+    scenarioStatus,
+    scenarioHorizon,
+    setScenarioList,
+  ]);
+
+  const switchScenario = useCallback(
+    async (scenarioId: string, options?: { skipSave?: boolean }) => {
       if (!businessId) return;
+      if (scenarioId === currentId) return;
       setIsLoading(true);
       try {
+        if (!options?.skipSave) {
+          await saveCurrentScenarioNow();
+        }
         const scenarios = await listScenarioData(businessId);
         const target = scenarios.find((s) => s.metadata.id === scenarioId);
         if (target) {
@@ -64,13 +119,30 @@ export function ScenarioManager() {
         setIsLoading(false);
       }
     },
-    [businessId, loadDynamicScenario]
+    [businessId, currentId, loadDynamicScenario, saveCurrentScenarioNow]
+  );
+
+  // Switch to a different scenario (UI callback)
+  const handleSwitch = useCallback(
+    (scenarioId: string) => {
+      void switchScenario(scenarioId);
+    },
+    [switchScenario]
   );
 
   // Create new scenario (reset to defaults)
-  const handleNew = useCallback(() => {
-    resetDynamicToDefaults();
-  }, [resetDynamicToDefaults]);
+  const handleNew = useCallback(async () => {
+    if (!canEdit) return;
+    setIsLoading(true);
+    try {
+      await saveCurrentScenarioNow();
+      resetDynamicToDefaults();
+    } catch {
+      setIsOffline(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [canEdit, resetDynamicToDefaults, saveCurrentScenarioNow]);
 
   // Delete current scenario
   const handleDelete = useCallback(async () => {
@@ -84,12 +156,12 @@ export function ScenarioManager() {
 
       // Switch to first remaining scenario
       if (updatedList.length > 0) {
-        await handleSwitch(updatedList[0].id);
+        await switchScenario(updatedList[0].id, { skipSave: true });
       }
     } catch {
       setIsOffline(true);
     }
-  }, [businessId, currentId, scenarioList, setScenarioList, handleSwitch]);
+  }, [businessId, currentId, scenarioList, setScenarioList, switchScenario]);
 
   const currentMeta = scenarioList.find((m) => m.id === currentId);
 
@@ -124,7 +196,7 @@ export function ScenarioManager() {
       )}
 
       {/* Actions */}
-      <Button variant="outline" size="sm" onClick={handleNew} disabled={!canEdit} className="h-7 text-xs">
+      <Button variant="outline" size="sm" onClick={handleNew} disabled={!canEdit || isLoading} className="h-7 text-xs">
         <Plus className="size-3.5" />
         New
       </Button>

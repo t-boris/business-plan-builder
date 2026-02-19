@@ -64,6 +64,14 @@ service cloud.firestore {
                        .data.roles[request.auth.uid] in ['owner', 'editor', 'viewer'];
         allow write: if get(/databases/$(database)/documents/businesses/$(businessId))
                         .data.roles[request.auth.uid] in ['owner', 'editor'];
+
+        // --- Section variants: same role policy as parent section ---
+        match /variants/{variantId} {
+          allow read: if get(/databases/$(database)/documents/businesses/$(businessId))
+                         .data.roles[request.auth.uid] in ['owner', 'editor', 'viewer'];
+          allow write: if get(/databases/$(database)/documents/businesses/$(businessId))
+                          .data.roles[request.auth.uid] in ['owner', 'editor'];
+        }
       }
 
       // --- Scenarios: owner+editor write, viewer read-only ---

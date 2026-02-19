@@ -1,11 +1,5 @@
 import { useSection } from '@/hooks/use-section';
-import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
-import { isAiAvailable } from '@/lib/ai/gemini-client';
-import { AiActionBar } from '@/components/ai-action-bar';
-import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
-import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
 import type { MarketAnalysis as MarketAnalysisType, Competitor, MarketAnalysisBlocks } from '@/types';
 
 import { defaultMarketAnalysis } from './defaults';
@@ -23,7 +17,6 @@ export function MarketAnalysis() {
     'market-analysis',
     defaultMarketAnalysis,
   );
-  const aiSuggestion = useAiSuggestion<MarketAnalysisType>('market-analysis');
 
   // Migrate legacy data on first load
   const data = rawData.enabledBlocks ? migrateLegacy(rawData as unknown as Record<string, unknown>) : migrateLegacy(rawData as unknown as Record<string, unknown>);
@@ -31,23 +24,14 @@ export function MarketAnalysis() {
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader title="Market Analysis" description="Market sizing, demographics, competitive landscape, and adoption modeling" />
+        <PageHeader showScenarioBadge title="Market Analysis" description="Market sizing, demographics, competitive landscape, and adoption modeling" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
-  const isPreview = aiSuggestion.state.status === 'preview';
-  const displayData = isPreview && aiSuggestion.state.suggested
-    ? aiSuggestion.state.suggested
-    : data;
-  const readOnly = !canEdit || isPreview;
-  const blocks = displayData.enabledBlocks;
-
-  function handleAccept() {
-    const suggested = aiSuggestion.accept();
-    if (suggested) updateData(() => suggested);
-  }
+  const readOnly = !canEdit;
+  const blocks = data.enabledBlocks;
 
   function toggleBlock(key: keyof MarketAnalysisBlocks, value: boolean) {
     updateData((prev) => ({
@@ -58,14 +42,14 @@ export function MarketAnalysis() {
 
   const sectionContent = (
     <div className="space-y-6">
-      {canEdit && !isPreview && (
+      {canEdit && (
         <BlockTogglePanel blocks={blocks} onChange={toggleBlock} />
       )}
 
       {blocks.sizing && (
         <SizingBlock
-          sizing={displayData.marketSizing}
-          narrative={displayData.marketNarrative}
+          sizing={data.marketSizing}
+          narrative={data.marketNarrative}
           onChange={(marketSizing) => updateData((prev) => ({ ...prev, marketSizing }))}
           onNarrativeChange={(v) => updateData((prev) => ({ ...prev, marketNarrative: v }))}
           readOnly={readOnly}
@@ -75,7 +59,7 @@ export function MarketAnalysis() {
 
       {blocks.competitors && (
         <CompetitorsBlock
-          competitors={displayData.competitors}
+          competitors={data.competitors}
           onUpdate={(i, field, value) =>
             updateData((prev) => {
               const competitors = [...prev.competitors];
@@ -98,7 +82,7 @@ export function MarketAnalysis() {
 
       {blocks.demographics && (
         <DemographicsBlock
-          data={displayData.demographics}
+          data={data.demographics}
           onChange={(demographics) => updateData((prev) => ({ ...prev, demographics }))}
           readOnly={readOnly}
         />
@@ -106,7 +90,7 @@ export function MarketAnalysis() {
 
       {blocks.acquisitionFunnel && (
         <FunnelBlock
-          stages={displayData.acquisitionFunnel}
+          stages={data.acquisitionFunnel}
           onChange={(stages) => updateData((prev) => ({ ...prev, acquisitionFunnel: stages }))}
           readOnly={readOnly}
         />
@@ -114,7 +98,7 @@ export function MarketAnalysis() {
 
       {blocks.adoptionModel && (
         <AdoptionBlock
-          model={displayData.adoptionModel}
+          model={data.adoptionModel}
           onChange={(model) => updateData((prev) => ({ ...prev, adoptionModel: model }))}
           readOnly={readOnly}
         />
@@ -122,7 +106,7 @@ export function MarketAnalysis() {
 
       {blocks.customMetrics && (
         <CustomMetricsBlock
-          metrics={displayData.customMetrics}
+          metrics={data.customMetrics}
           onChange={(metrics) => updateData((prev) => ({ ...prev, customMetrics: metrics }))}
           readOnly={readOnly}
         />
@@ -132,39 +116,8 @@ export function MarketAnalysis() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Market Analysis" description="Market sizing, demographics, competitive landscape, and adoption modeling">
-        {canEdit && (
-          <AiActionBar
-            onGenerate={() => aiSuggestion.generate('generate', data)}
-            onImprove={() => aiSuggestion.generate('improve', data)}
-            onExpand={() => aiSuggestion.generate('expand', data)}
-            isLoading={aiSuggestion.state.status === 'loading'}
-            disabled={!isAiAvailable}
-          />
-        )}
-      </PageHeader>
-
-      {aiSuggestion.state.status === 'error' && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
-          <AlertCircle className="size-4 shrink-0" />
-          <span className="flex-1">{aiSuggestion.state.error}</span>
-          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
-        </div>
-      )}
-
-      {aiSuggestion.state.status === 'loading' && (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading>
-          <div />
-        </AiSuggestionPreview>
-      )}
-
-      {aiSuggestion.state.status === 'preview' ? (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>
-          {sectionContent}
-        </AiSuggestionPreview>
-      ) : (
-        aiSuggestion.state.status !== 'loading' && sectionContent
-      )}
+      <PageHeader showScenarioBadge title="Market Analysis" description="Market sizing, demographics, competitive landscape, and adoption modeling" />
+      {sectionContent}
     </div>
   );
 }

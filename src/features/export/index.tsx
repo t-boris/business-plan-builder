@@ -113,27 +113,19 @@ const defaultMarketing: MarketingStrategy = {
 };
 
 const defaultOperations: Operations = {
-  crew: [],
-  hoursPerEvent: 0,
-  capacity: { maxBookingsPerDay: 0, maxBookingsPerWeek: 0, maxBookingsPerMonth: 0 },
-  travelRadius: 0,
+  workforce: [],
+  capacityItems: [],
+  variableComponents: [],
+  costItems: [],
   equipment: [],
   safetyProtocols: [],
-  costBreakdown: {
-    suppliesPerChild: 0, participantsPerEvent: 0, museumTicketPrice: 0, ticketsPerEvent: 0,
-    fuelPricePerGallon: 0, vehicleMPG: 0, avgRoundTripMiles: 0, parkingPerEvent: 0,
-    ownerSalary: 0, marketingPerson: 0, eventCoordinator: 0,
-    vehiclePayment: 0, vehicleInsurance: 0, vehicleMaintenance: 0,
-    crmSoftware: 0, websiteHosting: 0, aiChatbot: 0, cloudServices: 0, phonePlan: 0,
-    contentCreation: 0, graphicDesign: 0,
-    storageRent: 0, equipmentAmortization: 0, businessLicenses: 0, miscFixed: 0,
-    customExpenses: [],
-  },
+  operationalMetrics: [],
 };
 
 const defaultFinancials: FinancialProjections = {
+  startingCash: 0,
   months: [],
-  unitEconomics: { avgCheck: 0, costPerEvent: 0, profitPerEvent: 0, breakEvenEvents: 0 },
+  unitEconomics: { pricePerUnit: 0, variableCostPerUnit: 0, profitPerUnit: 0, breakEvenUnits: 0 },
   seasonCoefficients: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 };
 
@@ -142,7 +134,7 @@ const defaultRisks: RisksDueDiligence = {
   complianceChecklist: [],
 };
 
-const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 } };
+const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0, pricePerUnit: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 } };
 
 const defaultLaunchPlan: LaunchPlan = { stages: [] };
 

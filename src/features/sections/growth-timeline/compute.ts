@@ -13,7 +13,7 @@ import { computeOperationsCosts } from '@/features/sections/operations/compute';
 
 export interface GrowthComputeInput {
   operations: Operations;
-  baseAvgCheck: number;
+  basePricePerUnit: number;
   baseBookings: number;
   baseMarketingBudget: number;
   seasonCoefficients: number[];
@@ -27,7 +27,7 @@ export interface MonthlySnapshot {
   workforce: WorkforceMember[];
   costItems: CostItem[];
   plannedOutput: number;
-  avgCheck: number;
+  pricePerUnit: number;
   bookings: number;
   marketingBudget: number;
   revenue: number;
@@ -54,7 +54,7 @@ export interface GrowthComputeResult {
 export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeResult {
   const {
     operations,
-    baseAvgCheck,
+    basePricePerUnit,
     baseBookings,
     baseMarketingBudget,
     seasonCoefficients,
@@ -70,7 +70,6 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
   const baseWorkforce = operations.workforce;
   const baseCostItems = operations.costItems;
   const baseCapacityItems = operations.capacityItems;
-  const effectiveBookings = baseBookings;
 
   const snapshots: MonthlySnapshot[] = [];
   const projections: MonthlyProjection[] = [];
@@ -86,7 +85,7 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
     let effectiveCostItems = [...baseCostItems];
     let effectiveCapacityItems: CapacityItem[] = baseCapacityItems.map((item) => ({ ...item }));
     let effectiveMarketingBudget = baseMarketingBudget;
-    let effectiveAvgCheck = baseAvgCheck;
+    let effectivePricePerUnit = basePricePerUnit;
 
     // Additive accumulators for custom deltas
     let customRevenueDelta = 0;
@@ -94,8 +93,11 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
     let customVariableCostDelta = 0;
     let customMarketingDelta = 0;
 
+    // Standalone capacity delta for when no capacity items exist
+    let standaloneCapacityDelta = 0;
+
     // One-time accumulators (reset each month)
-    let oneTimeRevenue = 0;
+    let oneTimeNonOperatingCashFlow = 0;
     let oneTimeFixedCost = 0;
 
     for (const event of applicableEvents) {
@@ -132,11 +134,14 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
                 ? { ...item, plannedOutputPerMonth: item.plannedOutputPerMonth + outputDelta }
                 : item,
             );
-          } else {
+          } else if (effectiveCapacityItems.length > 0) {
             effectiveCapacityItems = effectiveCapacityItems.map((item) => ({
               ...item,
               plannedOutputPerMonth: item.plannedOutputPerMonth + outputDelta,
             }));
+          } else {
+            // No capacity items exist — track as standalone delta
+            standaloneCapacityDelta += outputDelta;
           }
           break;
         }
@@ -163,7 +168,7 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
         // --- Pattern A: One-time effect (event.month === m only) ---
         case 'funding-round':
           if (event.month === m) {
-            oneTimeRevenue += delta.data.amount;
+            oneTimeNonOperatingCashFlow += delta.data.amount;
             oneTimeFixedCost += delta.data.legalCosts;
           }
           break;
@@ -284,23 +289,29 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
 
         // --- Pattern D: Instant ongoing (from event.month forever) ---
         case 'price-change':
-          effectiveAvgCheck = delta.data.newAvgCheck;
+          effectivePricePerUnit = delta.data.newPricePerUnit ?? delta.data.newAvgCheck ?? effectivePricePerUnit;
           break;
       }
     }
+
+    // Derive total planned output from effective capacity items + standalone delta
+    const effectivePlannedOutput = effectiveCapacityItems.reduce(
+      (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth),
+      0,
+    ) + Math.max(0, standaloneCapacityDelta);
+
+    // Bookings track capacity: capacity changes drive revenue.
+    // Use the higher of base bookings and effective planned output.
+    const effectiveBookings = effectivePlannedOutput > 0
+      ? Math.max(baseBookings, effectivePlannedOutput)
+      : baseBookings;
 
     // Apply seasonality (cycle for horizons > 12)
     const seasonCoeff = seasonCoefficients[(m - 1) % seasonCoefficients.length] ?? 1;
 
     // Compute revenue
     const seasonalBookings = Math.max(0, effectiveBookings) * seasonCoeff;
-    const revenue = seasonalBookings * effectiveAvgCheck + customRevenueDelta + oneTimeRevenue;
-
-    // Derive total planned output from effective capacity items
-    const effectivePlannedOutput = effectiveCapacityItems.reduce(
-      (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth),
-      0,
-    );
+    const revenue = seasonalBookings * effectivePricePerUnit + customRevenueDelta;
 
     // Compute costs via operations engine on the effective state
     const effectiveOps: Operations = {
@@ -329,7 +340,7 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
       workforce: effectiveWorkforce,
       costItems: effectiveCostItems,
       plannedOutput: Math.max(0, effectivePlannedOutput),
-      avgCheck: effectiveAvgCheck,
+      pricePerUnit: effectivePricePerUnit,
       bookings: Math.max(0, effectiveBookings),
       marketingBudget: effectiveMarketingBudget,
       revenue,
@@ -355,6 +366,7 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
       revenue,
       costs: monthlyCosts,
       profit,
+      nonOperatingCashFlow: oneTimeNonOperatingCashFlow,
     });
   }
 

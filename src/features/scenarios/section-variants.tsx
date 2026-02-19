@@ -8,6 +8,7 @@ import {
   deleteSectionVariant,
   type SectionVariant,
 } from '@/lib/business-firestore';
+import { createLogger } from '@/lib/logger';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card } from '@/components/ui/card';
@@ -21,6 +22,8 @@ import {
 } from '@/components/ui/select';
 import { Camera, X, Layers } from 'lucide-react';
 import type { SectionSlug } from '@/types/plan';
+
+const log = createLogger('section-variants');
 
 // --- Supported section config ---
 
@@ -68,7 +71,11 @@ export function SectionVariants({ canEdit }: SectionVariantsProps) {
         })
       );
       setVariantsBySection(Object.fromEntries(entries));
-    } catch {
+    } catch (err) {
+      log.warn('load.failed', {
+        businessId,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
       // Silently handle — variants will show as empty
     } finally {
       setLoading(false);
@@ -105,22 +112,27 @@ export function SectionVariants({ canEdit }: SectionVariantsProps) {
       };
 
       await saveSectionVariant(businessId, sectionSlug, variant);
+      setVariantRefs((prev) => ({ ...prev, [sectionSlug]: variant.id }));
       await loadVariants();
-    } catch {
-      window.alert('Failed to create variant snapshot.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log.error('snapshot.failed', { businessId, sectionSlug, message });
+      window.alert(`Failed to create variant snapshot: ${message}`);
     }
   };
 
   // Select a variant for a section
   const handleSelect = (sectionSlug: string, variantId: string) => {
-    setVariantRefs({ ...variantRefs, [sectionSlug]: variantId });
+    setVariantRefs((prev) => ({ ...prev, [sectionSlug]: variantId }));
   };
 
   // Clear variant selection for a section
   const handleClear = (sectionSlug: string) => {
-    const next = { ...variantRefs };
-    delete next[sectionSlug];
-    setVariantRefs(next);
+    setVariantRefs((prev) => {
+      const next = { ...prev };
+      delete next[sectionSlug];
+      return next;
+    });
   };
 
   // Delete a variant
@@ -137,8 +149,10 @@ export function SectionVariants({ canEdit }: SectionVariantsProps) {
       }
 
       await loadVariants();
-    } catch {
-      window.alert('Failed to delete variant.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log.error('delete.failed', { businessId, sectionSlug, variantId, message });
+      window.alert(`Failed to delete variant: ${message}`);
     }
   };
 
@@ -211,6 +225,13 @@ export function SectionVariants({ canEdit }: SectionVariantsProps) {
                 </span>
               )}
             </div>
+
+            {selectedVariant && (
+              <p className="text-xs text-muted-foreground">
+                Variant selected. Open this section in the sidebar and edit values there.
+                Changes will be saved for the active scenario.
+              </p>
+            )}
 
             {/* Variant picker */}
             {variants.length > 0 && (

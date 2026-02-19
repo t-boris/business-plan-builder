@@ -78,7 +78,8 @@ const defaultMarketing: MarketingStrategy = {
 
 const defaultOperations: Operations = {
   workforce: [],
-  capacity: { outputUnitLabel: '', plannedOutputPerMonth: 0, maxOutputPerDay: 0, maxOutputPerWeek: 0, maxOutputPerMonth: 0, utilizationRate: 0 },
+  capacityItems: [],
+  variableComponents: [],
   costItems: [],
   equipment: [],
   safetyProtocols: [],
@@ -86,8 +87,9 @@ const defaultOperations: Operations = {
 };
 
 const defaultFinancials: FinancialProjectionsType = {
+  startingCash: 0,
   months: [],
-  unitEconomics: { avgCheck: 0, costPerEvent: 0, profitPerEvent: 0, breakEvenEvents: 0 },
+  unitEconomics: { pricePerUnit: 0, variableCostPerUnit: 0, profitPerUnit: 0, breakEvenUnits: 0 },
   seasonCoefficients: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 };
 
@@ -96,7 +98,7 @@ const defaultRisks: RisksDueDiligence = {
   complianceChecklist: [],
 };
 
-const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0, avgCheck: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 } };
+const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0, pricePerUnit: 0, cacPerLead: 0, cacPerBooking: 0, monthlyBookings: 0 } };
 
 const defaultLaunchPlan: LaunchPlan = { stages: [] };
 
@@ -619,6 +621,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       {enabledSections.includes('operations') && (() => {
         const ops = normalizeOperations(operations);
         const costSummary = computeOperationsCosts(ops);
+        const normalizedPSForOps = normalizeProductService(productService);
         return (
           <>
             <SectionHeader number={getSectionNumber('operations')} title="Operations" id={`section-${getSectionNumber('operations')}`} />
@@ -632,6 +635,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                         <th className="text-left py-2 px-3 font-medium border-b">Role</th>
                         <th className="text-right py-2 px-3 font-medium border-b">Rate/Hour</th>
                         <th className="text-right py-2 px-3 font-medium border-b">Count</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Hours/Week</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -640,6 +644,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                           <td className="py-2 px-3 border-b font-medium">{m.role}</td>
                           <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(m.ratePerHour, currencyCode)}/hr</td>
                           <td className="py-2 px-3 border-b text-right tabular-nums">{m.count}</td>
+                          <td className="py-2 px-3 border-b text-right tabular-nums">{m.hoursPerWeek}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -647,44 +652,51 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                 </div>
               )}
 
-              {ops.capacity.plannedOutputPerMonth > 0 && (
+              {ops.capacityItems.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Capacity</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {ops.capacity.outputUnitLabel && (
-                      <div className="border rounded-lg p-3 text-center">
-                        <p className="text-xs text-muted-foreground">Output Unit</p>
-                        <p className="text-lg font-bold">{ops.capacity.outputUnitLabel}</p>
-                      </div>
-                    )}
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Capacity Mix</h3>
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left py-2 px-3 font-medium border-b">Item</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Unit</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Planned/Mo</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Mix</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Max/Mo</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Utilization</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ops.capacityItems.map((item, i) => {
+                        const mix = costSummary.totalPlannedOutputPerMonth > 0
+                          ? (item.plannedOutputPerMonth / costSummary.totalPlannedOutputPerMonth) * 100
+                          : 0;
+                        return (
+                          <tr key={item.id || i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                            <td className="py-2 px-3 border-b font-medium">{item.name || `Capacity ${i + 1}`}</td>
+                            <td className="py-2 px-3 border-b">{item.outputUnitLabel || 'unit'}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{item.plannedOutputPerMonth.toLocaleString()}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{mix.toFixed(1)}%</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{item.maxOutputPerMonth.toLocaleString()}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{item.utilizationRate.toFixed(1)}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div className="grid grid-cols-3 gap-4 mt-3">
                     <div className="border rounded-lg p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Planned/Month</p>
-                      <p className="text-lg font-bold tabular-nums">{ops.capacity.plannedOutputPerMonth}</p>
+                      <p className="text-xs text-muted-foreground">Total Planned/Mo</p>
+                      <p className="text-lg font-bold tabular-nums">{costSummary.totalPlannedOutputPerMonth.toLocaleString()}</p>
                     </div>
-                    {ops.capacity.maxOutputPerDay > 0 && (
-                      <div className="border rounded-lg p-3 text-center">
-                        <p className="text-xs text-muted-foreground">Max/Day</p>
-                        <p className="text-lg font-bold tabular-nums">{ops.capacity.maxOutputPerDay}</p>
-                      </div>
-                    )}
-                    {ops.capacity.maxOutputPerWeek > 0 && (
-                      <div className="border rounded-lg p-3 text-center">
-                        <p className="text-xs text-muted-foreground">Max/Week</p>
-                        <p className="text-lg font-bold tabular-nums">{ops.capacity.maxOutputPerWeek}</p>
-                      </div>
-                    )}
-                    {ops.capacity.maxOutputPerMonth > 0 && (
-                      <div className="border rounded-lg p-3 text-center">
-                        <p className="text-xs text-muted-foreground">Max/Month</p>
-                        <p className="text-lg font-bold tabular-nums">{ops.capacity.maxOutputPerMonth}</p>
-                      </div>
-                    )}
-                    {ops.capacity.utilizationRate > 0 && (
-                      <div className="border rounded-lg p-3 text-center">
-                        <p className="text-xs text-muted-foreground">Utilization Rate</p>
-                        <p className="text-lg font-bold tabular-nums">{ops.capacity.utilizationRate}%</p>
-                      </div>
-                    )}
+                    <div className="border rounded-lg p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Total Max/Mo</p>
+                      <p className="text-lg font-bold tabular-nums">{costSummary.totalMaxOutputPerMonth.toLocaleString()}</p>
+                    </div>
+                    <div className="border rounded-lg p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Weighted Utilization</p>
+                      <p className="text-lg font-bold tabular-nums">{costSummary.weightedUtilizationRate.toFixed(1)}%</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -701,14 +713,48 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                 </div>
               )}
 
+              {costSummary.variableComponentCosts.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Variable Components (Per Product/Service)</h3>
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left py-2 px-3 font-medium border-b">Component</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Offering</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Sourcing</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Output Basis/Mo</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Required Units</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Monthly</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {costSummary.variableComponentCosts.map((line, i) => {
+                        const offeringName = line.offeringId
+                          ? normalizedPSForOps.offerings.find((offering) => offering.id === line.offeringId)?.name ?? line.offeringId
+                          : 'Shared / All Outputs';
+                        return (
+                          <tr key={line.componentId || i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                            <td className="py-2 px-3 border-b font-medium">{line.componentName}</td>
+                            <td className="py-2 px-3 border-b">{offeringName}</td>
+                            <td className="py-2 px-3 border-b capitalize">{line.sourcingModel}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{line.outputBasisPerMonth.toLocaleString()}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{line.requiredComponentUnits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(line.monthlyTotal, currencyCode)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               {ops.costItems.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Cost Items</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Fixed Costs</h3>
                   <table className="w-full text-sm border">
                     <thead>
                       <tr className="bg-muted/50">
                         <th className="text-left py-2 px-3 font-medium border-b">Category</th>
-                        <th className="text-left py-2 px-3 font-medium border-b">Type</th>
                         <th className="text-right py-2 px-3 font-medium border-b">Rate</th>
                         <th className="text-left py-2 px-3 font-medium border-b">Driver</th>
                         <th className="text-right py-2 px-3 font-medium border-b">Monthly</th>
@@ -716,11 +762,15 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                     </thead>
                     <tbody>
                       {ops.costItems.map((item, i) => {
-                        const monthly = item.rate * item.driverQuantityPerMonth;
+                        const rawMonthly = item.rate * item.driverQuantityPerMonth;
+                        const monthly = item.driverType === 'quarterly'
+                          ? rawMonthly / 3
+                          : item.driverType === 'yearly'
+                            ? rawMonthly / 12
+                            : rawMonthly;
                         return (
                           <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
                             <td className="py-2 px-3 border-b font-medium">{item.category}</td>
-                            <td className="py-2 px-3 border-b capitalize">{item.type}</td>
                             <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(item.rate, currencyCode)}</td>
                             <td className="py-2 px-3 border-b">{item.driverType}</td>
                             <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(monthly, currencyCode)}</td>
@@ -816,14 +866,14 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
             )}
 
             {/* Unit Economics */}
-            {(financials.unitEconomics.avgCheck > 0 || financials.unitEconomics.costPerEvent > 0) && (
+            {(financials.unitEconomics.pricePerUnit > 0 || financials.unitEconomics.variableCostPerUnit > 0) && (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Unit Economics</h3>
                 <div className="stat-grid">
-                  <StatCard label="Avg Check" value={formatCurrency(financials.unitEconomics.avgCheck, currencyCode)} />
-                  <StatCard label="Cost/Event" value={formatCurrency(financials.unitEconomics.costPerEvent, currencyCode)} />
-                  <StatCard label="Profit/Event" value={formatCurrency(financials.unitEconomics.profitPerEvent, currencyCode)} />
-                  <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenEvents} events`} />
+                  <StatCard label="Price/Unit" value={formatCurrency(financials.unitEconomics.pricePerUnit, currencyCode)} />
+                  <StatCard label="Variable Cost/Unit" value={formatCurrency(financials.unitEconomics.variableCostPerUnit, currencyCode)} />
+                  <StatCard label="Profit/Unit" value={formatCurrency(financials.unitEconomics.profitPerUnit, currencyCode)} />
+                  <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenUnits} units`} />
                 </div>
               </div>
             )}
@@ -997,7 +1047,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
             <div className="stat-grid">
               <StatCard label="Monthly Leads" value={String(kpis.targets.monthlyLeads)} />
               <StatCard label="Conversion Rate" value={`${(kpis.targets.conversionRate * 100).toFixed(0)}%`} />
-              <StatCard label="Average Check" value={formatCurrency(kpis.targets.avgCheck, currencyCode)} />
+              <StatCard label="Price per Unit" value={formatCurrency(kpis.targets.pricePerUnit, currencyCode)} />
               <StatCard label="CAC/Lead" value={formatCurrency(kpis.targets.cacPerLead, currencyCode)} />
               <StatCard label="CAC/Booking" value={formatCurrency(kpis.targets.cacPerBooking, currencyCode)} />
               <StatCard label="Monthly Bookings" value={String(kpis.targets.monthlyBookings)} />

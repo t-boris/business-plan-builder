@@ -35,6 +35,32 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger('business-firestore');
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object') return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function stripUndefinedDeep(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stripUndefinedDeep(item))
+      .filter((item) => item !== undefined);
+  }
+  if (isPlainObject(value)) {
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      const cleaned = stripUndefinedDeep(nested);
+      if (cleaned !== undefined) {
+        out[key] = cleaned;
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 // =============================================================================
 // Business CRUD
 // =============================================================================
@@ -526,9 +552,10 @@ export async function saveSectionData(
   data: object
 ): Promise<void> {
   // Firestore path: businesses/{businessId}/sections/{sectionKey}
+  const cleanedData = stripUndefinedDeep(data) as Record<string, unknown>;
   await setDoc(
     doc(db, "businesses", businessId, "sections", sectionKey),
-    { ...data, updatedAt: new Date().toISOString() },
+    { ...cleanedData, updatedAt: new Date().toISOString() },
     { merge: true }
   );
 }

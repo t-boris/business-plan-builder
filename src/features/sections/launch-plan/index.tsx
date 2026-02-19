@@ -1,8 +1,4 @@
 import { useSection } from '@/hooks/use-section';
-import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
-import { isAiAvailable } from '@/lib/ai/gemini-client';
-import { AiActionBar } from '@/components/ai-action-bar';
-import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
 import type { LaunchPlan as LaunchPlanType, LaunchStage, TaskStatus } from '@/types';
@@ -15,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, AlertCircle, Rocket } from 'lucide-react';
+import { Plus, Trash2, Rocket } from 'lucide-react';
 
 const STATUS_STYLES: Record<TaskStatus, string> = {
   pending: 'bg-muted text-muted-foreground',
@@ -49,22 +45,13 @@ export function LaunchPlan() {
     'launch-plan',
     defaultLaunchPlan
   );
-  const aiSuggestion = useAiSuggestion<LaunchPlanType>('launch-plan');
 
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader title="Launch Plan" description="Loading..." />
+        <PageHeader showScenarioBadge title="Launch Plan" description="Loading..." />
       </div>
     );
-  }
-
-  const isPreview = aiSuggestion.state.status === 'preview';
-  const displayData = isPreview && aiSuggestion.state.suggested ? aiSuggestion.state.suggested : data;
-
-  function handleAccept() {
-    const suggested = aiSuggestion.accept();
-    if (suggested) updateData(() => suggested);
   }
 
   function updateStage(
@@ -129,17 +116,17 @@ export function LaunchPlan() {
 
   const sectionContent = (
     <div className="page-container">
-      {displayData.stages.length === 0 ? (
-        <EmptyState icon={Rocket} title="No launch stages" description="Use AI Generate to create a launch plan, or add stages manually." action={canEdit && !isPreview ? { label: 'Add Stage', onClick: addStage } : undefined} />
+      {data.stages.length === 0 ? (
+        <EmptyState icon={Rocket} title="No launch stages" description="Use AI Generate to create a launch plan, or add stages manually." action={canEdit ? { label: 'Add Stage', onClick: addStage } : undefined} />
       ) : (
         <div className="relative">
           {/* Vertical timeline connector */}
-          {displayData.stages.length > 1 && (
+          {data.stages.length > 1 && (
             <div className="absolute left-[19px] top-8 bottom-8 w-px bg-border" />
           )}
 
           <div className="space-y-4">
-            {displayData.stages.map((stage, stageIndex) => {
+            {data.stages.map((stage, stageIndex) => {
               const accentColor = STAGE_ACCENT_COLORS[stageIndex % STAGE_ACCENT_COLORS.length];
               const completedTasks = stage.tasks.filter((t) => t.status === 'done').length;
               const totalTasks = stage.tasks.length;
@@ -169,7 +156,7 @@ export function LaunchPlan() {
                         }
                         placeholder="Stage name"
                         className="text-sm font-semibold border-0 bg-transparent shadow-none focus-visible:ring-1 px-0 h-8"
-                        readOnly={!canEdit || isPreview}
+                        readOnly={!canEdit}
                       />
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -183,7 +170,7 @@ export function LaunchPlan() {
                               updateStage(stageIndex, 'startDate', e.target.value)
                             }
                             className="h-8 text-sm"
-                            readOnly={!canEdit || isPreview}
+                            readOnly={!canEdit}
                           />
                         </div>
                         <div>
@@ -197,7 +184,7 @@ export function LaunchPlan() {
                               updateStage(stageIndex, 'endDate', e.target.value)
                             }
                             className="h-8 text-sm"
-                            readOnly={!canEdit || isPreview}
+                            readOnly={!canEdit}
                           />
                         </div>
                       </div>
@@ -223,14 +210,14 @@ export function LaunchPlan() {
                             }
                             placeholder="Task description"
                             className="text-sm border-0 bg-transparent shadow-none focus-visible:ring-1 px-1 h-8"
-                            readOnly={!canEdit || isPreview}
+                            readOnly={!canEdit}
                           />
                           <Select
                             value={task.status}
                             onValueChange={(value: TaskStatus) =>
                               updateTaskStatus(stageIndex, taskIndex, value)
                             }
-                            disabled={!canEdit || isPreview}
+                            disabled={!canEdit}
                           >
                             <SelectTrigger size="sm" className="w-[120px] shrink-0 h-7 text-xs">
                               <SelectValue />
@@ -241,7 +228,7 @@ export function LaunchPlan() {
                               <SelectItem value="done">Done</SelectItem>
                             </SelectContent>
                           </Select>
-                          {canEdit && !isPreview && (
+                          {canEdit && (
                             <Button
                               variant="ghost"
                               size="icon-xs"
@@ -260,7 +247,7 @@ export function LaunchPlan() {
                         </p>
                       )}
 
-                      {canEdit && !isPreview && (
+                      {canEdit && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -281,7 +268,7 @@ export function LaunchPlan() {
       )}
 
       {/* Add Stage Button */}
-      {canEdit && !isPreview && displayData.stages.length > 0 && (
+      {canEdit && data.stages.length > 0 && (
         <div className="flex justify-center">
           <Button variant="outline" onClick={addStage}>
             <Plus className="size-4" />
@@ -294,24 +281,8 @@ export function LaunchPlan() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Launch Plan" description="Staged timeline with tasks and milestones">
-        {canEdit && (
-          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
-        )}
-      </PageHeader>
-
-      {aiSuggestion.state.status === 'error' && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
-          <AlertCircle className="size-4 shrink-0" /><span className="flex-1">{aiSuggestion.state.error}</span>
-          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
-        </div>
-      )}
-
-      {aiSuggestion.state.status === 'loading' && <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading><div /></AiSuggestionPreview>}
-
-      {aiSuggestion.state.status === 'preview' ? (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>{sectionContent}</AiSuggestionPreview>
-      ) : aiSuggestion.state.status !== 'loading' && sectionContent}
+      <PageHeader showScenarioBadge title="Launch Plan" description="Staged timeline with tasks and milestones" />
+      {sectionContent}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   BarChart3,
   Rocket,
+  Milestone,
   GitBranch,
   Download,
   Moon,
@@ -79,6 +80,7 @@ const businessPlanItemDefs: NavItem[] = [
   { title: "Marketing Strategy", slug: "marketing-strategy", icon: Megaphone },
   { title: "Operations", slug: "operations", icon: Settings },
   { title: "Financial Projections", slug: "financial-projections", icon: DollarSign },
+  { title: "Growth Timeline", slug: "growth-timeline", icon: Milestone },
   { title: "Risks & Due Diligence", slug: "risks-due-diligence", icon: ShieldAlert },
   { title: "KPIs & Metrics", slug: "kpis-metrics", icon: BarChart3 },
   { title: "Launch Plan", slug: "launch-plan", icon: Rocket },
@@ -275,6 +277,9 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
+          <span className="text-[10px] text-muted-foreground/50">v{__APP_VERSION__}</span>
+        </div>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

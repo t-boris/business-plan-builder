@@ -1,15 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSection } from '@/hooks/use-section';
-import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
-import { isAiAvailable } from '@/lib/ai/gemini-client';
-import { AiActionBar } from '@/components/ai-action-bar';
-import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { EmptyState } from '@/components/empty-state';
 import { normalizeOperations } from './normalize';
 import { computeOperationsCosts } from './compute';
-import type { Operations as OperationsType, WorkforceMember, CostItem, CostDriverType, OperationalMetric } from '@/types';
+import { normalizeProductService } from '@/features/sections/product-service/normalize';
+import type {
+  Operations as OperationsType,
+  WorkforceMember,
+  CostItem,
+  CostDriverType,
+  OperationalMetric,
+  CapacityItem,
+  VariableCostComponent,
+  VariableComponentSourcing,
+  ProductService as ProductServiceType,
+} from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +34,6 @@ import {
 import {
   Plus,
   Trash2,
-  AlertCircle,
   AlertTriangle,
   Users,
   Package,
@@ -49,20 +55,25 @@ const DRIVER_TYPE_OPTIONS: { value: CostDriverType; label: string }[] = [
   { value: 'yearly', label: 'Yearly' },
 ];
 
+const SOURCING_MODEL_OPTIONS: { value: VariableComponentSourcing; label: string }[] = [
+  { value: 'in-house', label: 'In-house' },
+  { value: 'purchase-order', label: 'Purchase Order' },
+  { value: 'on-demand', label: 'On-demand' },
+];
+
 const defaultOperations: OperationsType = {
   workforce: [],
-  capacity: {
-    outputUnitLabel: '',
-    plannedOutputPerMonth: 0,
-    maxOutputPerDay: 0,
-    maxOutputPerWeek: 0,
-    maxOutputPerMonth: 0,
-    utilizationRate: 0,
-  },
+  capacityItems: [],
+  variableComponents: [],
   costItems: [],
   equipment: [],
   safetyProtocols: [],
   operationalMetrics: [],
+};
+const defaultProductService: ProductServiceType = {
+  overview: '',
+  offerings: [],
+  addOns: [],
 };
 
 function fmt(value: number): string {
@@ -98,45 +109,41 @@ export function Operations() {
     'operations',
     defaultOperations,
   );
-  const aiSuggestion = useAiSuggestion<OperationsType>('operations');
+  const { data: rawProductService } = useSection<ProductServiceType>(
+    'product-service',
+    defaultProductService,
+  );
 
   // Normalize legacy data on first load
-  const [normalized, setNormalized] = useState(false);
+  const hasNormalizedRef = useRef(false);
   useEffect(() => {
-    if (!isLoading && !normalized) {
-      const norm = normalizeOperations(rawData);
-      if (JSON.stringify(norm) !== JSON.stringify(rawData)) {
-        updateData(() => norm);
-      }
-      setNormalized(true);
+    if (isLoading || hasNormalizedRef.current) return;
+    const norm = normalizeOperations(rawData);
+    if (JSON.stringify(norm) !== JSON.stringify(rawData)) {
+      updateData(() => norm);
     }
-  }, [isLoading, normalized, rawData, updateData]);
+    hasNormalizedRef.current = true;
+  }, [isLoading, rawData, updateData]);
 
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader title="Operations" description="Loading..." />
+        <PageHeader showScenarioBadge title="Operations" description="Loading..." />
       </div>
     );
   }
 
-  const isPreview = aiSuggestion.state.status === 'preview';
-  const displayData =
-    isPreview && aiSuggestion.state.suggested ? aiSuggestion.state.suggested : rawData;
+  const displayData = rawData;
+  const normalizedProductService = normalizeProductService(rawProductService);
 
   const summary = computeOperationsCosts(displayData);
-
-  function handleAccept() {
-    const suggested = aiSuggestion.accept();
-    if (suggested) updateData(() => suggested);
-  }
 
   // --- Workforce helpers ---
 
   function addWorkforceMember() {
     updateData((prev) => ({
       ...prev,
-      workforce: [...prev.workforce, { role: '', count: 1, ratePerHour: 0 }],
+      workforce: [...prev.workforce, { role: '', count: 1, ratePerHour: 0, hoursPerWeek: 40 }],
     }));
   }
 
@@ -155,14 +162,165 @@ export function Operations() {
     });
   }
 
-  // --- Cost Item helpers ---
+  // --- Capacity helpers ---
 
-  function addCostItem(type: 'variable' | 'fixed') {
+  function addCapacityItem() {
+    updateData((prev) => ({
+      ...prev,
+      capacityItems: [
+        ...prev.capacityItems,
+        {
+          id: crypto.randomUUID(),
+          name: '',
+          outputUnitLabel: '',
+          plannedOutputPerMonth: 0,
+          maxOutputPerDay: 0,
+          maxOutputPerWeek: 0,
+          maxOutputPerMonth: 0,
+          utilizationRate: 0,
+        },
+      ],
+    }));
+  }
+
+  function removeCapacityItem(index: number) {
+    updateData((prev) => ({
+      ...prev,
+      capacityItems: prev.capacityItems.filter((_, i) => i !== index),
+    }));
+  }
+
+  function updateCapacityItem(
+    index: number,
+    field: keyof CapacityItem,
+    value: string | number | undefined,
+  ) {
+    updateData((prev) => {
+      const capacityItems = [...prev.capacityItems];
+      const current = capacityItems[index];
+      if (!current) return prev;
+      const next = { ...current } as Record<string, unknown>;
+      if (value === undefined) {
+        delete next[field as string];
+      } else {
+        next[field as string] = value;
+      }
+      capacityItems[index] = next as CapacityItem;
+      return { ...prev, capacityItems };
+    });
+  }
+
+  function linkCapacityItemToOffering(index: number, offeringId: string) {
+    const offering = normalizedProductService.offerings.find((o) => o.id === offeringId);
+    updateData((prev) => {
+      const capacityItems = [...prev.capacityItems];
+      const current = capacityItems[index];
+      capacityItems[index] = {
+        ...current,
+        offeringId,
+        name: current.name.trim().length > 0 ? current.name : (offering?.name ?? ''),
+      };
+      return { ...prev, capacityItems };
+    });
+  }
+
+  function unlinkCapacityItemOffering(index: number) {
+    updateCapacityItem(index, 'offeringId', undefined);
+  }
+
+  // --- Variable Components helpers ---
+
+  function addVariableComponent() {
+    updateData((prev) => ({
+      ...prev,
+      variableComponents: [
+        ...prev.variableComponents,
+        {
+          id: crypto.randomUUID(),
+          name: '',
+          sourcingModel: 'in-house',
+          componentUnitLabel: 'unit',
+          costPerComponentUnit: 0,
+          componentUnitsPerOutput: 0,
+          orderQuantity: 0,
+          orderFee: 0,
+        },
+      ],
+    }));
+  }
+
+  function removeVariableComponent(index: number) {
+    updateData((prev) => ({
+      ...prev,
+      variableComponents: prev.variableComponents.filter((_, i) => i !== index),
+    }));
+  }
+
+  function updateVariableComponent(
+    index: number,
+    field: keyof VariableCostComponent,
+    value: string | number | undefined,
+  ) {
+    updateData((prev) => {
+      const variableComponents = [...prev.variableComponents];
+      const current = variableComponents[index];
+      if (!current) return prev;
+
+      const nextRecord = { ...current } as Record<string, unknown>;
+      if (value === undefined) {
+        delete nextRecord[field as string];
+      } else {
+        nextRecord[field as string] = value;
+      }
+      let next = nextRecord as VariableCostComponent;
+      // If user enters order economics while still "in-house",
+      // switch to purchase-order so order fees are included in totals.
+      if (
+        (field === 'orderQuantity' || field === 'orderFee') &&
+        typeof value === 'number' &&
+        value > 0 &&
+        current.sourcingModel === 'in-house'
+      ) {
+        next = { ...next, sourcingModel: 'purchase-order' };
+      }
+
+      variableComponents[index] = next;
+      return { ...prev, variableComponents };
+    });
+  }
+
+  function linkVariableComponentToOffering(index: number, offeringId: string) {
+    const offering = normalizedProductService.offerings.find((o) => o.id === offeringId);
+    updateData((prev) => {
+      const variableComponents = [...prev.variableComponents];
+      const current = variableComponents[index];
+      variableComponents[index] = {
+        ...current,
+        offeringId,
+        name: current.name.trim().length > 0 ? current.name : (offering?.name ?? ''),
+      };
+      return { ...prev, variableComponents };
+    });
+  }
+
+  function unlinkVariableComponentOffering(index: number) {
+    updateVariableComponent(index, 'offeringId', undefined);
+  }
+
+  // --- Fixed Cost Item helpers ---
+
+  function addFixedCostItem() {
     updateData((prev) => ({
       ...prev,
       costItems: [
         ...prev.costItems,
-        { category: '', type, rate: 0, driverType: 'monthly' as CostDriverType, driverQuantityPerMonth: 1 },
+        {
+          category: '',
+          type: 'fixed',
+          rate: 0,
+          driverType: 'monthly' as CostDriverType,
+          driverQuantityPerMonth: 1,
+        },
       ],
     }));
   }
@@ -254,20 +412,30 @@ export function Operations() {
     });
   }
 
-  // --- Derived indexes for variable/fixed cost items ---
+  // --- Derived indexes for variable components / fixed cost items ---
 
-  const variableItems = displayData.costItems
-    .map((item, realIndex) => ({ item, realIndex }))
-    .filter(({ item }) => item.type === 'variable');
+  const capacityItems = displayData.capacityItems ?? [];
+  const totalPlannedOutput = capacityItems.reduce(
+    (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth),
+    0,
+  );
+  const capacityItemsWithMix = capacityItems.map((item) => ({
+    ...item,
+    mixPercent:
+      totalPlannedOutput > 0
+        ? (Math.max(0, item.plannedOutputPerMonth) / totalPlannedOutput) * 100
+        : 0,
+  }));
+
+  const variableComponentsWithCosts = displayData.variableComponents.map((component, index) => ({
+    component,
+    monthlyCost: summary.variableComponentCosts.find((line) => line.componentId === component.id),
+    index,
+  }));
 
   const fixedItems = displayData.costItems
     .map((item, realIndex) => ({ item, realIndex }))
     .filter(({ item }) => item.type === 'fixed');
-
-  const variableSubtotal = variableItems.reduce(
-    (sum, { item }) => sum + item.rate * item.driverQuantityPerMonth,
-    0,
-  );
 
   const fixedSubtotal = fixedItems.reduce((sum, { item }) => {
     switch (item.driverType) {
@@ -280,7 +448,14 @@ export function Operations() {
     }
   }, 0);
 
-  const readOnly = !canEdit || isPreview;
+  const variableByOffering = summary.variableCostByOffering.map((row) => ({
+    ...row,
+    offeringName: row.offeringId
+      ? normalizedProductService.offerings.find((offering) => offering.id === row.offeringId)?.name ?? row.offeringId
+      : 'Shared / All Outputs',
+  }));
+
+  const readOnly = !canEdit;
 
   // --- Cost item row renderer ---
 
@@ -369,9 +544,9 @@ export function Operations() {
     <div className="space-y-6">
       {/* 1. Summary stat cards */}
       <div className="stat-grid">
-        <StatCard label="Variable Costs/mo" value={fmtShort(summary.variableMonthlyTotal)} sublabel="from cost items" />
+        <StatCard label="Variable Costs/mo" value={fmtShort(summary.variableMonthlyTotal)} sublabel="component-based by product/service" />
         <StatCard label="Fixed Costs/mo" value={fmtShort(summary.fixedMonthlyTotal)} sublabel="normalized monthly" />
-        <StatCard label="Team Costs/mo" value={fmtShort(summary.workforceMonthlyTotal)} sublabel="workforce at 160h/mo" />
+        <StatCard label="Team Costs/mo" value={fmtShort(summary.workforceMonthlyTotal)} sublabel="rate/hour x hours/week x headcount" />
         <StatCard label="Total Operations/mo" value={fmtShort(summary.monthlyOperationsTotal)} sublabel="all costs combined" />
       </div>
 
@@ -387,7 +562,7 @@ export function Operations() {
               </Button>
             )}
           </div>
-          {displayData.workforce.length === 0 ? (
+          {rawData.workforce.length === 0 ? (
             <EmptyState
               icon={Users}
               title="No team members"
@@ -397,16 +572,17 @@ export function Operations() {
           ) : (
             <div className="card-elevated rounded-lg overflow-hidden">
               <div className="p-4 space-y-3">
-                <div className="hidden sm:grid grid-cols-[1fr_100px_120px_40px] gap-3 items-center">
+                <div className="hidden sm:grid grid-cols-[1fr_100px_120px_120px_40px] gap-3 items-center">
                   <span className="text-xs font-medium text-muted-foreground">Role</span>
                   <span className="text-xs font-medium text-muted-foreground">Count</span>
                   <span className="text-xs font-medium text-muted-foreground">Rate/Hour</span>
+                  <span className="text-xs font-medium text-muted-foreground">Hours/Week</span>
                   <span />
                 </div>
-                {displayData.workforce.map((member, index) => (
+                {rawData.workforce.map((member, index) => (
                   <div
                     key={index}
-                    className="group grid grid-cols-1 sm:grid-cols-[1fr_100px_120px_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0"
+                    className="group grid grid-cols-1 sm:grid-cols-[1fr_100px_120px_120px_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0"
                   >
                     <div>
                       <span className="text-xs font-medium text-muted-foreground sm:hidden">Role</span>
@@ -442,6 +618,18 @@ export function Operations() {
                         />
                       </div>
                     </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground sm:hidden">Hours/Week</span>
+                      <Input
+                        type="number"
+                        className="tabular-nums"
+                        value={member.hoursPerWeek ?? 0}
+                        onChange={(e) => updateWorkforceMember(index, 'hoursPerWeek', Number(e.target.value))}
+                        min={1}
+                        step={1}
+                        readOnly={readOnly}
+                      />
+                    </div>
                     {!readOnly && (
                       <Button
                         variant="ghost"
@@ -460,162 +648,436 @@ export function Operations() {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* 3. Capacity section */}
+      {/* 3. Capacity Mix section */}
       <Collapsible defaultOpen>
-        <SectionHeader title="Capacity" icon={Gauge} />
+        <SectionHeader title="Capacity Mix" icon={Gauge} />
         <CollapsibleContent className="space-y-4 pt-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Output Unit Label</label>
-              <Input
-                value={displayData.capacity.outputUnitLabel}
-                onChange={(e) =>
-                  updateData((prev) => ({
-                    ...prev,
-                    capacity: { ...prev.capacity, outputUnitLabel: e.target.value },
-                  }))
-                }
-                placeholder="units / bookings / orders"
-                readOnly={readOnly}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Planned Output/Month</label>
-              <Input
-                type="number"
-                className="tabular-nums"
-                value={displayData.capacity.plannedOutputPerMonth}
-                onChange={(e) =>
-                  updateData((prev) => ({
-                    ...prev,
-                    capacity: { ...prev.capacity, plannedOutputPerMonth: Number(e.target.value) },
-                  }))
-                }
-                min={0}
-                readOnly={readOnly}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Max Output / Day</label>
-              <Input
-                type="number"
-                className="tabular-nums"
-                value={displayData.capacity.maxOutputPerDay}
-                onChange={(e) =>
-                  updateData((prev) => ({
-                    ...prev,
-                    capacity: { ...prev.capacity, maxOutputPerDay: Number(e.target.value) },
-                  }))
-                }
-                min={0}
-                readOnly={readOnly}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Max Output / Week</label>
-              <Input
-                type="number"
-                className="tabular-nums"
-                value={displayData.capacity.maxOutputPerWeek}
-                onChange={(e) =>
-                  updateData((prev) => ({
-                    ...prev,
-                    capacity: { ...prev.capacity, maxOutputPerWeek: Number(e.target.value) },
-                  }))
-                }
-                min={0}
-                readOnly={readOnly}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Max Output / Month</label>
-              <Input
-                type="number"
-                className="tabular-nums"
-                value={displayData.capacity.maxOutputPerMonth}
-                onChange={(e) =>
-                  updateData((prev) => ({
-                    ...prev,
-                    capacity: { ...prev.capacity, maxOutputPerMonth: Number(e.target.value) },
-                  }))
-                }
-                min={0}
-                readOnly={readOnly}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Utilization Rate</label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  className="tabular-nums pr-8"
-                  value={displayData.capacity.utilizationRate}
-                  onChange={(e) =>
-                    updateData((prev) => ({
-                      ...prev,
-                      capacity: {
-                        ...prev.capacity,
-                        utilizationRate: Math.min(100, Math.max(0, Number(e.target.value))),
-                      },
-                    }))
-                  }
-                  min={0}
-                  max={100}
-                  readOnly={readOnly}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-              </div>
-            </div>
-            {summary.variableCostPerOutput > 0 && (
-              <div className="flex items-end">
-                <div className="flex h-9 items-center rounded-md bg-muted px-3 text-sm font-medium tabular-nums w-full">
-                  Variable Cost per {displayData.capacity.outputUnitLabel || 'unit'}: {fmt(summary.variableCostPerOutput)}
-                </div>
-              </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Define capacity by product/service line and adjust the monthly mix.
+            </p>
+            {!readOnly && (
+              <Button variant="outline" size="sm" onClick={addCapacityItem}>
+                <Plus className="size-4" />
+                Add Capacity Item
+              </Button>
             )}
           </div>
+          {capacityItemsWithMix.length === 0 ? (
+            <EmptyState
+              icon={Gauge}
+              title="No capacity items"
+              description="Add one or more capacity items for different products or services."
+              action={!readOnly ? { label: 'Add Capacity Item', onClick: addCapacityItem } : undefined}
+            />
+          ) : (
+            <div className="space-y-3">
+              {capacityItemsWithMix.map((item, index) => {
+                const linkedOffering = item.offeringId
+                  ? normalizedProductService.offerings.find((o) => o.id === item.offeringId)
+                  : null;
+                const offeringSelectValue = item.offeringId ?? '__custom__';
+                return (
+                  <div key={item.id || index} className="group card-elevated rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px_160px_40px] gap-3 items-start">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Capacity Item Name</label>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => updateCapacityItem(index, 'name', e.target.value)}
+                          placeholder="e.g. Standard Package, Premium Service, Batch A"
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Linked Offering (optional)</label>
+                        <Select
+                          value={offeringSelectValue}
+                          onValueChange={(value) => {
+                            if (value === '__custom__') {
+                              unlinkCapacityItemOffering(index);
+                              return;
+                            }
+                            linkCapacityItemToOffering(index, value);
+                          }}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Custom / Not linked" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__custom__">Custom / Not linked</SelectItem>
+                            {item.offeringId && !linkedOffering && (
+                              <SelectItem value={item.offeringId}>
+                                Missing offering ({item.offeringId})
+                              </SelectItem>
+                            )}
+                            {normalizedProductService.offerings.map((offering) => (
+                              <SelectItem key={offering.id} value={offering.id}>
+                                {offering.name || `Offering ${offering.id}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Output Unit</label>
+                        <Input
+                          value={item.outputUnitLabel}
+                          onChange={(e) => updateCapacityItem(index, 'outputUnitLabel', e.target.value)}
+                          placeholder="units / orders / hours"
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="mt-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeCapacityItem(index)}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Planned / Month</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={item.plannedOutputPerMonth}
+                          onChange={(e) => updateCapacityItem(index, 'plannedOutputPerMonth', Number(e.target.value))}
+                          min={0}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Max / Day</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={item.maxOutputPerDay}
+                          onChange={(e) => updateCapacityItem(index, 'maxOutputPerDay', Number(e.target.value))}
+                          min={0}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Max / Week</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={item.maxOutputPerWeek}
+                          onChange={(e) => updateCapacityItem(index, 'maxOutputPerWeek', Number(e.target.value))}
+                          min={0}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Max / Month</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={item.maxOutputPerMonth}
+                          onChange={(e) => updateCapacityItem(index, 'maxOutputPerMonth', Number(e.target.value))}
+                          min={0}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Utilization %</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={item.utilizationRate}
+                          onChange={(e) =>
+                            updateCapacityItem(
+                              index,
+                              'utilizationRate',
+                              Math.min(100, Math.max(0, Number(e.target.value))),
+                            )
+                          }
+                          min={0}
+                          max={100}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2">
+                      <span className="text-xs text-muted-foreground">
+                        Mix share of planned output
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {item.mixPercent.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {summary.totalPlannedOutputPerMonth > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-md border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">Total Planned/Month</p>
+                <p className="text-sm font-semibold tabular-nums">{summary.totalPlannedOutputPerMonth.toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">Total Max/Month</p>
+                <p className="text-sm font-semibold tabular-nums">{summary.totalMaxOutputPerMonth.toLocaleString()}</p>
+              </div>
+              <div className="rounded-md border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">Weighted Utilization</p>
+                <p className="text-sm font-semibold tabular-nums">{summary.weightedUtilizationRate.toFixed(1)}%</p>
+              </div>
+            </div>
+          )}
+
+          {summary.variableCostPerOutput > 0 && (
+            <div className="rounded-md bg-muted px-3 py-2 text-sm font-medium">
+              Variable Cost per planned output ({summary.primaryOutputUnitLabel}): {fmt(summary.variableCostPerOutput)}
+            </div>
+          )}
         </CollapsibleContent>
       </Collapsible>
 
       {/* 4. Variable Costs section */}
       <Collapsible defaultOpen>
         <SectionHeader title="Variable Costs" icon={DollarSign} />
-        <CollapsibleContent className="space-y-3 pt-2">
+        <CollapsibleContent className="space-y-4 pt-2">
+          <p className="text-xs text-muted-foreground">
+            Define variable cost components per product/service. Components can be sourced in-house, on-demand,
+            or via order flows (purchase-order/on-demand) with order fees.
+          </p>
           <div className="flex items-center justify-end">
             {!readOnly && (
-              <Button variant="outline" size="sm" onClick={() => addCostItem('variable')}>
+              <Button variant="outline" size="sm" onClick={addVariableComponent}>
                 <Plus className="size-4" />
-                Add Variable Cost
+                Add Component
               </Button>
             )}
           </div>
-          {variableItems.length === 0 ? (
+          {variableComponentsWithCosts.length === 0 ? (
             <EmptyState
               icon={DollarSign}
-              title="No variable costs"
-              description="Add costs that scale with output volume."
-              action={!readOnly ? { label: 'Add Variable Cost', onClick: () => addCostItem('variable') } : undefined}
+              title="No variable components"
+              description="Add cost components and link them to products/services."
+              action={!readOnly ? { label: 'Add Component', onClick: addVariableComponent } : undefined}
             />
           ) : (
-            <div className="card-elevated rounded-lg overflow-hidden">
-              <div className="p-4 space-y-3">
-                <div className="hidden sm:grid grid-cols-[1fr_100px_160px_100px_80px_40px] gap-3 items-center">
-                  <span className="text-xs font-medium text-muted-foreground">Category</span>
-                  <span className="text-xs font-medium text-muted-foreground">Rate ($)</span>
-                  <span className="text-xs font-medium text-muted-foreground">Driver Type</span>
-                  <span className="text-xs font-medium text-muted-foreground">Qty/Mo</span>
-                  <span className="text-xs font-medium text-muted-foreground">Monthly</span>
-                  <span />
+            <div className="space-y-3">
+              {variableComponentsWithCosts.map(({ component, monthlyCost, index }) => {
+                const offeringSelectValue = component.offeringId ?? '__shared__';
+                return (
+                  <div key={component.id || index} className="group card-elevated rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_190px_180px_40px] gap-3 items-start">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Component</label>
+                        <Input
+                          value={component.name}
+                          onChange={(e) => updateVariableComponent(index, 'name', e.target.value)}
+                          placeholder="e.g. Steel plate, Packaging, Cloud API call"
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Product / Service</label>
+                        <Select
+                          value={offeringSelectValue}
+                          onValueChange={(value) => {
+                            if (value === '__shared__') {
+                              unlinkVariableComponentOffering(index);
+                              return;
+                            }
+                            linkVariableComponentToOffering(index, value);
+                          }}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Shared / All outputs" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__shared__">Shared / All outputs</SelectItem>
+                            {normalizedProductService.offerings.map((offering) => (
+                              <SelectItem key={offering.id} value={offering.id}>
+                                {offering.name || `Offering ${offering.id}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Sourcing</label>
+                        <Select
+                          value={component.sourcingModel}
+                          onValueChange={(value) =>
+                            updateVariableComponent(index, 'sourcingModel', value as VariableComponentSourcing)}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SOURCING_MODEL_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Supplier (optional)</label>
+                        <Input
+                          value={component.supplier ?? ''}
+                          onChange={(e) => updateVariableComponent(index, 'supplier', e.target.value || undefined)}
+                          placeholder="Vendor / provider"
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="mt-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeVariableComponent(index)}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Cost / Component Unit</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                          <Input
+                            type="number"
+                            className="pl-7 tabular-nums"
+                            value={component.costPerComponentUnit}
+                            onChange={(e) => updateVariableComponent(index, 'costPerComponentUnit', Number(e.target.value))}
+                            min={0}
+                            step="0.01"
+                            readOnly={readOnly}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Units / Output</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={component.componentUnitsPerOutput}
+                          onChange={(e) => updateVariableComponent(index, 'componentUnitsPerOutput', Number(e.target.value))}
+                          min={0}
+                          step="0.01"
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Component Unit Label</label>
+                        <Input
+                          value={component.componentUnitLabel}
+                          onChange={(e) => updateVariableComponent(index, 'componentUnitLabel', e.target.value)}
+                          placeholder="kg / part / min / call"
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Order Qty (for order flow)</label>
+                        <Input
+                          type="number"
+                          className="tabular-nums"
+                          value={component.orderQuantity}
+                          onChange={(e) => updateVariableComponent(index, 'orderQuantity', Number(e.target.value))}
+                          min={0}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Order Fee (for order flow)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                          <Input
+                            type="number"
+                            className="pl-7 tabular-nums"
+                            value={component.orderFee}
+                            onChange={(e) => updateVariableComponent(index, 'orderFee', Number(e.target.value))}
+                            min={0}
+                            step="0.01"
+                            readOnly={readOnly}
+                          />
+                        </div>
+                      </div>
+                      <div className="rounded-md bg-muted/50 px-3 py-2">
+                        <p className="text-[11px] text-muted-foreground">Monthly Total</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {fmt(monthlyCost?.monthlyTotal ?? 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-md bg-muted/40 px-3 py-2">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Output Basis / Mo</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {(monthlyCost?.outputBasisPerMonth ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Required Component Units</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {(monthlyCost?.requiredComponentUnits ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Estimated Orders</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {(monthlyCost?.estimatedOrders ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Material + Order Fees</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {fmt((monthlyCost?.monthlyMaterialCost ?? 0) + (monthlyCost?.monthlyOrderCost ?? 0))}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {variableByOffering.length > 0 && (
+                <div className="card-elevated rounded-lg p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                    Variable Cost by Product / Service
+                  </p>
+                  <div className="space-y-2">
+                    {variableByOffering.map((row) => (
+                      <div key={row.offeringId ?? '__shared__'} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+                        <div>
+                          <p className="text-sm font-medium">{row.offeringName}</p>
+                          <p className="text-xs text-muted-foreground tabular-nums">
+                            Output/mo: {row.outputPerMonth.toLocaleString()}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold tabular-nums">{fmt(row.monthlyVariableTotal)}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                {variableItems.map(({ item, realIndex }) => renderCostItemRow(item, realIndex))}
-                <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2">
-                  <span className="text-xs text-muted-foreground">Variable Costs Subtotal</span>
-                  <span className="text-sm font-semibold tabular-nums">{fmt(variableSubtotal)}</span>
-                </div>
+              )}
+
+              <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2">
+                <span className="text-xs text-muted-foreground">Variable Costs Subtotal</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {fmt(summary.variableMonthlyTotal)}
+                </span>
               </div>
             </div>
           )}
@@ -628,7 +1090,7 @@ export function Operations() {
         <CollapsibleContent className="space-y-3 pt-2">
           <div className="flex items-center justify-end">
             {!readOnly && (
-              <Button variant="outline" size="sm" onClick={() => addCostItem('fixed')}>
+              <Button variant="outline" size="sm" onClick={addFixedCostItem}>
                 <Plus className="size-4" />
                 Add Fixed Cost
               </Button>
@@ -639,7 +1101,7 @@ export function Operations() {
               icon={Settings}
               title="No fixed costs"
               description="Add recurring costs that don't scale with output."
-              action={!readOnly ? { label: 'Add Fixed Cost', onClick: () => addCostItem('fixed') } : undefined}
+              action={!readOnly ? { label: 'Add Fixed Cost', onClick: addFixedCostItem } : undefined}
             />
           ) : (
             <div className="card-elevated rounded-lg overflow-hidden">
@@ -675,7 +1137,7 @@ export function Operations() {
               </Button>
             )}
           </div>
-          {displayData.equipment.length === 0 ? (
+          {rawData.equipment.length === 0 ? (
             <EmptyState
               icon={Package}
               title="No equipment listed"
@@ -684,7 +1146,7 @@ export function Operations() {
             />
           ) : (
             <div className="grid gap-2">
-              {displayData.equipment.map((item, index) => (
+              {rawData.equipment.map((item, index) => (
                 <div key={index} className="group card-elevated rounded-lg px-4 py-2 flex items-center gap-2">
                   <Input
                     value={item}
@@ -723,7 +1185,7 @@ export function Operations() {
               </p>
             </div>
           </div>
-          {displayData.safetyProtocols.length === 0 ? (
+          {rawData.safetyProtocols.length === 0 ? (
             <EmptyState
               icon={ShieldAlert}
               title="No safety protocols"
@@ -740,7 +1202,7 @@ export function Operations() {
                   </Button>
                 </div>
               )}
-              {displayData.safetyProtocols.map((protocol, index) => (
+              {rawData.safetyProtocols.map((protocol, index) => (
                 <div key={index} className="group flex items-center gap-2">
                   <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                     #{index + 1}
@@ -780,7 +1242,7 @@ export function Operations() {
               </Button>
             )}
           </div>
-          {displayData.operationalMetrics.length === 0 ? (
+          {rawData.operationalMetrics.length === 0 ? (
             <EmptyState
               icon={Activity}
               title="No operational metrics"
@@ -797,7 +1259,7 @@ export function Operations() {
                   <span className="text-xs font-medium text-muted-foreground">Target</span>
                   <span />
                 </div>
-                {displayData.operationalMetrics.map((metric, index) => (
+                {rawData.operationalMetrics.map((metric, index) => (
                   <div
                     key={index}
                     className="group grid grid-cols-1 sm:grid-cols-[1fr_100px_100px_100px_40px] gap-3 items-start border-b pb-3 last:border-0 last:pb-0"
@@ -862,41 +1324,8 @@ export function Operations() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Operations" description="Cost structure, team, capacity, and operational details">
-        {canEdit && (
-          <AiActionBar
-            onGenerate={() => aiSuggestion.generate('generate', rawData)}
-            onImprove={() => aiSuggestion.generate('improve', rawData)}
-            onExpand={() => aiSuggestion.generate('expand', rawData)}
-            isLoading={aiSuggestion.state.status === 'loading'}
-            disabled={!isAiAvailable}
-          />
-        )}
-      </PageHeader>
-
-      {aiSuggestion.state.status === 'error' && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
-          <AlertCircle className="size-4 shrink-0" />
-          <span className="flex-1">{aiSuggestion.state.error}</span>
-          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>
-            Dismiss
-          </Button>
-        </div>
-      )}
-
-      {aiSuggestion.state.status === 'loading' && (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading>
-          <div />
-        </AiSuggestionPreview>
-      )}
-
-      {aiSuggestion.state.status === 'preview' ? (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>
-          {sectionContent}
-        </AiSuggestionPreview>
-      ) : (
-        aiSuggestion.state.status !== 'loading' && sectionContent
-      )}
+      <PageHeader showScenarioBadge title="Operations" description="Cost structure, team, capacity, and operational details" />
+      {sectionContent}
     </div>
   );
 }

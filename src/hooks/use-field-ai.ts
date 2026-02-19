@@ -39,8 +39,9 @@ export function useFieldAi(sectionSlug: SectionSlug) {
       fieldName: string;
       fieldLabel: string;
       currentValue: string;
-      action: 'generate' | 'improve';
+      action: 'generate' | 'improve' | 'expand' | 'custom';
       sectionData: Record<string, unknown>;
+      customPrompt?: string;
     }): Promise<string | null> => {
       if (!isAiAvailable) {
         setState({ status: 'error', error: 'AI is not available' });
@@ -85,6 +86,7 @@ export function useFieldAi(sectionSlug: SectionSlug) {
             description: '',
           },
           scenarioV2Context,
+          customPrompt: config.customPrompt,
         });
 
         const text = await generateSectionContent(prompt, systemInstruction);

@@ -1,11 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
-import { getSectionData, saveSectionData } from '@/lib/business-firestore';
+import {
+  getSectionData,
+  getSectionVariant,
+  saveSectionData,
+} from '@/lib/business-firestore';
+import { computeEffectiveSection } from '@/lib/effective-plan';
 import { useCanEdit } from '@/hooks/use-business-role';
 import { createLogger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
 import { updateSyncAtom } from '@/store/sync-atoms';
+import {
+  scenarioVariantRefsAtom,
+  scenarioSectionOverridesAtom,
+  currentScenarioIdAtom,
+} from '@/store/scenario-atoms';
 import type { SectionSlug, BusinessPlanSection } from '@/types';
 
 const log = createLogger('section');
@@ -39,32 +49,47 @@ export function useSection<T extends BusinessPlanSection>(
   defaultData: T
 ): UseSectionReturn<T> {
   const businessId = useAtomValue(activeBusinessIdAtom);
+  const currentScenarioId = useAtomValue(currentScenarioIdAtom);
+  const variantRefs = useAtomValue(scenarioVariantRefsAtom);
+  const [sectionOverrides, setSectionOverrides] = useAtom(scenarioSectionOverridesAtom);
+  const selectedVariantId = variantRefs[sectionSlug];
+  const overrides = (sectionOverrides[sectionSlug] ?? null) as Partial<T> | null;
+  const shouldWriteScenarioOverrides = Boolean(
+    currentScenarioId !== 'baseline' || selectedVariantId || overrides
+  );
   const canEdit = useCanEdit();
   const setSync = useSetAtom(updateSyncAtom);
-  const [data, setData] = useState<T>(defaultData);
+  const [baseData, setBaseData] = useState<T>(defaultData);
+  const [variantData, setVariantData] = useState<T | null>(null);
+  const [effectiveData, setEffectiveData] = useState<T>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dataRef = useRef<T>(data);
+  const baseDataRef = useRef<T>(baseData);
+  const effectiveDataRef = useRef<T>(effectiveData);
 
-  // Keep dataRef in sync with state
+  // Keep base data ref in sync for flush/save
   useEffect(() => {
-    dataRef.current = data;
-  }, [data]);
+    baseDataRef.current = baseData;
+  }, [baseData]);
+
+  useEffect(() => {
+    effectiveDataRef.current = effectiveData;
+  }, [effectiveData]);
 
   // Load data from Firestore when businessId changes
   useEffect(() => {
     // No business selected — use defaults, skip Firestore
     if (!businessId) {
-      setData(defaultData);
+      setBaseData(defaultData);
       setIsLoading(false);
       return;
     }
 
     // Reset to defaults before loading new business data (clear stale data)
-    setData(defaultData);
+    setBaseData(defaultData);
     setIsLoading(true);
 
     let cancelled = false;
@@ -73,7 +98,7 @@ export function useSection<T extends BusinessPlanSection>(
       try {
         const stored = await getSectionData<T>(businessId!, sectionSlug);
         if (!cancelled && stored) {
-          setData(mergeWithDefaults(stored, defaultData));
+          setBaseData(mergeWithDefaults(stored, defaultData));
         }
       } catch (err) {
         log.warn('load.failed', {
@@ -95,6 +120,52 @@ export function useSection<T extends BusinessPlanSection>(
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, sectionSlug]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!businessId || !selectedVariantId) {
+      setVariantData(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setVariantData(null);
+
+    (async () => {
+      try {
+        const variant = await getSectionVariant(
+          businessId,
+          sectionSlug,
+          selectedVariantId
+        );
+        if (!cancelled) {
+          setVariantData((variant?.data ?? null) as T | null);
+        }
+      } catch (err) {
+        log.warn('variant.load.failed', {
+          businessId,
+          section: sectionSlug,
+          variantId: selectedVariantId,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+        if (!cancelled) {
+          setVariantData(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, sectionSlug, selectedVariantId]);
+
+  useEffect(() => {
+    setEffectiveData(
+      computeEffectiveSection(baseData, variantData, overrides)
+    );
+  }, [baseData, variantData, overrides]);
 
   // Debounced save to Firestore
   const debounceSave = useCallback(
@@ -126,6 +197,16 @@ export function useSection<T extends BusinessPlanSection>(
     [businessId, sectionSlug, canEdit, setSync]
   );
 
+  const updateScenarioOverride = useCallback(
+    (next: T) => {
+      setSectionOverrides((prev) => ({
+        ...prev,
+        [sectionSlug]: next as unknown as Record<string, unknown>,
+      }));
+    },
+    [sectionSlug, setSectionOverrides]
+  );
+
   // Flush pending save on unmount (don't lose unsaved changes on tab switch)
   useEffect(() => {
     return () => {
@@ -134,7 +215,7 @@ export function useSection<T extends BusinessPlanSection>(
         debounceRef.current = null;
         // Save current data immediately (best-effort, log on failure)
         if (businessId) {
-          saveSectionData(businessId, sectionSlug, dataRef.current).catch(
+          saveSectionData(businessId, sectionSlug, baseDataRef.current).catch(
             (err) =>
               log.warn('flush.failed', {
                 businessId,
@@ -149,25 +230,44 @@ export function useSection<T extends BusinessPlanSection>(
 
   const updateField = useCallback(
     <K extends keyof T>(field: K, value: T[K]) => {
-      setData((prev) => {
+      if (shouldWriteScenarioOverrides) {
+        const next = { ...effectiveDataRef.current, [field]: value };
+        updateScenarioOverride(next);
+        return;
+      }
+      setBaseData((prev) => {
         const next = { ...prev, [field]: value };
         debounceSave(next);
         return next;
       });
     },
-    [debounceSave]
+    [debounceSave, shouldWriteScenarioOverrides, updateScenarioOverride]
   );
 
   const updateData = useCallback(
     (updater: (prev: T) => T) => {
-      setData((prev) => {
+      if (shouldWriteScenarioOverrides) {
+        const next = updater(effectiveDataRef.current);
+        updateScenarioOverride(next);
+        return;
+      }
+      setBaseData((prev) => {
         const next = updater(prev);
         debounceSave(next);
         return next;
       });
     },
-    [debounceSave]
+    [debounceSave, shouldWriteScenarioOverrides, updateScenarioOverride]
   );
 
-  return { data, updateField, updateData, isLoading, canEdit, isSaving, saveError, lastSaved };
+  return {
+    data: effectiveData,
+    updateField,
+    updateData,
+    isLoading,
+    canEdit,
+    isSaving,
+    saveError,
+    lastSaved,
+  };
 }

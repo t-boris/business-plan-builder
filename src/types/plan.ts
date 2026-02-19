@@ -251,16 +251,18 @@ export interface MonthlyProjection {
   revenue: number;
   costs: MonthlyCosts;
   profit: number;
+  nonOperatingCashFlow?: number; // financing/investing cash flow not included in revenue
 }
 
 export interface UnitEconomics {
-  avgCheck: number;
-  costPerEvent: number;
-  profitPerEvent: number;
-  breakEvenEvents: number;
+  pricePerUnit: number;
+  variableCostPerUnit: number;
+  profitPerUnit: number;
+  breakEvenUnits: number;
 }
 
 export interface FinancialProjections {
+  startingCash: number; // opening cash balance before Month 1
   months: MonthlyProjection[];
   unitEconomics: UnitEconomics;
   seasonCoefficients: number[]; // 12 values, 1.0 = average month
@@ -314,7 +316,7 @@ export interface RisksDueDiligence {
 export interface KpiTargets {
   monthlyLeads: number;
   conversionRate: number;
-  avgCheck: number;
+  pricePerUnit: number;
   cacPerLead: number;
   cacPerBooking: number;
   monthlyBookings: number;
@@ -400,7 +402,9 @@ export interface HiringCampaignDelta {
 }
 
 export interface PriceChangeDelta {
-  newAvgCheck: number;
+  newPricePerUnit?: number;
+  // Legacy field kept for backward compatibility with older saved events.
+  newAvgCheck?: number;
 }
 
 export interface EquipmentPurchaseDelta {

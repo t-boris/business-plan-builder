@@ -126,11 +126,12 @@ export function buildFieldPrompt(config: {
   fieldName: string;
   fieldLabel: string;
   currentValue: string;
-  action: 'generate' | 'improve';
+  action: 'generate' | 'improve' | 'expand' | 'custom';
   sectionSlug: string;
   sectionData: Record<string, unknown>;
   businessProfile: { name: string; type: string; industry: string; location: string; description: string };
   scenarioV2Context?: string;
+  customPrompt?: string;
 }): string {
   const profileBlock = buildBusinessProfile(config.businessProfile as BusinessProfile);
   const sectionJson = JSON.stringify(config.sectionData, null, 2);
@@ -146,8 +147,12 @@ export function buildFieldPrompt(config: {
   prompt += '\n\n<task>';
   if (config.action === 'generate') {
     prompt += `\nWrite the '${config.fieldLabel}' field for the ${config.sectionSlug} section. Use the business profile and current section data as context. Return ONLY the text content for this single field, nothing else. Be specific to this business.`;
-  } else {
+  } else if (config.action === 'improve') {
     prompt += `\nImprove the following '${config.fieldLabel}' text. Make it more specific, professional, and aligned with the business context. Current text: "${config.currentValue}". Return ONLY the improved text, nothing else.`;
+  } else if (config.action === 'expand') {
+    prompt += `\nExpand the following '${config.fieldLabel}' text with more detail, examples, and specifics. Keep the existing content and add depth. Current text: "${config.currentValue}". Return ONLY the expanded text.`;
+  } else if (config.action === 'custom') {
+    prompt += `\nField: '${config.fieldLabel}'. Current text: "${config.currentValue}".\n\nUser instruction: ${config.customPrompt ?? ''}.\n\nReturn ONLY the resulting text for this field, nothing else.`;
   }
   prompt += '\n</task>';
 

@@ -111,7 +111,7 @@ function getEventSummary(event: GrowthEvent): string {
       return summary;
     }
     case 'price-change':
-      return `Avg check → $${delta.data.newAvgCheck.toLocaleString()}`;
+      return `Price/unit → $${(delta.data.newPricePerUnit ?? delta.data.newAvgCheck ?? 0).toLocaleString()}`;
     case 'equipment-purchase':
       return `$${delta.data.purchaseCost.toLocaleString()} + $${delta.data.maintenanceCostMonthly}/mo maint. + ${delta.data.capacityIncrease} capacity`;
     case 'seasonal-campaign': {

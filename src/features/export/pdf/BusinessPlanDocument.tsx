@@ -478,6 +478,7 @@ export function BusinessPlanDocument({
       {enabledSlugs.includes('operations') && (() => {
         const ops = operations ? normalizeOperations(operations) : null;
         const costSummary = ops ? computeOperationsCosts(ops) : null;
+        const normalizedProductServiceForOps = productService ? normalizeProductService(productService) : null;
         return (
           <SectionPage number={getSectionNumber('operations')} title="Operations">
             {ops ? (
@@ -487,33 +488,55 @@ export function BusinessPlanDocument({
                     <SubsectionTitle>Workforce</SubsectionTitle>
                     <View style={styles.table}>
                       <View style={styles.tableHeaderRow}>
-                        <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Role</Text>
-                        <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Rate/Hour</Text>
-                        <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Count</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '40%' }]}>Role</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Rate/Hour</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Count</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Hours/Week</Text>
                       </View>
                       {ops.workforce.map((m, i) => (
                         <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
-                          <Text style={[styles.tableCellBold, { width: '50%' }]}>{m.role}</Text>
-                          <Text style={[styles.tableCellRight, { width: '25%' }]}>{formatCurrency(m.ratePerHour, currencyCode)}/hr</Text>
-                          <Text style={[styles.tableCellRight, { width: '25%' }]}>{m.count}</Text>
+                          <Text style={[styles.tableCellBold, { width: '40%' }]}>{m.role}</Text>
+                          <Text style={[styles.tableCellRight, { width: '20%' }]}>{formatCurrency(m.ratePerHour, currencyCode)}/hr</Text>
+                          <Text style={[styles.tableCellRight, { width: '20%' }]}>{m.count}</Text>
+                          <Text style={[styles.tableCellRight, { width: '20%' }]}>{m.hoursPerWeek}</Text>
                         </View>
                       ))}
                     </View>
                   </View>
                 )}
 
-                {ops.capacity.plannedOutputPerMonth > 0 && (
+                {costSummary && ops.capacityItems.length > 0 && (
                   <View>
-                    <SubsectionTitle>Capacity</SubsectionTitle>
+                    <SubsectionTitle>Capacity Mix</SubsectionTitle>
+                    <View style={styles.table}>
+                      <View style={styles.tableHeaderRow}>
+                        <Text style={[styles.tableHeaderCell, { width: '28%' }]}>Item</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%' }]}>Unit</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Planned/Mo</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Mix</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Max/Mo</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>Utilization</Text>
+                      </View>
+                      {ops.capacityItems.map((item, i) => {
+                        const mix = costSummary.totalPlannedOutputPerMonth > 0
+                          ? (item.plannedOutputPerMonth / costSummary.totalPlannedOutputPerMonth) * 100
+                          : 0;
+                        return (
+                          <View key={item.id || i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                            <Text style={[styles.tableCellBold, { width: '28%' }]}>{item.name || `Capacity ${i + 1}`}</Text>
+                            <Text style={[styles.tableCell, { width: '14%' }]}>{item.outputUnitLabel || 'unit'}</Text>
+                            <Text style={[styles.tableCellRight, { width: '14%' }]}>{item.plannedOutputPerMonth}</Text>
+                            <Text style={[styles.tableCellRight, { width: '14%' }]}>{mix.toFixed(1)}%</Text>
+                            <Text style={[styles.tableCellRight, { width: '14%' }]}>{item.maxOutputPerMonth}</Text>
+                            <Text style={[styles.tableCellRight, { width: '16%' }]}>{item.utilizationRate.toFixed(1)}%</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
                     <View style={styles.statCardRow}>
-                      {ops.capacity.outputUnitLabel ? (
-                        <StatCard label="Output Unit" value={ops.capacity.outputUnitLabel} />
-                      ) : null}
-                      <StatCard label="Planned/Month" value={String(ops.capacity.plannedOutputPerMonth)} />
-                      {ops.capacity.maxOutputPerDay > 0 && <StatCard label="Max/Day" value={String(ops.capacity.maxOutputPerDay)} />}
-                      {ops.capacity.maxOutputPerWeek > 0 && <StatCard label="Max/Week" value={String(ops.capacity.maxOutputPerWeek)} />}
-                      {ops.capacity.maxOutputPerMonth > 0 && <StatCard label="Max/Month" value={String(ops.capacity.maxOutputPerMonth)} />}
-                      {ops.capacity.utilizationRate > 0 && <StatCard label="Utilization" value={`${ops.capacity.utilizationRate}%`} />}
+                      <StatCard label="Total Planned/Mo" value={String(costSummary.totalPlannedOutputPerMonth)} />
+                      <StatCard label="Total Max/Mo" value={String(costSummary.totalMaxOutputPerMonth)} />
+                      <StatCard label="Weighted Utilization" value={`${costSummary.weightedUtilizationRate.toFixed(1)}%`} />
                     </View>
                   </View>
                 )}
@@ -530,25 +553,59 @@ export function BusinessPlanDocument({
                   </View>
                 )}
 
-                {ops.costItems.length > 0 && (
+                {costSummary && costSummary.variableComponentCosts.length > 0 && (
                   <View>
-                    <SubsectionTitle>Cost Items</SubsectionTitle>
+                    <SubsectionTitle>Variable Components (Per Product/Service)</SubsectionTitle>
                     <View style={styles.table}>
                       <View style={styles.tableHeaderRow}>
-                        <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Category</Text>
-                        <Text style={[styles.tableHeaderCell, { width: '15%' }]}>Type</Text>
-                        <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Rate</Text>
-                        <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Driver</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '24%' }]}>Component</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Offering</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%' }]}>Sourcing</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Output/Mo</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Units</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Monthly</Text>
+                      </View>
+                      {costSummary.variableComponentCosts.map((line, i) => {
+                        const offeringName = line.offeringId
+                          ? normalizedProductServiceForOps?.offerings.find((offering) => offering.id === line.offeringId)?.name ?? line.offeringId
+                          : 'Shared / All Outputs';
+                        return (
+                          <View key={line.componentId || i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                            <Text style={[styles.tableCellBold, { width: '24%' }]}>{line.componentName}</Text>
+                            <Text style={[styles.tableCell, { width: '20%' }]}>{offeringName}</Text>
+                            <Text style={[styles.tableCell, { width: '14%' }]}>{line.sourcingModel}</Text>
+                            <Text style={[styles.tableCellRight, { width: '14%' }]}>{line.outputBasisPerMonth}</Text>
+                            <Text style={[styles.tableCellRight, { width: '14%' }]}>{line.requiredComponentUnits.toFixed(2)}</Text>
+                            <Text style={[styles.tableCellRight, { width: '14%' }]}>{formatCurrency(line.monthlyTotal, currencyCode)}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {ops.costItems.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Fixed Costs</SubsectionTitle>
+                    <View style={styles.table}>
+                      <View style={styles.tableHeaderRow}>
+                        <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Category</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Rate</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Driver</Text>
                         <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Monthly</Text>
                       </View>
                       {ops.costItems.map((item, i) => {
-                        const monthly = item.rate * item.driverQuantityPerMonth;
+                        const rawMonthly = item.rate * item.driverQuantityPerMonth;
+                        const monthly = item.driverType === 'quarterly'
+                          ? rawMonthly / 3
+                          : item.driverType === 'yearly'
+                            ? rawMonthly / 12
+                            : rawMonthly;
                         return (
                           <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
-                            <Text style={[styles.tableCellBold, { width: '25%' }]}>{item.category}</Text>
-                            <Text style={[styles.tableCell, { width: '15%' }]}>{item.type}</Text>
-                            <Text style={[styles.tableCellRight, { width: '20%' }]}>{formatCurrency(item.rate, currencyCode)}</Text>
-                            <Text style={[styles.tableCell, { width: '20%' }]}>{item.driverType}</Text>
+                            <Text style={[styles.tableCellBold, { width: '30%' }]}>{item.category}</Text>
+                            <Text style={[styles.tableCellRight, { width: '25%' }]}>{formatCurrency(item.rate, currencyCode)}</Text>
+                            <Text style={[styles.tableCell, { width: '25%' }]}>{item.driverType}</Text>
                             <Text style={[styles.tableCellRight, { width: '20%' }]}>{formatCurrency(monthly, currencyCode)}</Text>
                           </View>
                         );
@@ -610,14 +667,14 @@ export function BusinessPlanDocument({
                 ))}
               </View>
 
-              {(financials.unitEconomics.avgCheck > 0 || financials.unitEconomics.costPerEvent > 0) && (
+              {(financials.unitEconomics.pricePerUnit > 0 || financials.unitEconomics.variableCostPerUnit > 0) && (
                 <View>
                   <SubsectionTitle>Unit Economics</SubsectionTitle>
                   <View style={styles.statCardRow}>
-                    <StatCard label="Avg Check" value={formatCurrency(financials.unitEconomics.avgCheck, currencyCode)} />
-                    <StatCard label="Cost/Event" value={formatCurrency(financials.unitEconomics.costPerEvent, currencyCode)} />
-                    <StatCard label="Profit/Event" value={formatCurrency(financials.unitEconomics.profitPerEvent, currencyCode)} />
-                    <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenEvents} events`} />
+                    <StatCard label="Price/Unit" value={formatCurrency(financials.unitEconomics.pricePerUnit, currencyCode)} />
+                    <StatCard label="Variable Cost/Unit" value={formatCurrency(financials.unitEconomics.variableCostPerUnit, currencyCode)} />
+                    <StatCard label="Profit/Unit" value={formatCurrency(financials.unitEconomics.profitPerUnit, currencyCode)} />
+                    <StatCard label="Break-Even" value={`${financials.unitEconomics.breakEvenUnits} units`} />
                   </View>
                 </View>
               )}
@@ -760,7 +817,7 @@ export function BusinessPlanDocument({
               <View style={styles.statCardRow}>
                 <StatCard label="Monthly Leads" value={String(kpis.targets.monthlyLeads)} />
                 <StatCard label="Conversion Rate" value={`${(kpis.targets.conversionRate * 100).toFixed(0)}%`} />
-                <StatCard label="Average Check" value={formatCurrency(kpis.targets.avgCheck, currencyCode)} />
+                <StatCard label="Price per Unit" value={formatCurrency(kpis.targets.pricePerUnit, currencyCode)} />
               </View>
               <View style={styles.statCardRow}>
                 <StatCard label="CAC/Lead" value={formatCurrency(kpis.targets.cacPerLead, currencyCode)} />

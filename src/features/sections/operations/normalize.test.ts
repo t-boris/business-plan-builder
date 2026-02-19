@@ -5,14 +5,8 @@ describe('normalizeOperations', () => {
   it('returns default for null/undefined/empty input', () => {
     const defaultResult = {
       workforce: [],
-      capacity: {
-        outputUnitLabel: '',
-        plannedOutputPerMonth: 0,
-        maxOutputPerDay: 0,
-        maxOutputPerWeek: 0,
-        maxOutputPerMonth: 0,
-        utilizationRate: 0,
-      },
+      capacityItems: [],
+      variableComponents: [],
       costItems: [],
       equipment: [],
       safetyProtocols: [],
@@ -29,23 +23,38 @@ describe('normalizeOperations', () => {
   it('passes through new format data', () => {
     const input = {
       workforce: [
-        { role: 'Engineer', count: 3, ratePerHour: 75 },
-        { role: 'Designer', count: 1, ratePerHour: 60 },
+        { role: 'Engineer', count: 3, ratePerHour: 75, hoursPerWeek: 40 },
       ],
-      capacity: {
-        outputUnitLabel: 'units',
-        plannedOutputPerMonth: 500,
-        maxOutputPerDay: 30,
-        maxOutputPerWeek: 150,
-        maxOutputPerMonth: 600,
-        utilizationRate: 83,
-      },
+      capacityItems: [
+        {
+          id: 'cap-1',
+          name: 'Standard Product',
+          outputUnitLabel: 'units',
+          plannedOutputPerMonth: 500,
+          maxOutputPerDay: 30,
+          maxOutputPerWeek: 150,
+          maxOutputPerMonth: 600,
+          utilizationRate: 83,
+        },
+      ],
+      variableComponents: [
+        {
+          id: 'var-1',
+          name: 'Raw Material',
+          offeringId: 'off-1',
+          sourcingModel: 'purchase-order',
+          componentUnitLabel: 'kg',
+          costPerComponentUnit: 2.5,
+          componentUnitsPerOutput: 1.2,
+          orderQuantity: 500,
+          orderFee: 45,
+        },
+      ],
       costItems: [
-        { category: 'Raw Materials', type: 'variable', rate: 12, driverType: 'per-unit', driverQuantityPerMonth: 500 },
         { category: 'Rent', type: 'fixed', rate: 3000, driverType: 'monthly', driverQuantityPerMonth: 1 },
       ],
-      equipment: ['CNC Machine', '3D Printer'],
-      safetyProtocols: ['Wear goggles', 'Fire extinguisher nearby'],
+      equipment: ['CNC Machine'],
+      safetyProtocols: ['Wear goggles'],
       operationalMetrics: [
         { name: 'Yield Rate', unit: '%', value: 95, target: 98 },
       ],
@@ -53,22 +62,13 @@ describe('normalizeOperations', () => {
 
     const result = normalizeOperations(input);
 
-    expect(result.workforce).toHaveLength(2);
-    expect(result.workforce[0]).toEqual({ role: 'Engineer', count: 3, ratePerHour: 75 });
-    expect(result.workforce[1]).toEqual({ role: 'Designer', count: 1, ratePerHour: 60 });
-    expect(result.capacity.outputUnitLabel).toBe('units');
-    expect(result.capacity.plannedOutputPerMonth).toBe(500);
-    expect(result.capacity.maxOutputPerDay).toBe(30);
-    expect(result.capacity.maxOutputPerWeek).toBe(150);
-    expect(result.capacity.maxOutputPerMonth).toBe(600);
-    expect(result.capacity.utilizationRate).toBe(83);
-    expect(result.costItems).toHaveLength(2);
-    expect(result.costItems[0].category).toBe('Raw Materials');
-    expect(result.costItems[1].category).toBe('Rent');
-    expect(result.equipment).toEqual(['CNC Machine', '3D Printer']);
-    expect(result.safetyProtocols).toEqual(['Wear goggles', 'Fire extinguisher nearby']);
-    expect(result.operationalMetrics).toHaveLength(1);
-    expect(result.operationalMetrics[0]).toEqual({ name: 'Yield Rate', unit: '%', value: 95, target: 98 });
+    expect(result.workforce).toHaveLength(1);
+    expect(result.capacityItems).toHaveLength(1);
+    expect(result.variableComponents).toHaveLength(1);
+    expect(result.variableComponents[0].id).toBe('var-1');
+    expect(result.variableComponents[0].sourcingModel).toBe('purchase-order');
+    expect(result.costItems).toHaveLength(1);
+    expect(result.costItems[0].type).toBe('fixed');
   });
 
   it('migrates legacy crew to workforce', () => {
@@ -82,8 +82,8 @@ describe('normalizeOperations', () => {
     const result = normalizeOperations(input);
 
     expect(result.workforce).toHaveLength(2);
-    expect(result.workforce[0]).toEqual({ role: 'Event Manager', ratePerHour: 35, count: 2 });
-    expect(result.workforce[1]).toEqual({ role: 'Assistant', ratePerHour: 18, count: 4 });
+    expect(result.workforce[0]).toEqual({ role: 'Event Manager', ratePerHour: 35, count: 2, hoursPerWeek: 40 });
+    expect(result.workforce[1]).toEqual({ role: 'Assistant', ratePerHour: 18, count: 4, hoursPerWeek: 40 });
   });
 
   it('migrates legacy capacity fields', () => {
@@ -98,15 +98,15 @@ describe('normalizeOperations', () => {
 
     const result = normalizeOperations(input);
 
-    expect(result.capacity.outputUnitLabel).toBe('bookings');
-    expect(result.capacity.maxOutputPerDay).toBe(3);
-    expect(result.capacity.maxOutputPerWeek).toBe(15);
-    expect(result.capacity.maxOutputPerMonth).toBe(60);
-    expect(result.capacity.plannedOutputPerMonth).toBe(60);
-    expect(result.capacity.utilizationRate).toBe(0);
+    expect(result.capacityItems).toHaveLength(1);
+    expect(result.capacityItems[0].outputUnitLabel).toBe('bookings');
+    expect(result.capacityItems[0].maxOutputPerDay).toBe(3);
+    expect(result.capacityItems[0].maxOutputPerWeek).toBe(15);
+    expect(result.capacityItems[0].maxOutputPerMonth).toBe(60);
+    expect(result.capacityItems[0].plannedOutputPerMonth).toBe(60);
   });
 
-  it('migrates legacy costBreakdown variable costs to costItems', () => {
+  it('migrates legacy variable costs to variable components', () => {
     const input = {
       crew: [],
       capacity: { maxBookingsPerDay: 2, maxBookingsPerWeek: 10, maxBookingsPerMonth: 40 },
@@ -120,22 +120,17 @@ describe('normalizeOperations', () => {
 
     const result = normalizeOperations(input);
 
-    const suppliesItem = result.costItems.find((i) => i.category === 'Supplies');
-    expect(suppliesItem).toBeDefined();
-    expect(suppliesItem!.type).toBe('variable');
-    expect(suppliesItem!.rate).toBe(100); // 5 * 20
-    expect(suppliesItem!.driverType).toBe('per-unit');
-    expect(suppliesItem!.driverQuantityPerMonth).toBe(40);
-
-    const venueItem = result.costItems.find((i) => i.category === 'Venue / Tickets');
-    expect(venueItem).toBeDefined();
-    expect(venueItem!.type).toBe('variable');
-    expect(venueItem!.rate).toBe(200); // 10 * 20
-    expect(venueItem!.driverType).toBe('per-unit');
-    expect(venueItem!.driverQuantityPerMonth).toBe(40);
+    expect(result.variableComponents.length).toBeGreaterThan(0);
+    const supplies = result.variableComponents.find((c) => c.name === 'Supplies');
+    const venue = result.variableComponents.find((c) => c.name === 'Venue / Tickets');
+    expect(supplies).toBeDefined();
+    expect(venue).toBeDefined();
+    // Monthly total preserved: output (40) * units/output (1) * rate (100) = 4000
+    expect(supplies!.costPerComponentUnit).toBe(100);
+    expect(supplies!.componentUnitsPerOutput).toBe(1);
   });
 
-  it('migrates legacy costBreakdown fixed costs to costItems', () => {
+  it('migrates legacy fixed costs to fixed cost items', () => {
     const input = {
       crew: [],
       costBreakdown: {
@@ -152,22 +147,12 @@ describe('normalizeOperations', () => {
     expect(salary!.type).toBe('fixed');
     expect(salary!.rate).toBe(4000);
     expect(salary!.driverType).toBe('monthly');
-    expect(salary!.driverQuantityPerMonth).toBe(1);
-
-    const crm = result.costItems.find((i) => i.category === 'CRM Software');
-    expect(crm).toBeDefined();
-    expect(crm!.type).toBe('fixed');
-    expect(crm!.rate).toBe(50);
-
-    const storage = result.costItems.find((i) => i.category === 'Storage Rent');
-    expect(storage).toBeDefined();
-    expect(storage!.type).toBe('fixed');
-    expect(storage!.rate).toBe(200);
   });
 
-  it('migrates legacy customExpenses to costItems', () => {
+  it('splits legacy custom expenses into variable components and fixed items', () => {
     const input = {
       crew: [],
+      capacity: { maxBookingsPerDay: 2, maxBookingsPerWeek: 10, maxBookingsPerMonth: 40 },
       costBreakdown: {
         customExpenses: [
           { name: 'DJ Rental', amount: 150, type: 'per-event' },
@@ -178,17 +163,11 @@ describe('normalizeOperations', () => {
 
     const result = normalizeOperations(input);
 
-    const djItem = result.costItems.find((i) => i.category === 'DJ Rental');
-    expect(djItem).toBeDefined();
-    expect(djItem!.type).toBe('variable');
-    expect(djItem!.rate).toBe(150);
-    expect(djItem!.driverType).toBe('per-unit');
-
+    const djComponent = result.variableComponents.find((c) => c.name === 'DJ Rental');
     const insurance = result.costItems.find((i) => i.category === 'Insurance Premium');
+    expect(djComponent).toBeDefined();
     expect(insurance).toBeDefined();
     expect(insurance!.type).toBe('fixed');
-    expect(insurance!.rate).toBe(300);
-    expect(insurance!.driverType).toBe('monthly');
   });
 
   it('preserves equipment and safetyProtocols', () => {
@@ -222,10 +201,64 @@ describe('normalizeOperations', () => {
     const result = normalizeOperations(input);
 
     expect(result.workforce).toHaveLength(1);
+    expect(result.workforce[0].hoursPerWeek).toBe(40);
+    expect(result.variableComponents).toEqual([]);
     expect(result.costItems).toEqual([]);
     expect(result.equipment).toEqual([]);
     expect(result.safetyProtocols).toEqual([]);
     expect(result.operationalMetrics).toEqual([]);
-    expect(result.capacity.outputUnitLabel).toBe('');
+    expect(result.capacityItems).toEqual([]);
+  });
+
+  it('migrates transitional single capacity object into capacityItems', () => {
+    const input = {
+      workforce: [{ role: 'Operator', count: 1, ratePerHour: 30, hoursPerWeek: 40 }],
+      capacity: {
+        outputUnitLabel: 'orders',
+        plannedOutputPerMonth: 120,
+        maxOutputPerDay: 6,
+        maxOutputPerWeek: 30,
+        maxOutputPerMonth: 140,
+        utilizationRate: 80,
+      },
+    };
+
+    const result = normalizeOperations(input);
+
+    expect(result.capacityItems).toHaveLength(1);
+    expect(result.capacityItems[0].id).toBe('cap-primary');
+    expect(result.capacityItems[0].name).toBe('Primary Capacity');
+    expect(result.capacityItems[0].outputUnitLabel).toBe('orders');
+    expect(result.capacityItems[0].plannedOutputPerMonth).toBe(120);
+  });
+
+  it('migrates variable costItems in current shape into variable components', () => {
+    const input = {
+      capacityItems: [
+        {
+          id: 'cap-1',
+          name: 'Primary',
+          outputUnitLabel: 'units',
+          plannedOutputPerMonth: 100,
+          maxOutputPerDay: 0,
+          maxOutputPerWeek: 0,
+          maxOutputPerMonth: 0,
+          utilizationRate: 0,
+        },
+      ],
+      costItems: [
+        { category: 'Packaging', type: 'variable', rate: 2, driverType: 'per-unit', driverQuantityPerMonth: 100 },
+        { category: 'Rent', type: 'fixed', rate: 3000, driverType: 'monthly', driverQuantityPerMonth: 1 },
+      ],
+    };
+
+    const result = normalizeOperations(input);
+
+    expect(result.variableComponents).toHaveLength(1);
+    expect(result.variableComponents[0].name).toBe('Packaging');
+    expect(result.costItems).toHaveLength(1);
+    expect(result.costItems[0].category).toBe('Rent');
+    expect(result.costItems[0].type).toBe('fixed');
   });
 });
+

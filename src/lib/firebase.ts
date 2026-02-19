@@ -19,7 +19,29 @@ export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
+function parseBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
+  if (value == null) return defaultValue;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+  return defaultValue;
+}
+
 if (import.meta.env.DEV) {
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  connectStorageEmulator(storage, 'localhost', 9199);
+  // Emulators are opt-in: set VITE_USE_FIRESTORE_EMULATOR=true in .env.local to enable.
+  const useFirestoreEmulator = parseBooleanEnv(
+    import.meta.env.VITE_USE_FIRESTORE_EMULATOR,
+    false,
+  );
+  const useStorageEmulator = parseBooleanEnv(
+    import.meta.env.VITE_USE_STORAGE_EMULATOR,
+    false,
+  );
+
+  if (useFirestoreEmulator) {
+    connectFirestoreEmulator(db, 'localhost', 8080);
+  }
+  if (useStorageEmulator) {
+    connectStorageEmulator(storage, 'localhost', 9199);
+  }
 }

@@ -12,6 +12,7 @@ import { FinancialProjections } from "@/features/sections/financial-projections"
 import { RisksDueDiligence } from "@/features/sections/risks-due-diligence";
 import { KpisMetrics } from "@/features/sections/kpis-metrics";
 import { LaunchPlan } from "@/features/sections/launch-plan";
+import { GrowthTimeline } from "@/features/sections/growth-timeline";
 import { Scenarios } from "@/features/scenarios";
 import { Export } from "@/features/export";
 import { BusinessList } from "@/features/businesses";
@@ -30,8 +31,10 @@ function LoadingScreen() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground text-lg font-bold animate-pulse">
-          F
+        <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground animate-pulse">
+          <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" />
+          </svg>
         </div>
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
@@ -148,6 +151,7 @@ export function AppRoutes() {
         <Route path="marketing-strategy" element={<MarketingStrategy />} />
         <Route path="operations" element={<Operations />} />
         <Route path="financial-projections" element={<FinancialProjections />} />
+        <Route path="growth-timeline" element={<GrowthTimeline />} />
         <Route path="risks-due-diligence" element={<RisksDueDiligence />} />
         <Route path="kpis-metrics" element={<KpisMetrics />} />
         <Route path="launch-plan" element={<LaunchPlan />} />

@@ -224,7 +224,7 @@ const RisksDueDiligenceSchema = z.object({
 const KpiTargetsSchema = z.object({
   monthlyLeads: z.number(),
   conversionRate: z.number(),
-  avgCheck: z.number(),
+  pricePerUnit: z.number(),
   cacPerLead: z.number(),
   cacPerBooking: z.number(),
   monthlyBookings: z.number(),
@@ -368,7 +368,7 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   'kpis-metrics': {
     generate:
-      'Generate KPI targets based on the business context. Include monthly leads, conversion rate (as decimal e.g. 0.2 for 20%), average check, CAC per lead, CAC per booking, and monthly bookings. Base targets on the scenario metrics provided.',
+      'Generate KPI targets based on the business context. Include monthly leads, conversion rate (as decimal e.g. 0.2 for 20%), price per unit, CAC per lead, CAC per booking, and monthly bookings. Base targets on the scenario metrics provided.',
     improve:
       'Improve the existing KPI targets. Keep all current targets, refine values to be more realistic based on context, and ensure consistency with scenario metrics.',
     expand:

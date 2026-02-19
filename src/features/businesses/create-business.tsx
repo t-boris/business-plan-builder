@@ -59,8 +59,9 @@ export function CreateBusiness() {
     try {
       const newId = await createNewBusiness(name.trim(), selectedType, description.trim());
       navigate(`/business/${newId}`);
-    } catch {
-      setError("Failed to create business. Please try again.");
+    } catch (err) {
+      console.error("Business creation error:", err);
+      setError(`Failed to create business: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsCreating(false);
     }

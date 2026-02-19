@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useSection } from '@/hooks/use-section';
-import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { useImageUpload } from '@/hooks/use-image-upload';
-import { isAiAvailable } from '@/lib/ai/gemini-client';
-import { AiActionBar } from '@/components/ai-action-bar';
-import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
 import { normalizeProductService } from './normalize';
@@ -14,7 +10,7 @@ import type { ProductService as ProductServiceType, Offering, AddOn, OfferingIma
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift, Link, ImagePlus, X, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Package as PackageIcon, Gift, Link, ImagePlus, X, RefreshCw } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
 
 const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
@@ -24,7 +20,6 @@ export function ProductService() {
     'product-service',
     defaultProductService
   );
-  const aiSuggestion = useAiSuggestion<ProductServiceType>('product-service');
   const { upload, remove: removeImage, isUploading, progress, error: uploadError } = useImageUpload();
   const business = useAtomValue(activeBusinessAtom);
 
@@ -66,22 +61,10 @@ export function ProductService() {
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader title="Product & Service" description="Offerings, pricing, and add-ons" />
+        <PageHeader showScenarioBadge title="Product & Service" description="Offerings, pricing, and add-ons" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
-  }
-
-  const isPreview = aiSuggestion.state.status === 'preview';
-  const displayData = isPreview && aiSuggestion.state.suggested
-    ? aiSuggestion.state.suggested
-    : rawData;
-
-  function handleAccept() {
-    const suggested = aiSuggestion.accept();
-    if (suggested) {
-      updateData(() => suggested);
-    }
   }
 
   // --- Offering CRUD ---
@@ -97,7 +80,7 @@ export function ProductService() {
   }
 
   function removeOffering(index: number) {
-    const offering = displayData.offerings[index];
+    const offering = rawData.offerings[index];
     if (offering?.image?.storagePath) {
       removeImage(offering.image.storagePath).catch(() => {
         // Best-effort cleanup — do not block offering deletion
@@ -229,7 +212,7 @@ export function ProductService() {
       <div className="space-y-2">
         <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
           Overview
-          {canEdit && !isPreview && (
+          {canEdit && (
             <AiFieldTrigger
               fieldName="overview"
               fieldLabel="Overview"
@@ -241,11 +224,11 @@ export function ProductService() {
           )}
         </label>
         <Textarea
-          value={displayData.overview ?? ''}
+          value={rawData.overview ?? ''}
           onChange={(e) => updateData((prev) => ({ ...prev, overview: e.target.value }))}
           placeholder="Describe your product or service line..."
           rows={4}
-          readOnly={!canEdit || isPreview}
+          readOnly={!canEdit}
         />
       </div>
 
@@ -253,23 +236,23 @@ export function ProductService() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Offerings</h2>
-          {canEdit && !isPreview && (
+          {canEdit && (
             <Button variant="outline" size="sm" onClick={addOffering}>
               <Plus className="size-4" />
               Add Offering
             </Button>
           )}
         </div>
-        {displayData.offerings.length === 0 ? (
+        {rawData.offerings.length === 0 ? (
           <EmptyState
             icon={PackageIcon}
             title="No offerings yet"
             description="Use AI Generate to create offerings, or add them manually."
-            action={canEdit && !isPreview ? { label: 'Add Offering', onClick: addOffering } : undefined}
+            action={canEdit ? { label: 'Add Offering', onClick: addOffering } : undefined}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {displayData.offerings.map((offering, offeringIndex) => {
+            {rawData.offerings.map((offering, offeringIndex) => {
               const isThisUploading = isUploading && uploadingOfferingId === offering.id;
 
               return (
@@ -295,7 +278,7 @@ export function ProductService() {
                       </div>
                     )}
                     {/* Hover overlay with Replace/Remove actions */}
-                    {canEdit && !isPreview && !isThisUploading && (
+                    {canEdit && !isThisUploading && (
                       <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <Button
                           variant="secondary"
@@ -316,7 +299,7 @@ export function ProductService() {
                       </div>
                     )}
                   </div>
-                ) : canEdit && !isPreview ? (
+                ) : canEdit ? (
                   <div className="relative w-full h-24 bg-muted/50 flex items-center justify-center">
                     {isThisUploading ? (
                       <div className="flex flex-col items-center gap-2 w-3/4">
@@ -356,10 +339,10 @@ export function ProductService() {
                       value={offering.name}
                       onChange={(e) => updateOffering(offeringIndex, 'name', e.target.value)}
                       placeholder="Offering name"
-                      readOnly={!canEdit || isPreview}
+                      readOnly={!canEdit}
                       className="text-base font-semibold border-0 px-0 shadow-none focus-visible:ring-0 h-auto"
                     />
-                    {canEdit && !isPreview && (
+                    {canEdit && (
                       <Button
                         variant="ghost"
                         size="icon-xs"
@@ -382,14 +365,14 @@ export function ProductService() {
                             className="pl-7"
                             value={offering.price}
                             onChange={(e) => updateOffering(offeringIndex, 'price', Number(e.target.value))}
-                            readOnly={!canEdit || isPreview}
+                            readOnly={!canEdit}
                           />
                         </div>
                         <Input
                           value={offering.priceLabel ?? ''}
                           onChange={(e) => updateOffering(offeringIndex, 'priceLabel', e.target.value)}
                           placeholder="e.g. per month"
-                          readOnly={!canEdit || isPreview}
+                          readOnly={!canEdit}
                           className="flex-1 text-sm"
                         />
                       </>
@@ -404,7 +387,7 @@ export function ProductService() {
                   <div className="space-y-1">
                     <label className="text-sm font-medium flex items-center gap-1">
                       Description
-                      {canEdit && !isPreview && (
+                      {canEdit && (
                         <AiFieldTrigger
                           fieldName="offering-description"
                           fieldLabel={`Description for ${offering.name || 'Offering'}`}
@@ -424,7 +407,7 @@ export function ProductService() {
                       onChange={(e) => updateOffering(offeringIndex, 'description', e.target.value)}
                       placeholder="Describe this offering..."
                       rows={4}
-                      readOnly={!canEdit || isPreview}
+                      readOnly={!canEdit}
                     />
                   </div>
 
@@ -433,7 +416,7 @@ export function ProductService() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {offering.addOnIds.length > 0 ? (
                         offering.addOnIds.map((addOnId) => {
-                          const addOn = displayData.addOns.find((a) => a.id === addOnId);
+                          const addOn = rawData.addOns.find((a) => a.id === addOnId);
                           return addOn ? (
                             <span key={addOnId} className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">
                               {addOn.name}
@@ -443,7 +426,7 @@ export function ProductService() {
                       ) : (
                         <span className="text-xs text-muted-foreground">No add-ons linked</span>
                       )}
-                      {canEdit && !isPreview && (
+                      {canEdit && (
                         <Button
                           variant="ghost"
                           size="xs"
@@ -459,14 +442,14 @@ export function ProductService() {
                         </Button>
                       )}
                     </div>
-                    {openAddonSelector === offering.id && canEdit && !isPreview && (
+                    {openAddonSelector === offering.id && canEdit && (
                       <div className="rounded-md border bg-background p-2 space-y-1">
-                        {displayData.addOns.length === 0 ? (
+                        {rawData.addOns.length === 0 ? (
                           <p className="text-xs text-muted-foreground py-1">
                             Create add-ons first in the catalog below
                           </p>
                         ) : (
-                          displayData.addOns.map((addOn) => (
+                          rawData.addOns.map((addOn) => (
                             <label
                               key={addOn.id}
                               className="flex items-center gap-2 text-sm rounded px-1 py-0.5 hover:bg-accent cursor-pointer"
@@ -499,30 +482,30 @@ export function ProductService() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Add-ons</h2>
-          {canEdit && !isPreview && (
+          {canEdit && (
             <Button variant="outline" size="sm" onClick={addAddOn}>
               <Plus className="size-4" />
               Add Add-on
             </Button>
           )}
         </div>
-        {displayData.addOns.length === 0 ? (
+        {rawData.addOns.length === 0 ? (
           <EmptyState
             icon={Gift}
             title="No add-ons yet"
             description="Create optional extras that can be linked to your offerings."
-            action={canEdit && !isPreview ? { label: 'Add Add-on', onClick: addAddOn } : undefined}
+            action={canEdit ? { label: 'Add Add-on', onClick: addAddOn } : undefined}
           />
         ) : (
           <div className="card-elevated rounded-lg divide-y">
-            {displayData.addOns.map((addOn, index) => (
+            {rawData.addOns.map((addOn, index) => (
               <div key={addOn.id ?? index} className="flex items-center gap-4 px-5 py-3 group">
                 <div className="flex-1">
                   <Input
                     value={addOn.name}
                     onChange={(e) => updateAddOn(index, 'name', e.target.value)}
                     placeholder="Add-on name"
-                    readOnly={!canEdit || isPreview}
+                    readOnly={!canEdit}
                     className="border-0 px-0 shadow-none focus-visible:ring-0"
                   />
                 </div>
@@ -531,7 +514,7 @@ export function ProductService() {
                     value={addOn.description ?? ''}
                     onChange={(e) => updateAddOn(index, 'description', e.target.value)}
                     placeholder="Optional description"
-                    readOnly={!canEdit || isPreview}
+                    readOnly={!canEdit}
                     className="border-0 px-0 shadow-none focus-visible:ring-0 text-sm"
                   />
                 </div>
@@ -542,7 +525,7 @@ export function ProductService() {
                     className="pl-7"
                     value={addOn.price}
                     onChange={(e) => updateAddOn(index, 'price', Number(e.target.value))}
-                    readOnly={!canEdit || isPreview}
+                    readOnly={!canEdit}
                   />
                 </div>
                 <div className="w-[100px] shrink-0">
@@ -550,11 +533,11 @@ export function ProductService() {
                     value={addOn.priceLabel ?? ''}
                     onChange={(e) => updateAddOn(index, 'priceLabel', e.target.value)}
                     placeholder="e.g. per unit"
-                    readOnly={!canEdit || isPreview}
+                    readOnly={!canEdit}
                     className="text-sm"
                   />
                 </div>
-                {canEdit && !isPreview && (
+                {canEdit && (
                   <Button
                     variant="ghost"
                     size="icon-xs"
@@ -574,39 +557,8 @@ export function ProductService() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Product & Service" description="Offerings, pricing, and add-ons">
-        {canEdit && (
-          <AiActionBar
-            onGenerate={() => aiSuggestion.generate('generate', rawData)}
-            onImprove={() => aiSuggestion.generate('improve', rawData)}
-            onExpand={() => aiSuggestion.generate('expand', rawData)}
-            isLoading={aiSuggestion.state.status === 'loading'}
-            disabled={!isAiAvailable}
-          />
-        )}
-      </PageHeader>
-
-      {aiSuggestion.state.status === 'error' && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
-          <AlertCircle className="size-4 shrink-0" />
-          <span className="flex-1">{aiSuggestion.state.error}</span>
-          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
-        </div>
-      )}
-
-      {aiSuggestion.state.status === 'loading' && (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading>
-          <div />
-        </AiSuggestionPreview>
-      )}
-
-      {aiSuggestion.state.status === 'preview' ? (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>
-          {sectionContent}
-        </AiSuggestionPreview>
-      ) : (
-        aiSuggestion.state.status !== 'loading' && sectionContent
-      )}
+      <PageHeader showScenarioBadge title="Product & Service" description="Offerings, pricing, and add-ons" />
+      {sectionContent}
     </div>
   );
 }

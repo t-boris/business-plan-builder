@@ -10,6 +10,21 @@ import { storage } from '@/lib/firebase';
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
+function formatUploadError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes('cors') || lower.includes('preflight') || lower.includes('network request failed')) {
+    return 'Upload failed: Storage is unreachable. For local dev, start Firebase Storage emulator (port 9199) or configure a valid Firebase Storage bucket.';
+  }
+
+  if (lower.includes('storage/unauthorized') || lower.includes('unauthorized')) {
+    return 'Upload failed: you do not have permission to upload to this path (check Storage rules and auth state).';
+  }
+
+  return `Upload failed: ${raw}`;
+}
+
 export interface UseImageUploadReturn {
   upload: (file: File, path: string) => Promise<{ url: string; storagePath: string }>;
   remove: (storagePath: string) => Promise<void>;
@@ -57,7 +72,7 @@ export function useImageUpload(): UseImageUploadReturn {
           },
           (err) => {
             setIsUploading(false);
-            const msg = `Upload failed: ${err.message}`;
+            const msg = formatUploadError(err);
             setError(msg);
             reject(new Error(msg));
           },

@@ -56,7 +56,7 @@ function makeDefaultDelta(type: GrowthEventType): GrowthEventDelta {
     case 'hiring-campaign':
       return { type: 'hiring-campaign', data: { totalHires: 1, role: '', ratePerHour: 0, hoursPerWeek: 40, recruitingCostPerHire: 0 } };
     case 'price-change':
-      return { type: 'price-change', data: { newAvgCheck: 0 } };
+      return { type: 'price-change', data: { newPricePerUnit: 0 } };
     case 'equipment-purchase':
       return { type: 'equipment-purchase', data: { purchaseCost: 0, capacityIncrease: 0, maintenanceCostMonthly: 0, capacityItemId: undefined } };
     case 'seasonal-campaign':
@@ -215,7 +215,7 @@ export function EventForm({ horizonMonths, capacityItems = [], initial, onSave, 
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: horizonMonths }, (_, i) => i + 1).map((m) => (
+              {Array.from({ length: Math.max(horizonMonths, 36) }, (_, i) => i + 1).map((m) => (
                 <SelectItem key={m} value={String(m)}>
                   Month {m}
                 </SelectItem>
@@ -658,12 +658,18 @@ export function EventForm({ horizonMonths, capacityItems = [], initial, onSave, 
       {/* Price Change fields */}
       {delta.type === 'price-change' && (
         <div>
-          <label className="text-xs font-medium text-muted-foreground">New Average Check ($)</label>
+          <label className="text-xs font-medium text-muted-foreground">New Price per Unit ($)</label>
           <Input
             type="number"
-            value={delta.data.newAvgCheck}
+            value={delta.data.newPricePerUnit ?? delta.data.newAvgCheck ?? 0}
             onChange={(e) =>
-              setDelta({ ...delta, data: { newAvgCheck: Number(e.target.value) } })
+              setDelta({
+                ...delta,
+                data: {
+                  ...delta.data,
+                  newPricePerUnit: Number(e.target.value),
+                },
+              })
             }
             className="h-8 text-sm tabular-nums"
           />

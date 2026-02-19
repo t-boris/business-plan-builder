@@ -33,21 +33,21 @@ Copy the environment file and fill in your values:
 cp .env.example .env
 ```
 
-See the [Environment Variables](#environment-variables) section for details on each key. Firebase API keys are safe to expose in client code (access is restricted by Firestore security rules). Gemini and Perplexity keys are currently client-side and should be moved behind a backend proxy in a future phase.
+See the [Environment Variables](#environment-variables) section for details on each key. Firebase API keys are safe to expose in client code (access is restricted by Firestore security rules). AI provider keys are stored server-side in Firebase Functions secrets.
 
 ## Local Development
 
-Start the Firestore emulator and the Vite dev server in two terminals:
+Start the Firestore/Functions/Storage emulators and the Vite dev server in two terminals:
 
 ```bash
-# Terminal 1 -- Firestore emulator (port 8080, UI on port 4000)
+# Terminal 1 -- Firestore + Functions + Storage emulators (8080/5001/9199, UI on port 4000)
 npm run emulator
 
 # Terminal 2 -- Vite dev server (port 5173)
 npm run dev
 ```
 
-In development mode the app automatically connects Firestore to the local emulator (see `src/lib/firebase.ts`). No production data is touched.
+In development mode, Firestore connects to its emulator by default. Storage and Functions emulators are opt-in via `VITE_USE_STORAGE_EMULATOR` and `VITE_USE_FUNCTIONS_EMULATOR` (see `.env.example`).
 
 To seed your local emulator with production data:
 
@@ -61,7 +61,7 @@ npm run pull-prod
 | Script | Command | Description |
 |--------|---------|-------------|
 | `dev` | `vite` | Start Vite dev server on port 5173 |
-| `emulator` | `firebase emulators:start --only firestore ...` | Start Firestore emulator with persistent data |
+| `emulator` | `firebase emulators:start --only firestore,functions,storage ...` | Start Firestore + Functions + Storage emulators with persistent data |
 | `pull-prod` | `node scripts/pull-prod-data.mjs` | Pull production Firestore data into the local emulator |
 | `build` | `tsc -b && vite build` | TypeScript check + Vite production build |
 | `lint` | `eslint .` | Run ESLint across the project |
@@ -107,10 +107,13 @@ The app is deployed to `my-business-planning.web.app` (Firebase project: `my-bus
 | `VITE_FIREBASE_STORAGE_BUCKET` | Yes | Cloud Storage bucket | Firebase Console > Project Settings |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Yes | FCM sender ID | Firebase Console > Project Settings |
 | `VITE_FIREBASE_APP_ID` | Yes | Firebase app ID | Firebase Console > Project Settings |
-| `VITE_GEMINI_API_KEY` | Yes | Google Gemini API key | Google AI Studio |
-| `VITE_PERPLEXITY_API_KEY` | Optional | Perplexity API key (market research) | Perplexity dashboard |
+| `VITE_USE_FIRESTORE_EMULATOR` | No (dev) | Connect Firestore to localhost:8080 in dev | Default: `true` |
+| `VITE_USE_STORAGE_EMULATOR` | No (dev) | Connect Storage to localhost:9199 in dev | Default: `false` |
+| `VITE_USE_FUNCTIONS_EMULATOR` | No (dev) | Connect AI proxy calls to localhost:5001 in dev | Default: `false` |
+| `VITE_FUNCTIONS_EMULATOR_HOST` | No (dev) | Functions emulator host when enabled | Default: `localhost` |
+| `VITE_FUNCTIONS_EMULATOR_PORT` | No (dev) | Functions emulator port when enabled | Default: `5001` |
 
-All variables are prefixed with `VITE_` so Vite exposes them to client code.
+All variables are prefixed with `VITE_` so Vite exposes them to client code. AI provider keys are configured server-side in Firebase Functions secrets (`functions/.secret.local` for emulator/dev).
 
 ## Pre-Release Checklist
 

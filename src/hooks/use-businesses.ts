@@ -38,6 +38,20 @@ export function useBusinesses() {
     if (!user) return;
     try {
       const list = await getUserBusinesses(user.uid);
+
+      // Migrate: ensure growth-timeline is in enabledSections for existing businesses
+      for (const biz of list) {
+        if (!biz.enabledSections.includes('growth-timeline')) {
+          const idx = biz.enabledSections.indexOf('financial-projections');
+          if (idx !== -1) {
+            biz.enabledSections.splice(idx + 1, 0, 'growth-timeline');
+          } else {
+            biz.enabledSections.push('growth-timeline');
+          }
+          updateBusiness(biz.id, { enabledSections: biz.enabledSections }).catch(() => {});
+        }
+      }
+
       setBusinessList(list);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

@@ -1,8 +1,4 @@
 import { useSection } from '@/hooks/use-section';
-import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
-import { isAiAvailable } from '@/lib/ai/gemini-client';
-import { AiActionBar } from '@/components/ai-action-bar';
-import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
 import type {
@@ -30,7 +26,6 @@ import {
 import {
   Plus,
   Trash2,
-  AlertCircle,
   DollarSign,
   Users,
   Target,
@@ -144,30 +139,19 @@ export function MarketingStrategy() {
     'marketing-strategy',
     defaultMarketing
   );
-  const aiSuggestion = useAiSuggestion<MarketingStrategyType>('marketing-strategy');
   const [customNameIndices, setCustomNameIndices] = useState<Set<number>>(new Set());
 
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
+        <PageHeader showScenarioBadge title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
-  const isPreview = aiSuggestion.state.status === 'preview';
-  const displayData = isPreview && aiSuggestion.state.suggested
-    ? aiSuggestion.state.suggested
-    : data;
-
-  function handleAccept() {
-    const suggested = aiSuggestion.accept();
-    if (suggested) updateData(() => suggested);
-  }
-
-  const totalBudget = displayData.channels.reduce((sum, ch) => sum + ch.budget, 0);
-  const totalLeads = displayData.channels.reduce((sum, ch) => sum + ch.expectedLeads, 0);
+  const totalBudget = data.channels.reduce((sum, ch) => sum + ch.budget, 0);
+  const totalLeads = data.channels.reduce((sum, ch) => sum + ch.expectedLeads, 0);
   const avgCAC = totalLeads > 0 ? totalBudget / totalLeads : 0;
   const estimatedBookings = Math.round(totalLeads * 0.2);
 
@@ -238,7 +222,7 @@ export function MarketingStrategy() {
   }
 
   // Pie chart data -- only channels with budget > 0
-  const budgetPieData = displayData.channels
+  const budgetPieData = data.channels
     .filter((ch) => ch.budget > 0)
     .map((ch) => ({
       name: ch.name || 'Unnamed',
@@ -327,23 +311,23 @@ export function MarketingStrategy() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Marketing Channels</h2>
-            {canEdit && !isPreview && (
+            {canEdit && (
               <Button variant="outline" size="sm" onClick={addChannel}>
                 <Plus className="size-4" />
                 Add Channel
               </Button>
             )}
           </div>
-          {displayData.channels.length === 0 ? (
+          {data.channels.length === 0 ? (
             <EmptyState
               icon={Megaphone}
               title="No marketing channels yet"
               description="Use AI Generate to create a marketing strategy, or add channels manually."
-              action={canEdit && !isPreview ? { label: 'Add Channel', onClick: addChannel } : undefined}
+              action={canEdit ? { label: 'Add Channel', onClick: addChannel } : undefined}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {displayData.channels.map((channel, chIndex) => {
+              {data.channels.map((channel, chIndex) => {
                 const colorSet = CHANNEL_COLORS[chIndex % CHANNEL_COLORS.length];
                 const ChannelIcon = getChannelIcon(channel.name);
                 return (
@@ -359,7 +343,7 @@ export function MarketingStrategy() {
                             value={channel.name}
                             onChange={(e) => updateChannel(chIndex, 'name', e.target.value)}
                             placeholder="Channel name"
-                            readOnly={!canEdit || isPreview}
+                            readOnly={!canEdit}
                             className="border-0 px-0 shadow-none focus-visible:ring-0 text-sm font-semibold flex-1 h-auto py-0"
                           />
                         ) : (
@@ -373,7 +357,7 @@ export function MarketingStrategy() {
                                 updateChannel(chIndex, 'name', val);
                               }
                             }}
-                            disabled={!canEdit || isPreview}
+                            disabled={!canEdit}
                           >
                             <SelectTrigger className="border-0 shadow-none focus-visible:ring-0 text-sm font-semibold flex-1 h-auto py-0 px-0 w-auto">
                               <SelectValue placeholder="Select channel" />
@@ -397,7 +381,7 @@ export function MarketingStrategy() {
                           </Select>
                         )}
                         <span className="text-xs text-muted-foreground">{channel.budget > 0 ? 'Paid' : 'Organic'}</span>
-                        {canEdit && !isPreview && (
+                        {canEdit && (
                           <Button variant="ghost" size="icon-xs" onClick={() => removeChannel(chIndex)}>
                             <Trash2 className="size-3" />
                           </Button>
@@ -411,7 +395,7 @@ export function MarketingStrategy() {
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                            <Input type="number" className="pl-7" value={channel.budget} onChange={(e) => updateChannel(chIndex, 'budget', Number(e.target.value))} readOnly={!canEdit || isPreview} />
+                            <Input type="number" className="pl-7" value={channel.budget} onChange={(e) => updateChannel(chIndex, 'budget', Number(e.target.value))} readOnly={!canEdit} />
                           </div>
                         </div>
                         <div>
@@ -419,7 +403,7 @@ export function MarketingStrategy() {
                             Expected Leads
                             <InfoTooltip text="Number of new leads expected per month from this channel" />
                           </label>
-                          <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={!canEdit || isPreview} />
+                          <Input type="number" value={channel.expectedLeads} onChange={(e) => updateChannel(chIndex, 'expectedLeads', Number(e.target.value))} readOnly={!canEdit} />
                         </div>
                         <div>
                           <label className="text-sm font-medium">
@@ -428,7 +412,7 @@ export function MarketingStrategy() {
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                            <Input type="number" className="pl-7" value={channel.expectedCAC} onChange={(e) => updateChannel(chIndex, 'expectedCAC', Number(e.target.value))} readOnly={!canEdit || isPreview} />
+                            <Input type="number" className="pl-7" value={channel.expectedCAC} onChange={(e) => updateChannel(chIndex, 'expectedCAC', Number(e.target.value))} readOnly={!canEdit} />
                           </div>
                         </div>
                       </div>
@@ -439,7 +423,7 @@ export function MarketingStrategy() {
                       <div>
                         <label className="text-sm font-medium flex items-center gap-1">
                           Description
-                          {canEdit && !isPreview && (
+                          {canEdit && (
                             <AiFieldTrigger
                               fieldName="channel-description"
                               fieldLabel={`Description for ${channel.name || 'Channel'}`}
@@ -450,7 +434,7 @@ export function MarketingStrategy() {
                             />
                           )}
                         </label>
-                        <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit || isPreview} />
+                        <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit} />
                       </div>
 
                       {/* Campaign/Tracking URL */}
@@ -464,7 +448,7 @@ export function MarketingStrategy() {
                             value={channel.url ?? ''}
                             onChange={(e) => updateChannel(chIndex, 'url', e.target.value)}
                             placeholder="https://..."
-                            readOnly={!canEdit || isPreview}
+                            readOnly={!canEdit}
                             className="text-sm"
                           />
                           {channel.url && (
@@ -483,7 +467,7 @@ export function MarketingStrategy() {
                             Tactics
                             <InfoTooltip text="Specific actions and campaigns run within this channel" />
                           </label>
-                          {canEdit && !isPreview && (
+                          {canEdit && (
                             <Button variant="ghost" size="xs" onClick={() => addTactic(chIndex)}>
                               <Plus className="size-3" />
                               Add Tactic
@@ -492,8 +476,8 @@ export function MarketingStrategy() {
                         </div>
                         {channel.tactics.map((tactic, tacticIndex) => (
                           <div key={tacticIndex} className="flex items-center gap-2">
-                            <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={!canEdit || isPreview} />
-                            {canEdit && !isPreview && (
+                            <Input value={tactic} onChange={(e) => updateTactic(chIndex, tacticIndex, e.target.value)} className="text-sm" readOnly={!canEdit} />
+                            {canEdit && (
                               <Button variant="ghost" size="icon-xs" onClick={() => removeTactic(chIndex, tacticIndex)}>
                                 <Trash2 className="size-3" />
                               </Button>
@@ -513,28 +497,28 @@ export function MarketingStrategy() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Promotional Offers</h2>
-            {canEdit && !isPreview && (
+            {canEdit && (
               <Button variant="outline" size="sm" onClick={addOffer}>
                 <Plus className="size-4" />
                 Add Offer
               </Button>
             )}
           </div>
-          {displayData.offers.length === 0 ? (
+          {data.offers.length === 0 ? (
             <EmptyState
               icon={Gift}
               title="No offers yet"
               description="Click 'Add Offer' to create promotional offers."
-              action={canEdit && !isPreview ? { label: 'Add Offer', onClick: addOffer } : undefined}
+              action={canEdit ? { label: 'Add Offer', onClick: addOffer } : undefined}
             />
           ) : (
             <div className="card-elevated rounded-lg divide-y">
-              {displayData.offers.map((offer, index) => (
+              {data.offers.map((offer, index) => (
                 <div key={index} className="flex items-center gap-3 px-5 py-3">
                   <Gift className="size-3.5 shrink-0 text-pink-500 dark:text-pink-400" />
                   <span className="text-xs font-bold text-muted-foreground w-5 text-right shrink-0">{index + 1}.</span>
-                  <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={!canEdit || isPreview} className="border-0 px-0 shadow-none focus-visible:ring-0" />
-                  {canEdit && !isPreview && (
+                  <Input value={offer} onChange={(e) => updateOffer(index, e.target.value)} placeholder="Promotional offer" readOnly={!canEdit} className="border-0 px-0 shadow-none focus-visible:ring-0" />
+                  {canEdit && (
                     <Button variant="ghost" size="icon-xs" onClick={() => removeOffer(index)}>
                       <Trash2 className="size-3" />
                     </Button>
@@ -553,13 +537,13 @@ export function MarketingStrategy() {
               <label className="text-sm font-medium">URL</label>
               <div className="flex items-center gap-2">
                 <Input
-                  value={displayData.landingPage.url}
+                  value={data.landingPage.url}
                   onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, url: e.target.value } }))}
                   placeholder="https://yourbusiness.com"
-                  readOnly={!canEdit || isPreview}
+                  readOnly={!canEdit}
                 />
-                {displayData.landingPage.url && (
-                  <a href={displayData.landingPage.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                {data.landingPage.url && (
+                  <a href={data.landingPage.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
                     <Button variant="ghost" size="icon-xs" type="button">
                       <ExternalLink className="size-4 text-muted-foreground" />
                     </Button>
@@ -570,7 +554,7 @@ export function MarketingStrategy() {
             <div>
               <label className="text-sm font-medium flex items-center gap-1">
                 Description
-                {canEdit && !isPreview && (
+                {canEdit && (
                   <AiFieldTrigger
                     fieldName="landing-page-description"
                     fieldLabel="Landing Page Description"
@@ -581,7 +565,7 @@ export function MarketingStrategy() {
                   />
                 )}
               </label>
-              <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit || isPreview} />
+              <Textarea value={data.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit} />
             </div>
           </div>
         </div>
@@ -591,29 +575,8 @@ export function MarketingStrategy() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Marketing Strategy" description="Channels, budget allocation, and promotional offers">
-        {canEdit && (
-          <AiActionBar onGenerate={() => aiSuggestion.generate('generate', data)} onImprove={() => aiSuggestion.generate('improve', data)} onExpand={() => aiSuggestion.generate('expand', data)} isLoading={aiSuggestion.state.status === 'loading'} disabled={!isAiAvailable} />
-        )}
-      </PageHeader>
-
-      {aiSuggestion.state.status === 'error' && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
-          <AlertCircle className="size-4 shrink-0" />
-          <span className="flex-1">{aiSuggestion.state.error}</span>
-          <Button variant="ghost" size="sm" onClick={aiSuggestion.dismiss}>Dismiss</Button>
-        </div>
-      )}
-
-      {aiSuggestion.state.status === 'loading' && (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject} isLoading><div /></AiSuggestionPreview>
-      )}
-
-      {aiSuggestion.state.status === 'preview' ? (
-        <AiSuggestionPreview onAccept={handleAccept} onReject={aiSuggestion.reject}>{sectionContent}</AiSuggestionPreview>
-      ) : (
-        aiSuggestion.state.status !== 'loading' && sectionContent
-      )}
+      <PageHeader showScenarioBadge title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
+      {sectionContent}
     </div>
   );
 }
