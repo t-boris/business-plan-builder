@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import {
@@ -61,19 +61,28 @@ export function useSection<T extends BusinessPlanSection>(
   const setSync = useSetAtom(updateSyncAtom);
   const [baseData, setBaseData] = useState<T>(defaultData);
   const [variantData, setVariantData] = useState<T | null>(null);
-  const [effectiveData, setEffectiveData] = useState<T>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const baseDataRef = useRef<T>(baseData);
-  const effectiveDataRef = useRef<T>(effectiveData);
   // Track whether data has been loaded from Firestore at least once.
-  // Prevents unmount flush from saving defaults before real data arrives.
+  // Prevents saves from writing defaults before real data arrives.
   const hasLoadedRef = useRef(false);
+  // Track whether data has been explicitly modified via updateData/updateField.
+  // Prevents automatic saves from normalization or effect side-effects on stale data.
+  const isDirtyRef = useRef(false);
 
-  // Keep base data ref in sync for flush/save
+  // Compute effective data synchronously (no render lag).
+  const effectiveData = useMemo(
+    () => computeEffectiveSection(baseData, variantData, overrides),
+    [baseData, variantData, overrides]
+  );
+
+  const effectiveDataRef = useRef<T>(effectiveData);
+
+  // Keep refs in sync
   useEffect(() => {
     baseDataRef.current = baseData;
   }, [baseData]);
@@ -95,6 +104,7 @@ export function useSection<T extends BusinessPlanSection>(
     setBaseData(defaultData);
     setIsLoading(true);
     hasLoadedRef.current = false;
+    isDirtyRef.current = false;
 
     let cancelled = false;
 
@@ -166,12 +176,6 @@ export function useSection<T extends BusinessPlanSection>(
     };
   }, [businessId, sectionSlug, selectedVariantId]);
 
-  useEffect(() => {
-    setEffectiveData(
-      computeEffectiveSection(baseData, variantData, overrides)
-    );
-  }, [baseData, variantData, overrides]);
-
   // Debounced save to Firestore
   const debounceSave = useCallback(
     (newData: T) => {
@@ -218,8 +222,8 @@ export function useSection<T extends BusinessPlanSection>(
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
-        // Only flush if data was loaded from Firestore first — never save defaults.
-        if (businessId && hasLoadedRef.current) {
+        // Only flush if data was loaded AND explicitly modified — never save stale/default data.
+        if (businessId && hasLoadedRef.current && isDirtyRef.current) {
           saveSectionData(businessId, sectionSlug, baseDataRef.current).catch(
             (err) =>
               log.warn('flush.failed', {
@@ -240,6 +244,7 @@ export function useSection<T extends BusinessPlanSection>(
         updateScenarioOverride(next);
         return;
       }
+      isDirtyRef.current = true;
       setBaseData((prev) => {
         const next = { ...prev, [field]: value };
         debounceSave(next);
@@ -256,6 +261,7 @@ export function useSection<T extends BusinessPlanSection>(
         updateScenarioOverride(next);
         return;
       }
+      isDirtyRef.current = true;
       setBaseData((prev) => {
         const next = updater(prev);
         debounceSave(next);
