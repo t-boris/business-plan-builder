@@ -258,7 +258,7 @@ Plans:
 - [x] 18-02: Effective scenario engine (composition layer: base + variants + overrides)
 - [x] 18-03: Scenario Editor UI (tabs: Assumptions, Levers, Section Variants, Compare, Decision)
 - [x] 18-04: Section variants for key tabs (product-service, operations, marketing-strategy)
-- [ ] 18-05: Comparison + Decision Matrix (risk/timeline/regulatory comparison, weighted score, recommendations)
+- [x] 18-05: Comparison + Decision Matrix (risk/timeline/regulatory comparison, weighted score, recommendations)
 - [ ] 18-06: AI scenario-aware (context-builder + use-ai-suggestion with active scenario/assumptions/variants)
 - [ ] 18-07: Export scenario pack (Base + Scenarios appendix + Comparison table + Decision summary)
 - [ ] 18-08: Tests & quality (merge logic, migration, lint/test/build verification)
@@ -301,4 +301,4 @@ Key changes:
 | 15. Tests & CI | v2.0 | 3/3 | Complete | 2026-02-18 |
 | 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
 | 17. Generic Product/Service Offerings & Images | v3.0 | 6/6 | Complete | 2026-02-18 |
-| 18. Advanced Scenario Engine | v3.0 | 4/8 | In progress | - |
+| 18. Advanced Scenario Engine | v3.0 | 5/8 | In progress | - |

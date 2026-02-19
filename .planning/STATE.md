@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 18 (Advanced Scenario Engine)
-Plan: 4 of 8 in current phase
+Plan: 5 of 8 in current phase
 Status: In progress
-Last activity: 2026-02-19 — Completed 18-04-PLAN.md
+Last activity: 2026-02-19 — Completed 18-05-PLAN.md
 
-Progress: ████████████░░░░ 4/8
+Progress: ██████████████░░ 5/8
 
 ## Performance Metrics
 
@@ -58,7 +58,7 @@ Progress: ████████████░░░░ 4/8
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 17-generic-product-service-offerings | 6/6 | Complete |
-| 18-advanced-scenario-engine | 4/8 | In progress |
+| 18-advanced-scenario-engine | 5/8 | In progress |
 
 ## Accumulated Context
 
@@ -89,6 +89,7 @@ Progress: ████████████░░░░ 4/8
 - Phase 18-02: effective-plan.ts pure merge (base->variant->override), arrays replace not concat, one-level deep object merge, variantRefs/sectionOverrides atoms
 - Phase 18-03: 5-tab scenario UI (Assumptions/Levers/Variants/Compare/Decision), status badge click-to-cycle, useScenarioSync persists v2 fields
 - Phase 18-04: SectionVariants component for 3 sections (product-service/operations/marketing-strategy), window.prompt for naming, variantRefs+sectionOverrides in useScenarioSync
+- Phase 18-05: Collapsible multi-dimensional comparison (metrics/inputs/assumptions/info), DecisionMatrix with weighted auto+manual criteria, min-max normalization, recommendation banner
 
 ### Deferred Issues
 
@@ -101,5 +102,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 18-04-PLAN.md (SectionVariants + v2 sync)
+Stopped at: Completed 18-05-PLAN.md (Comparison + Decision Matrix)
 Resume file: None
