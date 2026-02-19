@@ -28,3 +28,6 @@ export const businessVariablesAtom = atom<Record<string, VariableDefinition> | n
 
 // Whether variables have been loaded from Firestore for the active business
 export const businessVariablesLoadedAtom = atom<boolean>(false);
+
+// Whether the most recent variable load attempt failed (Firestore error)
+export const businessVariablesLoadFailedAtom = atom<boolean>(false);

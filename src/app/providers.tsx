@@ -8,6 +8,7 @@ import {
   activeBusinessIdAtom,
   businessVariablesAtom,
   businessVariablesLoadedAtom,
+  businessVariablesLoadFailedAtom,
 } from '@/store/business-atoms';
 import {
   scenarioListAtom,
@@ -17,7 +18,10 @@ import {
 import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables } from '@/lib/business-firestore';
 import { useScenarioSync } from '@/hooks/use-scenario-sync';
 import { useBusinesses } from '@/hooks/use-businesses';
+import { createLogger } from '@/lib/logger';
 import type { DynamicScenario } from '@/types';
+
+const log = createLogger('providers');
 
 function AuthListener({ children }: { children: React.ReactNode }) {
   const setAuthState = useSetAtom(authStateAtom);
@@ -60,6 +64,7 @@ function VariableLoader() {
   const businessId = useAtomValue(activeBusinessIdAtom);
   const setVariables = useSetAtom(businessVariablesAtom);
   const setLoaded = useSetAtom(businessVariablesLoadedAtom);
+  const setLoadFailed = useSetAtom(businessVariablesLoadFailedAtom);
   const prevBusinessIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +73,7 @@ function VariableLoader() {
       if (prevBusinessIdRef.current !== null) {
         setVariables(null);
         setLoaded(false);
+        setLoadFailed(false);
       }
       prevBusinessIdRef.current = businessId;
     }
@@ -78,14 +84,17 @@ function VariableLoader() {
       try {
         const vars = await getBusinessVariables(businessId!);
         setVariables(vars);
-      } catch {
-        // Silent fail — variables may not exist yet
+        setLoadFailed(false);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        log.warn('variables.load.failed', { businessId: businessId!, error: message });
+        setLoadFailed(true);
       } finally {
         setLoaded(true);
       }
     }
     init();
-  }, [authStatus, businessId, setVariables, setLoaded]);
+  }, [authStatus, businessId, setVariables, setLoaded, setLoadFailed]);
 
   return null;
 }
@@ -95,6 +104,7 @@ function ScenarioSync() {
   const businessId = useAtomValue(activeBusinessIdAtom);
   const variables = useAtomValue(businessVariablesAtom);
   const variablesLoaded = useAtomValue(businessVariablesLoadedAtom);
+  const variableLoadFailed = useAtomValue(businessVariablesLoadFailedAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
   const loadDynamicScenario = useSetAtom(loadDynamicScenarioAtom);
   const setSyncReady = useSetAtom(scenarioSyncReadyAtom);
@@ -123,14 +133,12 @@ function ScenarioSync() {
       try {
         const scenarios = await listScenarioData(businessId!);
 
-        if (scenarios.length === 0) {
-          // No scenarios exist — create baseline from variable definitions
+        if (scenarios.length === 0 && variables && !variableLoadFailed) {
+          // No scenarios exist and variables loaded successfully — create baseline from variable definitions
           const defaultValues: Record<string, number> = {};
-          if (variables) {
-            for (const [id, def] of Object.entries(variables)) {
-              if (def.type === 'input') {
-                defaultValues[id] = def.defaultValue;
-              }
+          for (const [id, def] of Object.entries(variables)) {
+            if (def.type === 'input') {
+              defaultValues[id] = def.defaultValue;
             }
           }
 
@@ -148,6 +156,12 @@ function ScenarioSync() {
           await saveScenarioPreferences(businessId!, { activeScenarioId: 'baseline' });
           setScenarioList([baseline.metadata]);
           loadDynamicScenario(baseline);
+        } else if (scenarios.length === 0) {
+          // No scenarios and variables failed to load or are null — skip baseline creation
+          log.warn('baseline.skipped', {
+            businessId: businessId!,
+            reason: variableLoadFailed ? 'variable load failed' : 'no variables defined',
+          });
         } else {
           setScenarioList(scenarios.map((s) => s.metadata));
 
@@ -160,15 +174,16 @@ function ScenarioSync() {
             scenarios[0];
           loadDynamicScenario(target);
         }
-      } catch {
-        // Firestore may not be available — use defaults silently
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        log.warn('scenarios.load.failed', { businessId: businessId!, error: message });
       } finally {
         setSyncReady(true);
       }
     }
 
     init();
-  }, [authStatus, businessId, variablesLoaded, variables, setScenarioList, loadDynamicScenario, setSyncReady]);
+  }, [authStatus, businessId, variablesLoaded, variables, variableLoadFailed, setScenarioList, loadDynamicScenario, setSyncReady]);
 
   // Wire up auto-save
   useScenarioSync();
