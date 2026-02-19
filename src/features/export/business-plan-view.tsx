@@ -6,6 +6,7 @@ import { scenarioNameAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
 import { StatCard } from '@/components/stat-card';
+import { normalizeProductService } from '@/features/sections/product-service/normalize';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -63,7 +64,8 @@ const defaultMarketAnalysis: MarketAnalysis = {
 };
 
 const defaultProductService: ProductService = {
-  packages: [],
+  overview: '',
+  offerings: [],
   addOns: [],
 };
 
@@ -516,43 +518,72 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       )}
 
       {/* Section 3: Product & Service */}
-      {enabledSections.includes('product-service') && (
-        <>
-          <SectionHeader number={getSectionNumber('product-service')} title="Product & Service" id={`section-${getSectionNumber('product-service')}`} />
-          <div className="space-y-4 py-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Packages</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {productService.packages.map((pkg, i) => (
-                <div key={i} className="border rounded-lg p-4">
-                  <h4 className="font-semibold text-sm">{pkg.name}</h4>
-                  <p className="text-lg font-bold text-primary">{formatCurrency(pkg.price, currencyCode)}</p>
-                  <p className="text-xs text-muted-foreground">{pkg.duration} | Up to {pkg.maxParticipants} guests</p>
-                  <p className="text-xs mt-2">{pkg.description}</p>
-                  <ul className="text-xs mt-2 space-y-0.5">
-                    {pkg.includes.map((item, j) => (
-                      <li key={j} className="flex items-start gap-1">
-                        <span className="text-emerald-600 mt-0.5">*</span>
-                        {item}
+      {enabledSections.includes('product-service') && (() => {
+        const normalizedPS = normalizeProductService(productService);
+        return (
+          <>
+            <SectionHeader number={getSectionNumber('product-service')} title="Product & Service" id={`section-${getSectionNumber('product-service')}`} />
+            <div className="space-y-4 py-4">
+              {normalizedPS.overview && (
+                <p className="text-sm leading-relaxed">{normalizedPS.overview}</p>
+              )}
+
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Offerings</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {normalizedPS.offerings.map((offering) => (
+                  <div key={offering.id} className="border rounded-lg overflow-hidden">
+                    {offering.image?.url && (
+                      <img
+                        src={offering.image.url}
+                        alt={offering.image.alt || offering.name}
+                        className="w-full h-24 object-cover"
+                      />
+                    )}
+                    <div className="p-4">
+                      <h4 className="font-semibold text-sm">{offering.name}</h4>
+                      <p className="text-lg font-bold text-primary">
+                        {offering.price != null ? formatCurrency(offering.price, currencyCode) : 'On request'}
+                        {offering.priceLabel && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1">{offering.priceLabel}</span>
+                        )}
+                      </p>
+                      <p className="text-xs mt-2 whitespace-pre-line">{offering.description}</p>
+                      {offering.addOnIds.length > 0 && (() => {
+                        const linked = offering.addOnIds
+                          .map((aid) => normalizedPS.addOns.find((a) => a.id === aid))
+                          .filter(Boolean);
+                        if (linked.length === 0) return null;
+                        return (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Add-ons: {linked.map((a) => `${a!.name} (${formatCurrency(a!.price, currencyCode)})`).join(', ')}
+                          </p>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {normalizedPS.addOns.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Add-Ons</h3>
+                  <ul className="text-sm space-y-0.5">
+                    {normalizedPS.addOns.map((a) => (
+                      <li key={a.id}>
+                        {a.name}
+                        {a.description && <span className="text-muted-foreground"> -- {a.description}</span>}
+                        {' -- '}
+                        {formatCurrency(a.price, currencyCode)}
+                        {a.priceLabel && <span className="text-xs text-muted-foreground ml-1">{a.priceLabel}</span>}
                       </li>
                     ))}
                   </ul>
                 </div>
-              ))}
+              )}
             </div>
-
-            {productService.addOns.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Add-Ons</h3>
-                <ul className="text-sm space-y-0.5">
-                  {productService.addOns.map((a, i) => (
-                    <li key={i}>{a.name} -- {formatCurrency(a.price, currencyCode)}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
 
       {/* Section 4: Marketing Strategy */}
       {enabledSections.includes('marketing-strategy') && (
