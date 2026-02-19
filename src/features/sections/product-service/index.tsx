@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useSection } from '@/hooks/use-section';
 import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
@@ -117,13 +117,13 @@ export function ProductService() {
   }
 
   // Open file picker for a specific offering
-  const triggerImagePicker = useCallback((offeringIndex: number) => {
+  function triggerImagePicker(offeringIndex: number) {
     pendingUploadIndexRef.current = offeringIndex;
     fileInputRef.current?.click();
-  }, []);
+  }
 
   // Handle file selection from the hidden input
-  const handleFileSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     const offeringIndex = pendingUploadIndexRef.current;
     if (!file || offeringIndex === null) return;
@@ -149,10 +149,10 @@ export function ProductService() {
         fileInputRef.current.value = '';
       }
     }
-  }, [rawData.offerings, business?.id, upload, updateOffering]);
+  }
 
   // Remove image from an offering
-  const handleRemoveImage = useCallback(async (offeringIndex: number) => {
+  async function handleRemoveImage(offeringIndex: number) {
     const offering = rawData.offerings[offeringIndex];
     if (!offering?.image) return;
 
@@ -164,7 +164,7 @@ export function ProductService() {
       }
     }
     updateOffering(offeringIndex, 'image', undefined);
-  }, [rawData.offerings, removeImage, updateOffering]);
+  }
 
   // --- Add-on CRUD ---
 
