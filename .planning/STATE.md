@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 20 complete
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 21 in progress
 
 ## Current Position
 
-Phase: 20 of 20 (Generic Industry-Agnostic Operations)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-02-19 — Completed 20-04-PLAN.md
+Phase: 21 of 21 (Rich Growth Events)
+Plan: 1 of 1 in current phase
+Status: In progress
+Last activity: 2026-02-19 — Completed 21-01-PLAN.md
 
-Progress: ████████████████████████████████ 67/67
+Progress: ████████████████████████████████ 68/68
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: ███████████████████████�
 | 18-advanced-scenario-engine | 8/8 | Complete |
 | 19-granular-field-level-ai-generation | 2/2 | Complete |
 | 20-generic-industry-agnostic-operations | 4/4 | Complete |
+| 21-rich-growth-events | 1/1 | In progress |
 
 ## Accumulated Context
 
@@ -77,6 +78,7 @@ Progress: ███████████████████████�
 - Phase 19 complete: All 2 plans shipped (2026-02-19)
 - Phase 20 added: Generic Industry-Agnostic Operations
 - Phase 20 complete: All 4 plans shipped (2026-02-19)
+- Phase 21 added: Rich Growth Events — compound event templates, funding rounds, facility builds, hiring campaigns, revenue events, duration-based events
 
 ### Decisions
 
@@ -106,6 +108,7 @@ Progress: ███████████████████████�
 - Phase 20-02: 8-section collapsible Operations editor, no AiFieldTrigger needed (quantitative data only), Collapsible+Select from radix-ui, recharts charts removed
 - Phase 20-03: Single OperationsSchema for all business types, industry differentiation via overlay prompts only, all 6 overlays structured as Workforce/Capacity/Variable/Fixed/Metrics
 - Phase 20-04: Web+PDF export uses normalizeOperations+computeOperationsCosts at read boundary, cost summary as 4 stat cards, 17 new tests (10 normalize + 7 compute), 82 total tests green
+- Phase 21-01: 6 new delta interfaces (FundingRound/FacilityBuild/HiringCampaign/PriceChange/EquipmentPurchase/SeasonalCampaign), GrowthEventType 11 members, durationMonths on GrowthEvent, 4 temporal patterns in compute, 8 new tests (116 total)
 
 ### Deferred Issues
 
@@ -118,5 +121,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 20-04-PLAN.md (Export Update + Tests) — Phase 20 complete
+Stopped at: Completed 21-01-PLAN.md (Rich Growth Events Types + Compute)
 Resume file: None

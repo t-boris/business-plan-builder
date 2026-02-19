@@ -328,12 +328,25 @@ Plans:
 
 **Acceptance criteria:** No manufacturing-specific fields, no event-specific terms. Manufacturing fully modeled through generic capacity/cost/metrics. Export/PDF uses the same generic structure.
 
+#### Phase 21: Rich Growth Events
+**Goal**: Expand the Growth Timeline from 5 atomic event types to a rich library of compound event templates tied to real financial calculations. Support funding rounds, facility builds, hiring campaigns, revenue events, and duration-based events. Each compound template decomposes into atomic deltas (hire, cost-change, capacity-change, marketing-change) so the existing compute engine works unchanged. Business-type-aware event suggestions.
+**Depends on**: Phase 20
+**Research**: Likely (compound event decomposition patterns, business-type-specific event catalogs)
+**Research topics**: Startup financial model milestones, compound event templates, duration-based event modeling, funding round financial impact
+**Plans**: 1 plan
+
+Plans:
+- [x] 21-01: Rich growth event types + duration-aware compute engine (6 new delta interfaces, 4 temporal patterns, 8 tests)
+
+**Details:**
+[To be added during planning]
+
 ## Progress
 
 **Execution Order:**
 - v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 - v2.0: 13 → 14 → 15 → 16
-- v3.0: 17 → 18 → 19 → 20
+- v3.0: 17 → 18 → 19 → 20 → 21
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
@@ -357,3 +370,4 @@ Plans:
 | 18. Advanced Scenario Engine | v3.0 | 8/8 | Complete | 2026-02-19 |
 | 19. Granular Field-Level AI Generation | v3.0 | 2/2 | Complete | 2026-02-19 |
 | 20. Generic Industry-Agnostic Operations | v3.0 | 4/4 | Complete | 2026-02-19 |
+| 21. Rich Growth Events | v3.0 | 1/1 | In progress | — |
