@@ -363,9 +363,10 @@ export async function saveBusinessScenario(
   scenario: BusinessScenario
 ): Promise<void> {
   // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
+  const cleaned = stripUndefinedDeep(scenario) as Record<string, unknown>;
   await setDoc(
     doc(db, "businesses", businessId, "scenarios", scenario.id),
-    scenario,
+    cleaned,
     { merge: true }
   );
 }
@@ -592,10 +593,11 @@ export async function saveScenarioData(
   scenario: DynamicScenario
 ): Promise<void> {
   // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
+  const cleaned = stripUndefinedDeep(scenario) as Record<string, unknown>;
   await withRetry(() =>
     setDoc(
       doc(db, "businesses", businessId, "scenarios", scenario.metadata.id),
-      scenario,
+      cleaned,
       { merge: true }
     )
   );
@@ -719,10 +721,11 @@ export async function saveSectionVariant(
   variant: SectionVariant
 ): Promise<void> {
   try {
+    const cleaned = stripUndefinedDeep(variant) as Record<string, unknown>;
     await withRetry(() =>
       setDoc(
         doc(db, "businesses", businessId, "sections", sectionSlug, "variants", variant.id),
-        variant,
+        cleaned,
         { merge: true }
       )
     );
