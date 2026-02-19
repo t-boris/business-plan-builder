@@ -153,6 +153,14 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function parseSeasonCoefficientInput(raw: string): number | null {
+  const normalized = raw.trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Math.min(2, parsed));
+}
+
 function deriveUnitEconomicsFromGrowthMonths(
   months: GrowthComputeResult['months'],
   fallbackPricePerUnit: number,
@@ -380,6 +388,7 @@ export function FinancialProjections() {
     return {
       operations,
       basePricePerUnit:
+        suggestedPricePerUnit ||
         unitEconomics.pricePerUnit ||
         legacyFinancialPrice ||
         kpis.targets.pricePerUnit ||
@@ -397,6 +406,7 @@ export function FinancialProjections() {
     };
   }, [
     operations,
+    suggestedPricePerUnit,
     data.unitEconomics,
     unitEconomics.pricePerUnit,
     kpis.targets,
@@ -676,8 +686,10 @@ export function FinancialProjections() {
     });
   }
 
-  // When growth timeline drives projections, disable manual editing
+  // When growth timeline drives projections, disable manual editing of months and unit economics.
   const effectiveCanEdit = canEdit && !isGrowthDriven;
+  // Seasonality stays editable even in growth-driven mode because it is part of the projection model.
+  const canEditSeasonality = canEdit;
 
   return (
     <div className="page-container">
@@ -855,7 +867,7 @@ export function FinancialProjections() {
       <div className="card-elevated rounded-lg p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Seasonality Coefficients</h3>
-          {effectiveCanEdit && (
+          {canEditSeasonality && (
             <div className="flex gap-1">
               <Button
                 variant={JSON.stringify(seasonCoefficients) === JSON.stringify(SEASON_PRESET_FLAT) ? 'default' : 'outline'}
@@ -909,7 +921,8 @@ export function FinancialProjections() {
                 max="2"
                 value={seasonCoefficients[i]}
                 onChange={(e) => {
-                  const val = Math.max(0, Math.min(2, Number(e.target.value)));
+                  const val = parseSeasonCoefficientInput(e.target.value);
+                  if (val === null) return;
                   updateData((prev) => {
                     const coeffs =
                       Array.isArray(prev.seasonCoefficients) &&
@@ -921,7 +934,7 @@ export function FinancialProjections() {
                   });
                 }}
                 className="h-7 text-[11px] text-center px-0.5 tabular-nums"
-                readOnly={!effectiveCanEdit}
+                readOnly={!canEditSeasonality}
               />
             </div>
           ))}
@@ -1068,9 +1081,12 @@ export function FinancialProjections() {
         const displayVariableCost = round2(suggestedVariableCostPerUnit);
         const displayOutput = Math.round(suggestedBaseBookings);
         const displayMonthlyOverhead = round2(suggestedMonthlyWorkforce + suggestedMonthlyFixedOnly + suggestedMonthlyMarketing);
-        const displayProfitPerUnit = round2(displayPrice - displayVariableCost);
-        const displayBreakEven = displayProfitPerUnit > 0 ? Math.ceil(displayMonthlyOverhead / displayProfitPerUnit) : 0;
+        const displayFixedCostPerUnit = displayOutput > 0 ? round2(displayMonthlyOverhead / displayOutput) : 0;
+        const displayContribution = round2(displayPrice - displayVariableCost);
+        const displayProfitPerUnit = round2(displayPrice - displayVariableCost - displayFixedCostPerUnit);
+        const displayBreakEven = displayContribution > 0 ? Math.ceil(displayMonthlyOverhead / displayContribution) : 0;
         const displayMonthlyRevenue = displayPrice * displayOutput;
+        const displayMonthlyProfit = displayMonthlyRevenue - (displayVariableCost * displayOutput) - displayMonthlyOverhead;
 
         return (
           <div className="card-elevated rounded-lg p-4 space-y-4">
@@ -1094,7 +1110,15 @@ export function FinancialProjections() {
                   <Input type="number" className="pl-8 tabular-nums text-red-600" value={displayVariableCost} onChange={(e) => updateUnitEconomics('variableCostPerUnit', Number(e.target.value))} readOnly={!effectiveCanEdit} />
                 </div>
               </div>
-              {/* Profit Per Unit */}
+              {/* Fixed Cost per Unit — allocated overhead */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fixed Cost / Unit</p>
+                <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums text-red-600">
+                  -{formatCurrency(displayFixedCostPerUnit)}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">{formatCurrency(displayMonthlyOverhead)} ÷ {displayOutput} units</p>
+              </div>
+              {/* Net Profit Per Unit (includes fixed allocation) */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profit / Unit</p>
                 <div className={`mt-1 flex h-9 items-center rounded-md px-3 text-sm font-semibold tabular-nums ${displayProfitPerUnit >= 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'}`}>
@@ -1109,29 +1133,30 @@ export function FinancialProjections() {
                   {displayOutput.toLocaleString()} units
                 </div>
               </div>
-              {/* Fixed Cost / Month */}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fixed Cost / Month</p>
-                <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums text-red-600">
-                  -{formatCurrency(displayMonthlyOverhead)}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">Labor + fixed + marketing</p>
-              </div>
               {/* Break-Even */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Break-Even / Mo</p>
                 <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums">
                   {displayBreakEven} units
                 </div>
+                <p className="text-[10px] text-muted-foreground mt-1">{formatCurrency(displayMonthlyOverhead)} ÷ {formatCurrency(displayContribution)}</p>
               </div>
             </div>
 
-            {/* Revenue summary */}
-            <div className="rounded-md border bg-muted/30 p-3 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Revenue / Month = {formatCurrency(displayPrice)} × {displayOutput} units
-              </p>
-              <p className="text-sm font-semibold tabular-nums text-green-600">{formatCurrency(displayMonthlyRevenue)}</p>
+            {/* Revenue & Profit summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="rounded-md border bg-muted/30 p-3 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Revenue / Month = {formatCurrency(displayPrice)} × {displayOutput}
+                </p>
+                <p className="text-sm font-semibold tabular-nums text-green-600">{formatCurrency(displayMonthlyRevenue)}</p>
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Profit / Month
+                </p>
+                <p className={`text-sm font-semibold tabular-nums ${displayMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(displayMonthlyProfit)}</p>
+              </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
