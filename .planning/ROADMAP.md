@@ -293,12 +293,47 @@ Key changes:
 2. **Section wiring**: 11 AiFieldTrigger instances across executive-summary (3), product-service (2 types), marketing-strategy (2 types), market-analysis (1), risks-due-diligence (3 types)
 3. **UX**: Triggers visible only to editors (canEdit && !isPreview), whole-tab AI remains fully functional alongside field-level triggers
 
+#### Phase 20: Generic Industry-Agnostic Operations
+**Goal**: Rewrite the Operations section with a single generic data model that works for all business types. Remove event-specific and manufacturing-specific fields/UI. Manufacturing modeled entirely through generic capacity, cost items, and operational metrics. Migration from old event-based model with backward compatibility.
+**Depends on**: Phase 19
+**Research**: Unlikely (refactoring existing data model and UI)
+**Plans**: 4 plans
+
+Plans:
+- [ ] 20-01: Data model v2 + normalizeOperations + computeOperationsCosts (Wave 1)
+- [ ] 20-02: UI rewrite — tabbed/sectioned generic editor (Wave 2)
+- [ ] 20-03: AI schema + prompts rewrite for generic model (Wave 2)
+- [ ] 20-04: Export update (web + PDF) + tests (Wave 2)
+
+**Details:**
+
+**Generic Operations model (no industry-specific fields):**
+- `workforce[]` (role, count, ratePerHour)
+- `capacity` (outputUnitLabel, plannedOutputPerMonth, maxOutput, utilizationRate)
+- `costItems[]` (type: variable|fixed, category, rate, driverType: per-unit|per-order|per-service-hour|per-machine-hour|monthly|quarterly|yearly, driverQuantityPerMonth)
+- `equipment[]`, `safetyProtocols[]`
+- `operationalMetrics[]` (generic KPI: name, unit, value, target — e.g. yield rate, scrap rate, OEE for manufacturing)
+
+**Calculations:**
+- variableMonthlyTotal = Σ(variable rate × driverQuantityPerMonth)
+- fixedMonthlyTotal = Σ(fixed rate normalized to month)
+- monthlyOperationsTotal = variableMonthlyTotal + fixedMonthlyTotal
+- variableCostPerOutput = variableMonthlyTotal / plannedOutputPerMonth
+
+**UI:** Single universal editor — Team, Capacity, Variable Costs, Fixed Costs, Equipment, Safety, Operational Metrics. No conditional renders per business type.
+
+**AI:** One schema for all business types. Manufacturing AI fills the same generic schema via cost items + operational metrics.
+
+**Migration:** Old event-model maps to generic costItems. Backward compatibility required.
+
+**Acceptance criteria:** No manufacturing-specific fields, no event-specific terms. Manufacturing fully modeled through generic capacity/cost/metrics. Export/PDF uses the same generic structure.
+
 ## Progress
 
 **Execution Order:**
 - v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 - v2.0: 13 → 14 → 15 → 16
-- v3.0: 17 → 18 → 19
+- v3.0: 17 → 18 → 19 → 20
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
@@ -321,3 +356,4 @@ Key changes:
 | 17. Generic Product/Service Offerings & Images | v3.0 | 6/6 | Complete | 2026-02-18 |
 | 18. Advanced Scenario Engine | v3.0 | 8/8 | Complete | 2026-02-19 |
 | 19. Granular Field-Level AI Generation | v3.0 | 2/2 | Complete | 2026-02-19 |
+| 20. Generic Industry-Agnostic Operations | v3.0 | 0/0 | Not Started | - |
