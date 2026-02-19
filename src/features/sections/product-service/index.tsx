@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useSection } from '@/hooks/use-section';
 import { useAiSuggestion } from '@/hooks/use-ai-suggestion';
 import { isAiAvailable } from '@/lib/ai/gemini-client';
@@ -5,28 +6,38 @@ import { AiActionBar } from '@/components/ai-action-bar';
 import { AiSuggestionPreview } from '@/components/ai-suggestion-preview';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
-import type { ProductService as ProductServiceType, Package, AddOn } from '@/types';
+import { normalizeProductService } from './normalize';
+import type { ProductService as ProductServiceType, Offering, AddOn } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, AlertCircle, Star, Crown, Sparkles, Clock, Users, Check, Package as PackageIcon, Gift } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift } from 'lucide-react';
 
-const defaultProductService: ProductServiceType = {
-  packages: [],
-  addOns: [],
-};
+const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
 
 export function ProductService() {
-  const { data, updateData, isLoading, canEdit } = useSection<ProductServiceType>(
+  const { data: rawData, updateData, isLoading, canEdit } = useSection<ProductServiceType>(
     'product-service',
     defaultProductService
   );
   const aiSuggestion = useAiSuggestion<ProductServiceType>('product-service');
 
+  // Normalize legacy data on first load
+  const [normalized, setNormalized] = useState(false);
+  useEffect(() => {
+    if (!isLoading && !normalized) {
+      const norm = normalizeProductService(rawData);
+      if (JSON.stringify(norm) !== JSON.stringify(rawData)) {
+        updateData(() => norm);
+      }
+      setNormalized(true);
+    }
+  }, [isLoading, normalized, rawData, updateData]);
+
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader title="Product & Service" description="Packages, pricing, and add-on offerings" />
+        <PageHeader title="Product & Service" description="Offerings, pricing, and add-ons" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -35,7 +46,7 @@ export function ProductService() {
   const isPreview = aiSuggestion.state.status === 'preview';
   const displayData = isPreview && aiSuggestion.state.suggested
     ? aiSuggestion.state.suggested
-    : data;
+    : rawData;
 
   function handleAccept() {
     const suggested = aiSuggestion.accept();
@@ -44,39 +55,57 @@ export function ProductService() {
     }
   }
 
-  function updatePackage(index: number, field: keyof Package, value: string | number | string[]) {
+  // --- Offering CRUD ---
+
+  function addOffering() {
+    updateData((prev) => ({
+      ...prev,
+      offerings: [
+        ...prev.offerings,
+        { id: crypto.randomUUID(), name: '', description: '', price: 0, addOnIds: [] },
+      ],
+    }));
+  }
+
+  function removeOffering(index: number) {
+    updateData((prev) => ({
+      ...prev,
+      offerings: prev.offerings.filter((_, i) => i !== index),
+    }));
+  }
+
+  function updateOffering(index: number, field: keyof Offering, value: string | number | null | string[]) {
     updateData((prev) => {
-      const packages = [...prev.packages];
-      packages[index] = { ...packages[index], [field]: value };
-      return { ...prev, packages };
+      const offerings = [...prev.offerings];
+      offerings[index] = { ...offerings[index], [field]: value };
+      return { ...prev, offerings };
     });
   }
 
-  function updatePackageInclude(pkgIndex: number, includeIndex: number, value: string) {
-    updateData((prev) => {
-      const packages = [...prev.packages];
-      const includes = [...packages[pkgIndex].includes];
-      includes[includeIndex] = value;
-      packages[pkgIndex] = { ...packages[pkgIndex], includes };
-      return { ...prev, packages };
-    });
+  // --- Add-on CRUD ---
+
+  function addAddOn() {
+    updateData((prev) => ({
+      ...prev,
+      addOns: [...prev.addOns, { id: crypto.randomUUID(), name: '', price: 0 }],
+    }));
   }
 
-  function addPackageInclude(pkgIndex: number) {
+  function removeAddOn(index: number) {
     updateData((prev) => {
-      const packages = [...prev.packages];
-      const includes = [...packages[pkgIndex].includes, ''];
-      packages[pkgIndex] = { ...packages[pkgIndex], includes };
-      return { ...prev, packages };
-    });
-  }
-
-  function removePackageInclude(pkgIndex: number, includeIndex: number) {
-    updateData((prev) => {
-      const packages = [...prev.packages];
-      const includes = packages[pkgIndex].includes.filter((_, i) => i !== includeIndex);
-      packages[pkgIndex] = { ...packages[pkgIndex], includes };
-      return { ...prev, packages };
+      const removedId = prev.addOns[index]?.id;
+      // Clean up references from all offerings
+      const offerings = removedId
+        ? prev.offerings.map((o) => ({
+            ...o,
+            addOnIds: o.addOnIds.filter((aid) => aid !== removedId),
+          }))
+        : prev.offerings;
+      return {
+        ...prev,
+        offerings,
+        addOns: prev.addOns.filter((_, i) => i !== index),
+      };
     });
   }
 
@@ -88,194 +117,132 @@ export function ProductService() {
     });
   }
 
-  function addAddOn() {
-    updateData((prev) => ({
-      ...prev,
-      addOns: [...prev.addOns, { name: '', price: 0 }],
-    }));
-  }
-
-  function removeAddOn(index: number) {
-    updateData((prev) => ({
-      ...prev,
-      addOns: prev.addOns.filter((_, i) => i !== index),
-    }));
-  }
-
-  function addPackage() {
-    updateData((prev) => ({
-      ...prev,
-      packages: [...prev.packages, { name: '', price: 0, duration: '', maxParticipants: 0, includes: [], description: '' }],
-    }));
-  }
-
-  function removePackage(index: number) {
-    updateData((prev) => ({
-      ...prev,
-      packages: prev.packages.filter((_, i) => i !== index),
-    }));
-  }
-
-  // Tier styling: subtle colored top border with small icon circles
-  const tierStyles = [
-    { borderColor: 'border-t-blue-500', iconBg: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400', icon: Star, label: 'Starter' },
-    { borderColor: 'border-t-purple-500', iconBg: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400', icon: Sparkles, label: 'Popular' },
-    { borderColor: 'border-t-amber-500', iconBg: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400', icon: Crown, label: 'Premium' },
-  ];
-
   const sectionContent = (
     <div className="space-y-6">
-      {/* Packages Section */}
+      {/* Overview */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Overview</label>
+        <Textarea
+          value={displayData.overview ?? ''}
+          onChange={(e) => updateData((prev) => ({ ...prev, overview: e.target.value }))}
+          placeholder="Describe your product or service line..."
+          rows={4}
+          readOnly={!canEdit || isPreview}
+        />
+      </div>
+
+      {/* Offerings Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Packages</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Offerings</h2>
           {canEdit && !isPreview && (
-            <Button variant="outline" size="sm" onClick={addPackage}>
+            <Button variant="outline" size="sm" onClick={addOffering}>
               <Plus className="size-4" />
-              Add Package
+              Add Offering
             </Button>
           )}
         </div>
-        {displayData.packages.length === 0 ? (
+        {displayData.offerings.length === 0 ? (
           <EmptyState
             icon={PackageIcon}
-            title="No packages yet"
-            description="Use AI Generate to create initial packages, or add them manually."
-            action={canEdit && !isPreview ? { label: 'Add Package', onClick: addPackage } : undefined}
+            title="No offerings yet"
+            description="Use AI Generate to create offerings, or add them manually."
+            action={canEdit && !isPreview ? { label: 'Add Offering', onClick: addOffering } : undefined}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {displayData.packages.map((pkg, pkgIndex) => {
-              const tier = tierStyles[pkgIndex % tierStyles.length];
-              const TierIcon = tier.icon;
-              return (
-                <div key={pkgIndex} className={`card-elevated rounded-lg border-t-2 ${tier.borderColor} group`}>
-                  {/* Header area */}
-                  <div className="px-5 pt-4 pb-3 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`flex items-center justify-center size-8 rounded-full ${tier.iconBg}`}>
-                          <TierIcon className="size-3.5" />
-                        </div>
-                        <span className="text-xs font-medium text-muted-foreground">{tier.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {pkg.duration && (
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="size-3" />{pkg.duration}
-                          </span>
-                        )}
-                        {pkg.maxParticipants > 0 && (
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users className="size-3" />{pkg.maxParticipants}
-                          </span>
-                        )}
-                        {canEdit && !isPreview && (
-                          <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removePackage(pkgIndex)}>
-                            <Trash2 className="size-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Input
-                        value={pkg.name}
-                        onChange={(e) => updatePackage(pkgIndex, 'name', e.target.value)}
-                        placeholder="Package name"
-                        readOnly={!canEdit || isPreview}
-                        className="text-base font-semibold border-0 px-0 shadow-none focus-visible:ring-0 h-auto"
-                      />
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-normal text-muted-foreground">$</span>
-                      <span className="text-2xl font-bold tabular-nums">{pkg.price.toLocaleString()}</span>
-                    </div>
+            {displayData.offerings.map((offering, offeringIndex) => (
+              <div key={offering.id ?? offeringIndex} className="card-elevated rounded-lg group">
+                <div className="px-5 pt-4 pb-5 space-y-4">
+                  {/* Header with name and delete */}
+                  <div className="flex items-start justify-between gap-2">
+                    <Input
+                      value={offering.name}
+                      onChange={(e) => updateOffering(offeringIndex, 'name', e.target.value)}
+                      placeholder="Offering name"
+                      readOnly={!canEdit || isPreview}
+                      className="text-base font-semibold border-0 px-0 shadow-none focus-visible:ring-0 h-auto"
+                    />
+                    {canEdit && !isPreview && (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1"
+                        onClick={() => removeOffering(offeringIndex)}
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    )}
                   </div>
 
-                  {/* Details */}
-                  <div className="px-5 pb-5 space-y-4 border-t pt-4">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-sm font-medium">Price</label>
-                        <div className="relative">
+                  {/* Price row */}
+                  <div className="flex items-center gap-2">
+                    {offering.price !== null ? (
+                      <>
+                        <div className="relative w-[120px] shrink-0">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                           <Input
                             type="number"
                             className="pl-7"
-                            value={pkg.price}
-                            onChange={(e) => updatePackage(pkgIndex, 'price', Number(e.target.value))}
+                            value={offering.price}
+                            onChange={(e) => updateOffering(offeringIndex, 'price', Number(e.target.value))}
                             readOnly={!canEdit || isPreview}
                           />
                         </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Duration</label>
                         <Input
-                          value={pkg.duration}
-                          onChange={(e) => updatePackage(pkgIndex, 'duration', e.target.value)}
+                          value={offering.priceLabel ?? ''}
+                          onChange={(e) => updateOffering(offeringIndex, 'priceLabel', e.target.value)}
+                          placeholder="e.g. per month"
                           readOnly={!canEdit || isPreview}
+                          className="flex-1 text-sm"
                         />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Max Guests</label>
-                        <Input
-                          type="number"
-                          value={pkg.maxParticipants}
-                          onChange={(e) => updatePackage(pkgIndex, 'maxParticipants', Number(e.target.value))}
-                          readOnly={!canEdit || isPreview}
-                        />
-                      </div>
-                    </div>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium">
+                        On request
+                      </span>
+                    )}
+                  </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Description</label>
-                      <Textarea
-                        value={pkg.description}
-                        onChange={(e) => updatePackage(pkgIndex, 'description', e.target.value)}
-                        rows={3}
-                        readOnly={!canEdit || isPreview}
-                      />
-                    </div>
+                  {/* Image upload — added in Plan 05 */}
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Includes</label>
-                        {canEdit && !isPreview && (
-                          <Button variant="ghost" size="xs" onClick={() => addPackageInclude(pkgIndex)}>
-                            <Plus className="size-3" />
-                            Add
-                          </Button>
-                        )}
+                  {/* Description */}
+                  <Textarea
+                    value={offering.description}
+                    onChange={(e) => updateOffering(offeringIndex, 'description', e.target.value)}
+                    placeholder="Describe this offering..."
+                    rows={4}
+                    readOnly={!canEdit || isPreview}
+                  />
+
+                  {/* Linked Add-ons placeholder — implemented in Task 2 */}
+                  <div className="text-xs text-muted-foreground">
+                    {offering.addOnIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {offering.addOnIds.map((addOnId) => {
+                          const addOn = displayData.addOns.find((a) => a.id === addOnId);
+                          return addOn ? (
+                            <span key={addOnId} className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">
+                              {addOn.name}
+                            </span>
+                          ) : null;
+                        })}
                       </div>
-                      {pkg.includes.map((item, includeIndex) => (
-                        <div key={includeIndex} className="flex items-center gap-2">
-                          <Check className="size-3.5 shrink-0 text-green-500" />
-                          <Input
-                            value={item}
-                            onChange={(e) => updatePackageInclude(pkgIndex, includeIndex, e.target.value)}
-                            className="text-sm"
-                            readOnly={!canEdit || isPreview}
-                          />
-                          {canEdit && !isPreview && (
-                            <Button variant="ghost" size="icon-xs" onClick={() => removePackageInclude(pkgIndex, includeIndex)}>
-                              <Trash2 className="size-3" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    ) : (
+                      'No add-ons linked'
+                    )}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Add-Ons Section */}
+      {/* Add-ons Catalog */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Add-Ons</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Add-ons</h2>
           {canEdit && !isPreview && (
             <Button variant="outline" size="sm" onClick={addAddOn}>
               <Plus className="size-4" />
@@ -283,18 +250,17 @@ export function ProductService() {
             </Button>
           )}
         </div>
-
         {displayData.addOns.length === 0 ? (
           <EmptyState
             icon={Gift}
             title="No add-ons yet"
-            description="Click 'Add Add-on' to create optional extras for your packages."
+            description="Create optional extras that can be linked to your offerings."
             action={canEdit && !isPreview ? { label: 'Add Add-on', onClick: addAddOn } : undefined}
           />
         ) : (
           <div className="card-elevated rounded-lg divide-y">
             {displayData.addOns.map((addOn, index) => (
-              <div key={index} className="flex items-center gap-4 px-5 py-3">
+              <div key={addOn.id ?? index} className="flex items-center gap-4 px-5 py-3 group">
                 <div className="flex-1">
                   <Input
                     value={addOn.name}
@@ -302,6 +268,15 @@ export function ProductService() {
                     placeholder="Add-on name"
                     readOnly={!canEdit || isPreview}
                     className="border-0 px-0 shadow-none focus-visible:ring-0"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Input
+                    value={addOn.description ?? ''}
+                    onChange={(e) => updateAddOn(index, 'description', e.target.value)}
+                    placeholder="Optional description"
+                    readOnly={!canEdit || isPreview}
+                    className="border-0 px-0 shadow-none focus-visible:ring-0 text-sm"
                   />
                 </div>
                 <div className="relative w-[120px] shrink-0">
@@ -314,8 +289,22 @@ export function ProductService() {
                     readOnly={!canEdit || isPreview}
                   />
                 </div>
+                <div className="w-[100px] shrink-0">
+                  <Input
+                    value={addOn.priceLabel ?? ''}
+                    onChange={(e) => updateAddOn(index, 'priceLabel', e.target.value)}
+                    placeholder="e.g. per unit"
+                    readOnly={!canEdit || isPreview}
+                    className="text-sm"
+                  />
+                </div>
                 {canEdit && !isPreview && (
-                  <Button variant="ghost" size="icon-xs" onClick={() => removeAddOn(index)}>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeAddOn(index)}
+                  >
                     <Trash2 className="size-3" />
                   </Button>
                 )}
@@ -329,12 +318,12 @@ export function ProductService() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Product & Service" description="Packages, pricing, and add-on offerings">
+      <PageHeader title="Product & Service" description="Offerings, pricing, and add-ons">
         {canEdit && (
           <AiActionBar
-            onGenerate={() => aiSuggestion.generate('generate', data)}
-            onImprove={() => aiSuggestion.generate('improve', data)}
-            onExpand={() => aiSuggestion.generate('expand', data)}
+            onGenerate={() => aiSuggestion.generate('generate', rawData)}
+            onImprove={() => aiSuggestion.generate('improve', rawData)}
+            onExpand={() => aiSuggestion.generate('expand', rawData)}
             isLoading={aiSuggestion.state.status === 'loading'}
             disabled={!isAiAvailable}
           />
