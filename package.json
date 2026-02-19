@@ -16,7 +16,6 @@
     "verify": "eslint . && vitest run && vite build"
   },
   "dependencies": {
-    "@google/genai": "^1.40.0",
     "@react-pdf/renderer": "^4.3.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
