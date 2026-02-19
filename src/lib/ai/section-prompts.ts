@@ -132,15 +132,34 @@ const WorkforceMemberSchema = z.object({
   role: z.string().describe('Job role or position title'),
   count: z.number().describe('Number of people in this role'),
   ratePerHour: z.number().describe('Hourly rate for this role'),
+  hoursPerWeek: z.number().min(1).describe('Weekly working hours for this role'),
 });
 
-const CapacityConfigSchema = z.object({
+const CapacityItemSchema = z.object({
+  id: z.string().describe('Unique capacity item id'),
+  name: z.string().describe('Capacity line name, usually product/service or production line'),
+  offeringId: z.string().optional().describe('Optional linked offering id from product-service section'),
   outputUnitLabel: z.string().describe('What the business produces: units, orders, bookings, meals, etc.'),
   plannedOutputPerMonth: z.number().describe('Planned monthly output volume'),
   maxOutputPerDay: z.number().describe('Maximum output capacity per day'),
   maxOutputPerWeek: z.number().describe('Maximum output capacity per week'),
   maxOutputPerMonth: z.number().describe('Maximum output capacity per month'),
   utilizationRate: z.number().describe('Target utilization rate as percentage 0-100'),
+});
+
+const VariableCostComponentSchema = z.object({
+  id: z.string().describe('Unique variable component id'),
+  name: z.string().describe('Component name, e.g. steel plate, packing box, subcontracted assembly'),
+  offeringId: z.string().optional().describe('Optional linked offering id for per-product costing'),
+  description: z.string().optional().describe('Optional description of this component'),
+  supplier: z.string().optional().describe('Supplier or vendor name if sourced externally'),
+  sourcingModel: z.enum(['in-house', 'purchase-order', 'on-demand'])
+    .describe('How this component is sourced'),
+  componentUnitLabel: z.string().describe('Unit for this component, e.g. kg, part, minute, API call'),
+  costPerComponentUnit: z.number().describe('Cost for one component unit'),
+  componentUnitsPerOutput: z.number().describe('How many component units are required per one output unit'),
+  orderQuantity: z.number().describe('Order batch size / MOQ for purchase-order sourcing'),
+  orderFee: z.number().describe('Additional fee per order (shipping/handling/customs/etc.)'),
 });
 
 const CostItemSchema = z.object({
@@ -161,8 +180,10 @@ const OperationalMetricSchema = z.object({
 
 const OperationsSchema = z.object({
   workforce: z.array(WorkforceMemberSchema).describe('Team members and their roles'),
-  capacity: CapacityConfigSchema,
-  costItems: z.array(CostItemSchema).describe('All operational costs — both variable and fixed'),
+  capacityItems: z.array(CapacityItemSchema).describe('Capacity split across products/services/lines with planned mix'),
+  variableComponents: z.array(VariableCostComponentSchema)
+    .describe('Variable components linked to products/services with sourcing and order parameters'),
+  costItems: z.array(CostItemSchema).describe('Recurring fixed/overhead operational costs'),
   equipment: z.array(z.string()).describe('List of equipment and tools'),
   safetyProtocols: z.array(z.string()).describe('Safety procedures and protocols'),
   operationalMetrics: z.array(OperationalMetricSchema).describe('Key operational performance metrics'),
@@ -323,11 +344,11 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
   },
   operations: {
     generate:
-      'Generate an operations plan. Include workforce (roles, headcount, hourly rates), capacity planning (output units, planned volume, max capacity, utilization target), cost items (both variable costs that scale with output and fixed monthly costs, each with category, rate, and cost driver), equipment list, safety protocols, and operational metrics (KPIs with current values and targets). Use realistic estimates for the business type and location.',
+      'Generate an operations plan. Include workforce (roles, headcount, hourly rates, and hours per week), capacityItems (at least 2 when multiple offerings exist: per item include id, name, optional offeringId, output unit, planned monthly mix volume, max capacity day/week/month, utilization target), variableComponents (component-level variable cost model linked to offerings where possible; include sourcingModel, component unit, cost per component unit, units per output, and purchase-order parameters orderQuantity/orderFee), fixed recurring costItems, equipment list, safety protocols, and operational metrics (KPIs with current values and targets). Use realistic estimates for the business type and location.',
     improve:
-      'Improve the existing operations plan. Keep all current data, refine cost estimates to be more realistic for the business\'s market, enhance safety protocols, optimize capacity planning, and add any missing operational metrics.',
+      'Improve the existing operations plan. Keep all current data, refine variable component costs per product/service, improve sourcing assumptions (in-house, on-demand, purchase-order), refine fixed overhead estimates, enhance safety protocols, optimize capacity mix across capacityItems, and add any missing operational metrics.',
     expand:
-      'Expand the existing operations plan with more detail. Keep all current data, add more cost items for completeness, elaborate on safety protocols, add operational metrics for quality and efficiency, and refine workforce planning.',
+      'Expand the existing operations plan with more detail. Keep all current data, add more capacityItems for additional products/services when relevant, add more variableComponents and sourcing detail, expand fixed overhead coverage, elaborate on safety protocols, add operational metrics for quality and efficiency, and refine workforce planning.',
   },
   'financial-projections': {
     generate:
@@ -360,6 +381,14 @@ const SECTION_PROMPTS: Record<SectionSlug, Record<AiAction, string>> = {
       'Improve the existing launch plan. Keep all current stages and tasks, enhance task descriptions to be more specific, and refine timelines.',
     expand:
       'Expand the existing launch plan with more detail. Keep all current stages, add more tasks per stage, elaborate on descriptions, and consider adding additional stages.',
+  },
+  'growth-timeline': {
+    generate:
+      'Generate a growth timeline for 12-24 months. Include key growth events using these types: team changes (hire), cost changes, capacity changes, marketing budget changes, funding rounds (equity/debt/grant with legal costs), facility builds (construction period + ongoing rent), hiring campaigns (staggered hires over time), price changes, equipment purchases (one-time cost + ongoing maintenance), and seasonal campaigns (temporary marketing boosts). Tie every event to realistic financial impacts. Use duration for events that take time (facility builds, hiring campaigns, seasonal campaigns).',
+    improve:
+      'Improve the existing growth timeline. Keep all existing events, refine financial assumptions to be more realistic, consider adding funding rounds, facility builds, or equipment purchases if appropriate for the business stage. Improve duration estimates for multi-month events. Ensure event sequencing makes business sense.',
+    expand:
+      'Expand the growth timeline with more events across all categories: funding (rounds, grants), operations (facility builds, equipment), team (hiring campaigns), revenue (price changes), and marketing (seasonal campaigns). Use duration parameters for multi-month events. Keep existing events, add complementary ones that model realistic business growth.',
   },
 };
 
