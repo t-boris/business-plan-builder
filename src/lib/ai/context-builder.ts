@@ -121,6 +121,39 @@ export function buildSectionContext(
   return JSON.stringify(sectionData, null, 2);
 }
 
+/** Build a prompt for a single field within a section (simpler than whole-section prompt). */
+export function buildFieldPrompt(config: {
+  fieldName: string;
+  fieldLabel: string;
+  currentValue: string;
+  action: 'generate' | 'improve';
+  sectionSlug: string;
+  sectionData: Record<string, unknown>;
+  businessProfile: { name: string; type: string; industry: string; location: string; description: string };
+  scenarioV2Context?: string;
+}): string {
+  const profileBlock = buildBusinessProfile(config.businessProfile as BusinessProfile);
+  const sectionJson = JSON.stringify(config.sectionData, null, 2);
+
+  let prompt = `<business_profile>\n${profileBlock}\n</business_profile>`;
+
+  prompt += `\n\n<current_section slug="${config.sectionSlug}">\n${sectionJson}\n</current_section>`;
+
+  if (config.scenarioV2Context) {
+    prompt += `\n\n${config.scenarioV2Context}`;
+  }
+
+  prompt += '\n\n<task>';
+  if (config.action === 'generate') {
+    prompt += `\nWrite the '${config.fieldLabel}' field for the ${config.sectionSlug} section. Use the business profile and current section data as context. Return ONLY the text content for this single field, nothing else. Be specific to this business.`;
+  } else {
+    prompt += `\nImprove the following '${config.fieldLabel}' text. Make it more specific, professional, and aligned with the business context. Current text: "${config.currentValue}". Return ONLY the improved text, nothing else.`;
+  }
+  prompt += '\n</task>';
+
+  return prompt;
+}
+
 /** Assemble full prompt with XML-style tags. */
 export function buildPrompt(
   config: {
