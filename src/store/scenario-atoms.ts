@@ -1,5 +1,5 @@
 import { atom } from 'jotai';
-import type { ScenarioMetadata, DynamicScenario } from '@/types';
+import type { ScenarioMetadata, DynamicScenario, ScenarioAssumption, ScenarioStatus } from '@/types';
 import { businessVariablesAtom } from '@/store/business-atoms.ts';
 
 // Scenario name
@@ -20,6 +20,23 @@ export const scenarioListAtom = atom<ScenarioMetadata[]>([]);
 
 // Stores current scenario's input variable values, keyed by variable ID
 export const scenarioValuesAtom = atom<Record<string, number>>({});
+
+// --- v2 Scenario Atoms (Phase 18) ---
+
+// Scenario status: draft | active | archived
+export const scenarioStatusAtom = atom<ScenarioStatus>('draft');
+
+// Planning horizon in months
+export const scenarioHorizonAtom = atom<number>(12);
+
+// Structured assumptions for the current scenario
+export const scenarioAssumptionsAtom = atom<ScenarioAssumption[]>([]);
+
+// Maps section slug to variant document ID for the active scenario
+export const scenarioVariantRefsAtom = atom<Record<string, string>>({});
+
+// Maps section slug to partial section data overrides for the active scenario
+export const scenarioSectionOverridesAtom = atom<Record<string, Record<string, unknown>>>({});
 
 // Read-only atom that filters scenarioValuesAtom to only input variable values
 export const snapshotInputValuesAtom = atom<Record<string, number>>((get) => {
@@ -42,6 +59,12 @@ export const loadDynamicScenarioAtom = atom<null, [DynamicScenario], void>(
     set(scenarioNameAtom, scenario.metadata.name);
     set(currentScenarioIdAtom, scenario.metadata.id);
     set(scenarioValuesAtom, scenario.values);
+    // v2 fields
+    set(scenarioAssumptionsAtom, scenario.assumptions ?? []);
+    set(scenarioVariantRefsAtom, scenario.variantRefs ?? {});
+    set(scenarioSectionOverridesAtom, scenario.sectionOverrides ?? {});
+    set(scenarioStatusAtom, scenario.status ?? 'draft');
+    set(scenarioHorizonAtom, scenario.horizonMonths ?? 12);
   }
 );
 
@@ -61,5 +84,11 @@ export const resetDynamicToDefaultsAtom = atom<null, [], void>(
     set(scenarioNameAtom, 'New Scenario');
     set(currentScenarioIdAtom, crypto.randomUUID());
     set(scenarioValuesAtom, defaults);
+    // v2 fields
+    set(scenarioAssumptionsAtom, []);
+    set(scenarioVariantRefsAtom, {});
+    set(scenarioSectionOverridesAtom, {});
+    set(scenarioStatusAtom, 'draft');
+    set(scenarioHorizonAtom, 12);
   }
 );
