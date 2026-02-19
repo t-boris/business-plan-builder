@@ -102,6 +102,7 @@ Progress: ███████████████████████�
 - Phase 19-01: useFieldAi hook returns string directly (no preview), buildFieldPrompt skips getSectionPrompt, AiFieldTrigger auto-detects generate/improve
 - Phase 19-02: SizingBlock receives sectionData prop for AI context, per-array-item AI updates via closure over index, 11 trigger instances across 5 sections
 - Phase 20-01: Generic Operations types (WorkforceMember/CapacityConfig/CostItem/CostDriverType/OperationalMetric), normalizeOperations at read boundary, computeOperationsCosts pure function, 160h/month workforce calc
+- Phase 20-02: 8-section collapsible Operations editor, no AiFieldTrigger needed (quantitative data only), Collapsible+Select from radix-ui, recharts charts removed
 - Phase 20-03: Single OperationsSchema for all business types, industry differentiation via overlay prompts only, all 6 overlays structured as Workforce/Capacity/Variable/Fixed/Metrics
 
 ### Deferred Issues

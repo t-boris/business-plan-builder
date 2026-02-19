@@ -301,7 +301,7 @@ Key changes:
 
 Plans:
 - [x] 20-01: Data model v2 + normalizeOperations + computeOperationsCosts (Wave 1)
-- [ ] 20-02: UI rewrite — tabbed/sectioned generic editor (Wave 2)
+- [x] 20-02: UI rewrite — tabbed/sectioned generic editor (Wave 2)
 - [x] 20-03: AI schema + prompts rewrite for generic model (Wave 2)
 - [ ] 20-04: Export update (web + PDF) + tests (Wave 2)
 
