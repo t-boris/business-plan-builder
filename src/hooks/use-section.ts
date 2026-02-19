@@ -54,9 +54,9 @@ export function useSection<T extends BusinessPlanSection>(
   const [sectionOverrides, setSectionOverrides] = useAtom(scenarioSectionOverridesAtom);
   const selectedVariantId = variantRefs[sectionSlug];
   const overrides = (sectionOverrides[sectionSlug] ?? null) as Partial<T> | null;
-  const shouldWriteScenarioOverrides = Boolean(
-    currentScenarioId !== 'baseline' || selectedVariantId || overrides
-  );
+  // Only redirect edits to scenario overrides for non-baseline scenarios.
+  // On baseline, edits always write to base data — variant selection is view-only.
+  const shouldWriteScenarioOverrides = currentScenarioId !== 'baseline';
   const canEdit = useCanEdit();
   const setSync = useSetAtom(updateSyncAtom);
   const [baseData, setBaseData] = useState<T>(defaultData);
@@ -75,9 +75,11 @@ export function useSection<T extends BusinessPlanSection>(
   const isDirtyRef = useRef(false);
 
   // Compute effective data synchronously (no render lag).
+  // On baseline, ignore overrides — they are only used in non-baseline scenarios.
+  const effectiveOverrides = shouldWriteScenarioOverrides ? overrides : null;
   const effectiveData = useMemo(
-    () => computeEffectiveSection(baseData, variantData, overrides),
-    [baseData, variantData, overrides]
+    () => computeEffectiveSection(baseData, variantData, effectiveOverrides),
+    [baseData, variantData, effectiveOverrides]
   );
 
   const effectiveDataRef = useRef<T>(effectiveData);
