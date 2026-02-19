@@ -156,6 +156,7 @@ export type InviteStatus = "active" | "revoked";
 export interface BusinessInvite {
   id: string;
   businessId: string;
+  businessName: string;
   role: BusinessRole;
   createdBy: string;
   status: InviteStatus;

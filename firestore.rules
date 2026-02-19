@@ -98,8 +98,8 @@ service cloud.firestore {
 
     // --- Invites ---
     match /invites/{inviteId} {
-      // Any authenticated user can read an invite (they need the ID to find it)
-      allow read: if request.auth != null;
+      // Anyone with the invite ID can read it (the ID itself is the secret token)
+      allow read: if true;
 
       // Only business owner can create invites
       allow create: if request.auth != null

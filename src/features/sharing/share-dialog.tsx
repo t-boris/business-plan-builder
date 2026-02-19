@@ -65,7 +65,7 @@ export function ShareDialog({ children }: { children?: React.ReactNode }) {
     if (!business || !user) return;
     setCreating(true);
     try {
-      await createInvite(business.id, role, user.uid);
+      await createInvite(business.id, role, user.uid, business.profile.name || 'Business');
       await loadInvites();
     } catch (err) {
       console.error("Failed to create invite:", err);

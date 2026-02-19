@@ -448,11 +448,13 @@ export async function removeBusinessRole(
 export async function createInvite(
   businessId: string,
   role: BusinessRole,
-  createdBy: string
+  createdBy: string,
+  businessName: string
 ): Promise<string> {
   const inviteId = crypto.randomUUID();
   await setDoc(doc(db, "invites", inviteId), {
     businessId,
+    businessName,
     role,
     createdBy,
     status: "active",
