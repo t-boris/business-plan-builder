@@ -20,6 +20,7 @@ import { ScenarioDashboard } from './scenario-dashboard.tsx';
 import { ScenarioManager } from './scenario-manager.tsx';
 import { ScenarioComparison } from './scenario-comparison.tsx';
 import { AssumptionsEditor } from './assumptions-editor.tsx';
+import { SectionVariants } from './section-variants.tsx';
 import type { ScenarioStatus } from '@/types/scenario';
 
 // --- Status badge config ---
@@ -161,11 +162,9 @@ export function Scenarios() {
           </div>
         </TabsContent>
 
-        {/* Variants tab (placeholder) */}
+        {/* Variants tab */}
         <TabsContent value="variants" className="mt-6">
-          <div className="text-center text-muted-foreground py-12">
-            Section variants -- coming in Plan 18-04
-          </div>
+          <SectionVariants canEdit={canEdit} />
         </TabsContent>
 
         {/* Compare tab */}

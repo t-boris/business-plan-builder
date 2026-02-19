@@ -9,6 +9,8 @@ import {
   scenarioStatusAtom,
   scenarioHorizonAtom,
   scenarioAssumptionsAtom,
+  scenarioVariantRefsAtom,
+  scenarioSectionOverridesAtom,
 } from '@/store/scenario-atoms';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { updateSyncAtom } from '@/store/sync-atoms';
@@ -39,6 +41,8 @@ export function useScenarioSync() {
   const scenarioStatus = useAtomValue(scenarioStatusAtom);
   const scenarioHorizon = useAtomValue(scenarioHorizonAtom);
   const scenarioAssumptions = useAtomValue(scenarioAssumptionsAtom);
+  const scenarioVariantRefs = useAtomValue(scenarioVariantRefsAtom);
+  const scenarioSectionOverrides = useAtomValue(scenarioSectionOverridesAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
   const setSyncStatus = useSetAtom(updateSyncAtom);
 
@@ -66,9 +70,11 @@ export function useScenarioSync() {
       },
       values: inputValues,
       // v2 fields
+      assumptions: scenarioAssumptions,
+      variantRefs: scenarioVariantRefs,
+      sectionOverrides: scenarioSectionOverrides,
       status: scenarioStatus,
       horizonMonths: scenarioHorizon,
-      assumptions: scenarioAssumptions,
     };
 
     setSyncStatus({ domain: 'scenario', state: 'saving' });
@@ -104,7 +110,7 @@ export function useScenarioSync() {
       setSyncStatus({ domain: 'scenario', state: 'error', error: message });
       log.error('save.failed', { businessId, scenarioId: currentId, error: message });
     }
-  }, [businessId, currentId, scenarioName, inputValues, scenarioStatus, scenarioHorizon, scenarioAssumptions, setSyncStatus, setScenarioList]);
+  }, [businessId, currentId, scenarioName, inputValues, scenarioStatus, scenarioHorizon, scenarioAssumptions, scenarioVariantRefs, scenarioSectionOverrides, setSyncStatus, setScenarioList]);
 
   // Auto-save on any variable/name/id change (debounced 500ms)
   useEffect(() => {
@@ -124,5 +130,5 @@ export function useScenarioSync() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [inputValues, scenarioName, currentId, scenarioStatus, scenarioHorizon, scenarioAssumptions, syncReady, businessId, save]);
+  }, [inputValues, scenarioName, currentId, scenarioStatus, scenarioHorizon, scenarioAssumptions, scenarioVariantRefs, scenarioSectionOverrides, syncReady, businessId, save]);
 }
