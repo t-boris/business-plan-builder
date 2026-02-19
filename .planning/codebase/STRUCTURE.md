@@ -82,12 +82,12 @@ my-business-planning/
 
 **src/components/**
 - Purpose: Shared reusable components
-- Contains: `app-sidebar.tsx`, `ai-action-bar.tsx`, `ai-suggestion-preview.tsx`
+- Contains: `app-sidebar.tsx`, `ai-action-bar.tsx`, `ai-suggestion-preview.tsx`, `ai-field-trigger.tsx`
 - Subdirectory: `ui/` (12+ shadcn/Radix primitives: button, card, input, select, tabs, etc.)
 
 **src/hooks/**
 - Purpose: Custom React hooks encapsulating business logic
-- Contains: `use-section.ts`, `use-ai-suggestion.ts`, `use-scenario-sync.ts`, `use-auth.ts`, `use-market-research.ts`, `use-mobile.ts`
+- Contains: `use-section.ts`, `use-ai-suggestion.ts`, `use-field-ai.ts`, `use-scenario-sync.ts`, `use-auth.ts`, `use-market-research.ts`, `use-mobile.ts`
 
 **src/lib/**
 - Purpose: Utility functions and service integrations

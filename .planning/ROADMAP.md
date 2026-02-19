@@ -275,12 +275,26 @@ Key changes:
 7. **Export**: Business plan export includes base plan + scenarios appendix + comparison table + decision summary.
 8. **Testing**: Merge logic tests, legacy migration tests, full build/lint/test verification.
 
+#### Phase 19: Granular Field-Level AI Generation
+**Goal**: Replace whole-tab AI generation with field-specific AI calls. Each text field (descriptions, overviews, tactics, mitigations) gets its own AI trigger that generates only that field using the rest of the section as context. Whole-tab Generate remains as fallback for empty sections.
+**Depends on**: Phase 18
+**Research**: Likely (per-field prompt design, partial schema output, UX for inline AI triggers)
+**Research topics**: Field-level AI trigger UX patterns, partial Zod schema generation, context windowing for single-field prompts
+**Plans**: 2 plans
+
+Plans:
+- [x] 19-01: Field-level AI infrastructure (useFieldAi hook, buildFieldPrompt, AiFieldTrigger component)
+- [ ] 19-02: Wire AiFieldTrigger into section editors
+
+**Details:**
+[To be added during planning]
+
 ## Progress
 
 **Execution Order:**
 - v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 - v2.0: 13 → 14 → 15 → 16
-- v3.0: 17 → 18
+- v3.0: 17 → 18 → 19
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
@@ -302,3 +316,4 @@ Key changes:
 | 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
 | 17. Generic Product/Service Offerings & Images | v3.0 | 6/6 | Complete | 2026-02-18 |
 | 18. Advanced Scenario Engine | v3.0 | 8/8 | Complete | 2026-02-19 |
+| 19. Granular Field-Level AI Generation | v3.0 | 1/2 | In Progress | - |
