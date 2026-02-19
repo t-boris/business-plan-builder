@@ -29,6 +29,11 @@ import type {
   DynamicScenario,
   VariableDefinition,
 } from "@/types";
+import { normalizeScenario } from "@/types";
+import { withRetry } from "@/lib/retry";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger('business-firestore');
 
 // =============================================================================
 // Business CRUD
@@ -537,6 +542,7 @@ export async function saveSectionData(
 
 /**
  * Get a scenario by ID using the DynamicScenario type.
+ * Normalizes loaded data through normalizeScenario to ensure v2 defaults.
  */
 export async function getScenarioData(
   businessId: string,
@@ -547,26 +553,30 @@ export async function getScenarioData(
     doc(db, "businesses", businessId, "scenarios", scenarioId)
   );
   if (!snap.exists()) return null;
-  return snap.data() as DynamicScenario;
+  return normalizeScenario(snap.data());
 }
 
 /**
  * Save a scenario using the DynamicScenario type (merge update).
+ * Persists all v2 fields. Old documents gain new fields on next save via merge: true.
  */
 export async function saveScenarioData(
   businessId: string,
   scenario: DynamicScenario
 ): Promise<void> {
   // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
-  await setDoc(
-    doc(db, "businesses", businessId, "scenarios", scenario.metadata.id),
-    scenario,
-    { merge: true }
+  await withRetry(() =>
+    setDoc(
+      doc(db, "businesses", businessId, "scenarios", scenario.metadata.id),
+      scenario,
+      { merge: true }
+    )
   );
 }
 
 /**
  * List all scenarios for a business using the DynamicScenario type.
+ * Each scenario is normalized through normalizeScenario for v2 defaults.
  */
 export async function listScenarioData(
   businessId: string
@@ -575,7 +585,7 @@ export async function listScenarioData(
   const snap = await getDocs(
     collection(db, "businesses", businessId, "scenarios")
   );
-  return snap.docs.map((d) => d.data() as DynamicScenario);
+  return snap.docs.map((d) => normalizeScenario(d.data()));
 }
 
 /**
@@ -656,4 +666,118 @@ export async function saveBusinessVariables(
     { definitions: variables },
     { merge: true }
   );
+}
+
+// =============================================================================
+// Section Variants (subcollection of section documents)
+// =============================================================================
+
+// Firestore path: businesses/{businessId}/sections/{sectionSlug}/variants/{variantId}
+
+export interface SectionVariant {
+  id: string;
+  name: string;
+  description?: string;
+  data: Record<string, unknown>;  // the full or partial section data snapshot
+  createdAt: string;
+  scenarioId?: string;  // which scenario created this variant (optional reference)
+}
+
+/**
+ * Save a section variant (merge update with retry).
+ */
+export async function saveSectionVariant(
+  businessId: string,
+  sectionSlug: string,
+  variant: SectionVariant
+): Promise<void> {
+  try {
+    await withRetry(() =>
+      setDoc(
+        doc(db, "businesses", businessId, "sections", sectionSlug, "variants", variant.id),
+        variant,
+        { merge: true }
+      )
+    );
+  } catch (err) {
+    log.error('saveSectionVariant.failed', {
+      businessId,
+      sectionSlug,
+      variantId: variant.id,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
+}
+
+/**
+ * Get a section variant by ID.
+ */
+export async function getSectionVariant(
+  businessId: string,
+  sectionSlug: string,
+  variantId: string
+): Promise<SectionVariant | null> {
+  try {
+    const snap = await getDoc(
+      doc(db, "businesses", businessId, "sections", sectionSlug, "variants", variantId)
+    );
+    if (!snap.exists()) return null;
+    return snap.data() as SectionVariant;
+  } catch (err) {
+    log.error('getSectionVariant.failed', {
+      businessId,
+      sectionSlug,
+      variantId,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
+}
+
+/**
+ * List all variants for a section.
+ */
+export async function listSectionVariants(
+  businessId: string,
+  sectionSlug: string
+): Promise<SectionVariant[]> {
+  try {
+    const snap = await getDocs(
+      collection(db, "businesses", businessId, "sections", sectionSlug, "variants")
+    );
+    return snap.docs.map((d) => d.data() as SectionVariant);
+  } catch (err) {
+    log.error('listSectionVariants.failed', {
+      businessId,
+      sectionSlug,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
+}
+
+/**
+ * Delete a section variant.
+ */
+export async function deleteSectionVariant(
+  businessId: string,
+  sectionSlug: string,
+  variantId: string
+): Promise<void> {
+  try {
+    await withRetry(() =>
+      deleteDoc(
+        doc(db, "businesses", businessId, "sections", sectionSlug, "variants", variantId)
+      )
+    );
+  } catch (err) {
+    log.error('deleteSectionVariant.failed', {
+      businessId,
+      sectionSlug,
+      variantId,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
 }
