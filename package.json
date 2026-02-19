@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "emulator": "firebase emulators:start --only firestore --import=./emulator-data --export-on-exit=./emulator-data",
+    "emulator": "firebase emulators:start --only firestore,functions --import=./emulator-data --export-on-exit=./emulator-data",
     "pull-prod": "node scripts/pull-prod-data.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

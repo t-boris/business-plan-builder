@@ -20,6 +20,8 @@ dist-ssr
 emulator-data/
 firestore-debug.log
 firebase-debug.log
+functions/lib/
+functions/.secret.local
 
 # Editor directories and files
 .vscode/*
