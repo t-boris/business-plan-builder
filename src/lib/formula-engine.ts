@@ -1,5 +1,8 @@
 import { Parser } from "expr-eval";
 import type { VariableDefinition } from "@/types/business";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("formula");
 
 const parser = new Parser();
 
@@ -85,7 +88,11 @@ export function evaluateVariables(
       try {
         scope[id] = parser.evaluate(v.formula, scope);
       } catch (e) {
-        console.warn(`Formula error for ${id}: ${v.formula}`, e);
+        log.warn("evaluation.error", {
+          id,
+          formula: v.formula,
+          error: e instanceof Error ? e.message : String(e),
+        });
         scope[id] = 0;
       }
     }

@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
+import { createLogger } from '@/lib/logger';
 
+const log = createLogger('ai.gemini');
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
 
 export const isAiAvailable = !!apiKey;
@@ -31,8 +33,14 @@ export async function generateSectionContent(
     return response.text ?? '';
   } catch (error: unknown) {
     if (error instanceof Error && error.message?.includes('429')) {
+      log.warn('rate-limited', { action: 'generateSectionContent' });
       throw new Error('Rate limit reached, please wait a moment');
     }
+    log.error('request.failed', {
+      action: 'generateSectionContent',
+      model: MODEL,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw new Error(
       error instanceof Error ? error.message : 'AI generation failed',
     );
@@ -65,8 +73,14 @@ export async function generateStructuredContent<T>(
     return JSON.parse(response.text ?? '{}') as T;
   } catch (error: unknown) {
     if (error instanceof Error && error.message?.includes('429')) {
+      log.warn('rate-limited', { action: 'generateStructuredContent' });
       throw new Error('Rate limit reached, please wait a moment');
     }
+    log.error('request.failed', {
+      action: 'generateStructuredContent',
+      model: MODEL,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw new Error(
       error instanceof Error ? error.message : 'AI generation failed',
     );
