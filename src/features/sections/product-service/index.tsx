@@ -11,7 +11,7 @@ import type { ProductService as ProductServiceType, Offering, AddOn } from '@/ty
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift, Link } from 'lucide-react';
 
 const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
 
@@ -21,6 +21,9 @@ export function ProductService() {
     defaultProductService
   );
   const aiSuggestion = useAiSuggestion<ProductServiceType>('product-service');
+
+  // Track which offering has its add-on selector open (by offering id)
+  const [openAddonSelector, setOpenAddonSelector] = useState<string | null>(null);
 
   // Normalize legacy data on first load
   const [normalized, setNormalized] = useState(false);
@@ -114,6 +117,18 @@ export function ProductService() {
       const addOns = [...prev.addOns];
       addOns[index] = { ...addOns[index], [field]: value };
       return { ...prev, addOns };
+    });
+  }
+
+  function toggleAddOnLink(offeringIndex: number, addOnId: string) {
+    updateData((prev) => {
+      const offerings = [...prev.offerings];
+      const offering = offerings[offeringIndex];
+      const ids = offering.addOnIds.includes(addOnId)
+        ? offering.addOnIds.filter((id) => id !== addOnId)
+        : [...offering.addOnIds, addOnId];
+      offerings[offeringIndex] = { ...offering, addOnIds: ids };
+      return { ...prev, offerings };
     });
   }
 
@@ -215,21 +230,63 @@ export function ProductService() {
                     readOnly={!canEdit || isPreview}
                   />
 
-                  {/* Linked Add-ons placeholder — implemented in Task 2 */}
-                  <div className="text-xs text-muted-foreground">
-                    {offering.addOnIds.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {offering.addOnIds.map((addOnId) => {
+                  {/* Linked Add-ons */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {offering.addOnIds.length > 0 ? (
+                        offering.addOnIds.map((addOnId) => {
                           const addOn = displayData.addOns.find((a) => a.id === addOnId);
                           return addOn ? (
                             <span key={addOnId} className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">
                               {addOn.name}
                             </span>
                           ) : null;
-                        })}
+                        })
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No add-ons linked</span>
+                      )}
+                      {canEdit && !isPreview && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="h-5 px-1.5 text-xs"
+                          onClick={() =>
+                            setOpenAddonSelector(
+                              openAddonSelector === offering.id ? null : offering.id
+                            )
+                          }
+                        >
+                          <Link className="size-3" />
+                          Link Add-ons
+                        </Button>
+                      )}
+                    </div>
+                    {openAddonSelector === offering.id && canEdit && !isPreview && (
+                      <div className="rounded-md border bg-background p-2 space-y-1">
+                        {displayData.addOns.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-1">
+                            Create add-ons first in the catalog below
+                          </p>
+                        ) : (
+                          displayData.addOns.map((addOn) => (
+                            <label
+                              key={addOn.id}
+                              className="flex items-center gap-2 text-sm rounded px-1 py-0.5 hover:bg-accent cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={offering.addOnIds.includes(addOn.id)}
+                                onChange={() => toggleAddOnLink(offeringIndex, addOn.id)}
+                                className="rounded"
+                              />
+                              <span>{addOn.name}</span>
+                              <span className="text-muted-foreground ml-auto">
+                                ${addOn.price}
+                              </span>
+                            </label>
+                          ))
+                        )}
                       </div>
-                    ) : (
-                      'No add-ons linked'
                     )}
                   </div>
                 </div>
