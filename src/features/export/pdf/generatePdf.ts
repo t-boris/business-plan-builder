@@ -9,6 +9,7 @@ import type {
   KpisMetrics,
   LaunchPlan,
 } from '@/types';
+import type { ScenarioPack } from '../index';
 
 export interface GeneratePdfParams {
   sections: {
@@ -28,6 +29,7 @@ export interface GeneratePdfParams {
   chartImage: string | null;
   businessName: string;
   currencyCode: string;
+  scenarioPack?: ScenarioPack | null;
 }
 
 /**
@@ -56,6 +58,7 @@ export async function generateBusinessPlanPdf(params: GeneratePdfParams): Promis
     chartImage: params.chartImage,
     businessName: params.businessName,
     currencyCode: params.currencyCode,
+    scenarioPack: params.scenarioPack ?? null,
   });
 
   const blob = await pdf(doc).toBlob();

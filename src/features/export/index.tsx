@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAtomValue } from 'jotai';
 import { scenarioNameAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
-import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
+import { activeBusinessAtom, activeBusinessIdAtom, businessVariablesAtom } from '@/store/business-atoms';
 import { SECTION_SLUGS } from '@/lib/constants';
 import { useSection } from '@/hooks/use-section';
+import { listScenarioData } from '@/lib/business-firestore';
+import { evaluateVariables } from '@/lib/formula-engine';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
@@ -21,7 +23,59 @@ import type {
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
+  DynamicScenario,
+  VariableDefinition,
+  VariableUnit,
+  ScenarioAssumption,
 } from '@/types';
+
+// --- ScenarioPack interface for export ---
+export interface ScenarioPack {
+  active: { name: string; status: string; horizon: number; assumptions: ScenarioAssumption[] };
+  scenarios: Array<{
+    name: string;
+    status: string;
+    metrics: Record<string, { label: string; value: number; unit: string }>;
+  }>;
+}
+
+// --- Scenario evaluation helper (same pattern as ScenarioComparison) ---
+function evaluateScenario(
+  scenario: DynamicScenario,
+  definitions: Record<string, VariableDefinition>,
+): Record<string, number> {
+  const merged: Record<string, VariableDefinition> = {};
+  for (const [id, def] of Object.entries(definitions)) {
+    if (def.type === 'input') {
+      merged[id] = { ...def, value: scenario.values[id] ?? def.value };
+    } else {
+      merged[id] = def;
+    }
+  }
+  try {
+    return evaluateVariables(merged);
+  } catch {
+    const fallback: Record<string, number> = {};
+    for (const [id, def] of Object.entries(merged)) {
+      fallback[id] = def.value;
+    }
+    return fallback;
+  }
+}
+
+// --- Format helpers for scenario appendix ---
+function formatExportValue(value: number, unit: VariableUnit, currencyCode: string): string {
+  if (unit === 'currency') {
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(value);
+    } catch {
+      return '$' + Math.round(value).toLocaleString('en-US');
+    }
+  }
+  if (unit === 'percent') return `${(value * 100).toFixed(1)}%`;
+  if (unit === 'ratio') return value.toFixed(2);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
+}
 
 // Default data (same defaults as business-plan-view and individual section pages)
 const defaultExecutiveSummary: ExecutiveSummary = {
@@ -96,6 +150,7 @@ export function Export() {
   const scenarioName = useAtomValue(scenarioNameAtom);
   const evaluated = useAtomValue(evaluatedValuesAtom);
   const business = useAtomValue(activeBusinessAtom);
+  const businessId = useAtomValue(activeBusinessIdAtom);
   const definitions = useAtomValue(businessVariablesAtom);
 
   // Derive business identity
@@ -114,6 +169,84 @@ export function Export() {
     }
     return metrics;
   }, [definitions, evaluated]);
+
+  // --- Load all scenarios for export appendix ---
+  const [allScenarios, setAllScenarios] = useState<DynamicScenario[]>([]);
+  useEffect(() => {
+    if (!businessId) return;
+    let mounted = true;
+    listScenarioData(businessId)
+      .then((list) => { if (mounted) setAllScenarios(list); })
+      .catch(() => { /* silently ignore - appendix will be empty */ });
+    return () => { mounted = false; };
+  }, [businessId]);
+
+  // Filter to non-archived scenarios and evaluate each
+  const scenarioPack = useMemo<ScenarioPack | null>(() => {
+    if (!definitions || allScenarios.length === 0) return null;
+
+    const nonArchived = allScenarios.filter((s) => s.status !== 'archived');
+    if (nonArchived.length === 0) return null;
+
+    // Find active scenario (status === 'active'), fallback to first
+    const activeScenario = nonArchived.find((s) => s.status === 'active') ?? nonArchived[0];
+
+    // Key metric variable IDs: only currency, percent, count units
+    const keyVarIds = Object.entries(definitions)
+      .filter(([, def]) => def.type === 'computed' && ['currency', 'percent', 'count'].includes(def.unit))
+      .map(([id]) => id);
+
+    const scenarioEntries = nonArchived.map((s) => {
+      const evaluated = evaluateScenario(s, definitions);
+      const metrics: Record<string, { label: string; value: number; unit: string }> = {};
+      for (const varId of keyVarIds) {
+        const def = definitions[varId];
+        metrics[varId] = { label: def.label, value: evaluated[varId] ?? 0, unit: def.unit };
+      }
+      return {
+        name: s.metadata.name,
+        status: s.status ?? 'draft',
+        metrics,
+      };
+    });
+
+    return {
+      active: {
+        name: activeScenario.metadata.name,
+        status: activeScenario.status ?? 'draft',
+        horizon: activeScenario.horizonMonths ?? 12,
+        assumptions: activeScenario.assumptions ?? [],
+      },
+      scenarios: scenarioEntries,
+    };
+  }, [definitions, allScenarios]);
+
+  // Determine recommendation (highest profit-related metric)
+  const recommendation = useMemo<string | null>(() => {
+    if (!scenarioPack || scenarioPack.scenarios.length < 2 || !definitions) return null;
+
+    // Find a profit-related variable
+    const profitVarId = Object.entries(definitions).find(([, def]) => {
+      if (def.type !== 'computed') return false;
+      const lower = def.label.toLowerCase();
+      return lower.includes('profit') || lower.includes('net income') || lower.includes('margin');
+    })?.[0];
+
+    if (!profitVarId) return null;
+
+    let bestName = '';
+    let bestValue = -Infinity;
+    for (const s of scenarioPack.scenarios) {
+      const val = s.metrics[profitVarId]?.value ?? 0;
+      if (val > bestValue) {
+        bestValue = val;
+        bestName = s.name;
+      }
+    }
+
+    if (!bestName) return null;
+    return `Based on financial metrics, "${bestName}" appears strongest.`;
+  }, [scenarioPack, definitions]);
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
@@ -171,6 +304,7 @@ export function Export() {
         chartImage,
         businessName,
         currencyCode,
+        scenarioPack,
       });
 
       // 4. Trigger download with business name in filename
@@ -211,6 +345,98 @@ export function Export() {
 
         <TabsContent value="business-plan" className="mt-6">
           <BusinessPlanView chartAnimationDisabled={false} chartContainerRef={chartRef} />
+
+          {/* Scenario Analysis Appendix */}
+          {scenarioPack && (
+            <div className="max-w-4xl mx-auto px-6 py-8 border-t mt-4">
+              <h2 className="text-xl font-bold tracking-tight border-b pb-2 pt-4 mb-6">
+                <span className="text-muted-foreground mr-2">Appendix.</span>
+                Scenario Analysis
+              </h2>
+
+              {/* Active Scenario Summary */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Active Scenario</h3>
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-semibold text-sm">{scenarioPack.active.name}</span>
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                      scenarioPack.active.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-300'
+                        : 'bg-gray-100 text-gray-700 ring-gray-300'
+                    }`}>
+                      {scenarioPack.active.status === 'active' ? 'Active' : 'Draft'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Horizon: {scenarioPack.active.horizon} months</p>
+                  {scenarioPack.active.assumptions.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Assumptions</p>
+                      <ul className="list-disc list-inside text-sm space-y-0.5">
+                        {scenarioPack.active.assumptions.map((a) => (
+                          <li key={a.id}>
+                            <span className="font-medium">{a.label}:</span> {a.value}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Comparison Table */}
+              {scenarioPack.scenarios.length > 1 && (() => {
+                // Get all metric keys from the first scenario
+                const metricKeys = Object.keys(scenarioPack.scenarios[0].metrics);
+                return (
+                  <div className="space-y-4 mb-6">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Scenario Comparison</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border">
+                        <thead>
+                          <tr className="bg-muted/50">
+                            <th className="text-left py-2 px-3 font-medium border-b">Metric</th>
+                            {scenarioPack.scenarios.map((s) => (
+                              <th key={s.name} className="text-right py-2 px-3 font-medium border-b">{s.name}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {metricKeys.map((varId, i) => {
+                            const firstMetric = scenarioPack.scenarios[0].metrics[varId];
+                            // Find best value (highest for most, could be refined)
+                            const values = scenarioPack.scenarios.map((s) => s.metrics[varId]?.value ?? 0);
+                            const bestValue = Math.max(...values);
+                            return (
+                              <tr key={varId} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                                <td className="py-2 px-3 border-b font-medium">{firstMetric.label}</td>
+                                {scenarioPack.scenarios.map((s) => {
+                                  const m = s.metrics[varId];
+                                  const isBest = scenarioPack.scenarios.length > 1 && m.value === bestValue && values.filter((v) => v === bestValue).length === 1;
+                                  return (
+                                    <td key={s.name} className={`py-2 px-3 border-b text-right tabular-nums ${isBest ? 'font-bold text-emerald-700' : ''}`}>
+                                      {formatExportValue(m.value, m.unit as VariableUnit, currencyCode)}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Recommendation */}
+              {recommendation && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-medium text-emerald-800">{recommendation}</p>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="export" className="mt-6">

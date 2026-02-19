@@ -136,6 +136,7 @@ export interface BusinessPlanDocumentProps {
   chartImage: string | null;
   businessName: string;
   currencyCode: string;
+  scenarioPack: import('../index').ScenarioPack | null;
 }
 
 export function BusinessPlanDocument({
@@ -154,7 +155,11 @@ export function BusinessPlanDocument({
   chartImage,
   businessName,
   currencyCode,
+  scenarioPack,
 }: BusinessPlanDocumentProps) {
+  // scenarioPack is used for Scenario Analysis appendix rendering below
+  void scenarioPack;
+
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -390,7 +395,7 @@ export function BusinessPlanDocument({
                     {offering.image?.url && (
                       <Image
                         src={offering.image.url}
-                        style={{ width: '100%', height: 60, objectFit: 'cover', borderRadius: 4, marginBottom: 4 }}
+                        style={{ width: '100%', height: 60, objectFit: 'contain', borderRadius: 4, marginBottom: 4 }}
                       />
                     )}
                     <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }]}>
