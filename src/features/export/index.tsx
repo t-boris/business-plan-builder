@@ -32,16 +32,23 @@ const defaultExecutiveSummary: ExecutiveSummary = {
 };
 
 const defaultMarketAnalysis: MarketAnalysis = {
-  targetDemographic: { ageRange: '', location: '', radius: 0, zipCodes: [] },
-  marketSize: '',
-  tamDollars: 0,
-  targetMarketShare: '',
+  enabledBlocks: { sizing: true, competitors: true, demographics: true, acquisitionFunnel: true, adoptionModel: true, customMetrics: true },
+  marketSizing: {
+    tam: { approach: 'top-down', steps: [] },
+    sam: { steps: [] },
+    som: { steps: [] },
+  },
+  marketNarrative: '',
   competitors: [],
-  demographics: { population: 0, languages: [], income: '', householdsWithKids: 0, annualTourists: 0 },
+  demographics: { population: 0, income: '', metrics: [] },
+  acquisitionFunnel: [],
+  adoptionModel: { type: 's-curve', totalMarket: 10000, initialUsers: 50, growthRate: 0.3, projectionMonths: 24 },
+  customMetrics: [],
 };
 
 const defaultProductService: ProductService = {
-  packages: [],
+  overview: '',
+  offerings: [],
   addOns: [],
 };
 
