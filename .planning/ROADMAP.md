@@ -337,6 +337,7 @@ Plans:
 
 Plans:
 - [x] 21-01: Rich growth event types + duration-aware compute engine (6 new delta interfaces, 4 temporal patterns, 8 tests)
+- [x] 21-02: Rich growth events UI (form fields, event card display, AI prompts for all 11 event types)
 
 **Details:**
 [To be added during planning]
@@ -370,4 +371,4 @@ Plans:
 | 18. Advanced Scenario Engine | v3.0 | 8/8 | Complete | 2026-02-19 |
 | 19. Granular Field-Level AI Generation | v3.0 | 2/2 | Complete | 2026-02-19 |
 | 20. Generic Industry-Agnostic Operations | v3.0 | 4/4 | Complete | 2026-02-19 |
-| 21. Rich Growth Events | v3.0 | 1/1 | In progress | — |
+| 21. Rich Growth Events | v3.0 | 2/2 | Complete | 2026-02-19 |
