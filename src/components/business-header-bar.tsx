@@ -40,7 +40,7 @@ export function BusinessHeaderBar() {
       setLocalLocation(activeBusiness.profile.location);
       setLocalDescription(activeBusiness.profile.description);
     }
-  }, [activeBusiness?.id]);
+  }, [activeBusiness?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced auto-save for profile fields (500ms)
   useEffect(() => {
@@ -67,6 +67,7 @@ export function BusinessHeaderBar() {
     }, 500);
 
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localName, localType, localIndustry, localLocation, localDescription]);
 
   if (!activeBusiness) return null;

@@ -125,6 +125,7 @@ export function useBusinessVariables() {
   // Remove a variable (and clean up references in other formulas' dependsOn)
   function removeVariable(variableId: string) {
     if (!variables) return;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [variableId]: _removed, ...remaining } = variables;
     // Clean up dependsOn references in other variables
     const cleaned: Record<string, VariableDefinition> = {};

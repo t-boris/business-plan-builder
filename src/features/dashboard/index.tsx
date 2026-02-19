@@ -253,6 +253,11 @@ function CustomTooltip({
   );
 }
 
+const MONTH_NAMES = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 // --- Main Dashboard Component ---
 
 export function Dashboard() {
@@ -293,14 +298,9 @@ export function Dashboard() {
   const showChart = chartSeries.length > 0;
 
   // 12-month flat projection data
-  const monthNames = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
   const projectionData = useMemo(() => {
     if (!showChart) return [];
-    return monthNames.map((month) => {
+    return MONTH_NAMES.map((month) => {
       const data: Record<string, unknown> = { month };
       for (const series of chartSeries) {
         data[series.label] = Math.round(evaluated[series.id] ?? 0);

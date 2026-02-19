@@ -9,6 +9,8 @@ import { StatCard } from '@/components/stat-card';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
+  MarketSizing,
+  CalcStep,
   ProductService,
   MarketingStrategy,
   Operations,
@@ -34,6 +36,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { computeTam, computeSam, computeSom } from '@/features/sections/market-analysis/lib/sizing-math';
 
 // ---- Default data (same as individual section pages) ----
 
@@ -45,12 +48,18 @@ const defaultExecutiveSummary: ExecutiveSummary = {
 };
 
 const defaultMarketAnalysis: MarketAnalysis = {
-  targetDemographic: { ageRange: '', location: '', radius: 0, zipCodes: [] },
-  marketSize: '',
-  tamDollars: 0,
-  targetMarketShare: '',
+  enabledBlocks: { sizing: true, competitors: true, demographics: true, acquisitionFunnel: true, adoptionModel: true, customMetrics: true },
+  marketSizing: {
+    tam: { approach: 'top-down', steps: [] },
+    sam: { steps: [] },
+    som: { steps: [] },
+  },
+  marketNarrative: '',
   competitors: [],
-  demographics: { population: 0, languages: [], income: '', householdsWithKids: 0, annualTourists: 0 },
+  demographics: { population: 0, income: '', metrics: [] },
+  acquisitionFunnel: [],
+  adoptionModel: { type: 's-curve', totalMarket: 10000, initialUsers: 50, growthRate: 0.3, projectionMonths: 24 },
+  customMetrics: [],
 };
 
 const defaultProductService: ProductService = {
@@ -182,6 +191,77 @@ function EmptyPlaceholder({ section }: { section: string }) {
   );
 }
 
+function formatTamShort(v: number): string {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${v.toLocaleString()}`;
+}
+
+function StepTypeSymbol({ type }: { type: CalcStep['type'] }) {
+  if (type === 'currency') return <span>$</span>;
+  if (type === 'percentage') return <span>%</span>;
+  return <span>#</span>;
+}
+
+function MarketSizingExportBlock({ sizing, narrative }: { sizing: MarketSizing; narrative: string }) {
+  const tamVal = computeTam(sizing.tam);
+  const samVal = computeSam(sizing.tam, sizing.sam);
+  const somVal = computeSom(sizing.tam, sizing.sam, sizing.som);
+
+  function renderStepsTable(steps: CalcStep[]) {
+    if (steps.length === 0) return null;
+    return (
+      <table className="w-full text-xs border mt-1 mb-2">
+        <thead>
+          <tr className="bg-muted/50">
+            <th className="text-left py-1 px-2 font-medium border-b">Step</th>
+            <th className="text-right py-1 px-2 font-medium border-b">Value</th>
+            <th className="text-center py-1 px-2 font-medium border-b">Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          {steps.map((s, i) => (
+            <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+              <td className="py-1 px-2 border-b">{s.label}</td>
+              <td className="py-1 px-2 border-b text-right tabular-nums">
+                {s.type === 'currency' ? formatCurrency(s.value) : s.value.toLocaleString()}
+              </td>
+              <td className="py-1 px-2 border-b text-center"><StepTypeSymbol type={s.type} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Market Sizing</h3>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-muted-foreground">TAM ({sizing.tam.approach})</p>
+          <p className="text-lg font-bold">{tamVal > 0 ? formatTamShort(tamVal) : '---'}</p>
+          {renderStepsTable(sizing.tam.steps)}
+        </div>
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-muted-foreground">SAM</p>
+          <p className="text-lg font-bold">{samVal > 0 ? formatTamShort(samVal) : '---'}</p>
+          {renderStepsTable(sizing.sam.steps)}
+        </div>
+        <div className="border rounded-lg p-3">
+          <p className="text-xs text-muted-foreground">SOM</p>
+          <p className="text-lg font-bold">{somVal > 0 ? formatTamShort(somVal) : '---'}</p>
+          {renderStepsTable(sizing.som.steps)}
+        </div>
+      </div>
+      {narrative && (
+        <p className="text-sm leading-relaxed mt-2">{narrative}</p>
+      )}
+    </div>
+  );
+}
+
 // ---- Main Component ----
 
 export interface BusinessPlanViewProps {
@@ -190,6 +270,12 @@ export interface BusinessPlanViewProps {
   /** Ref to attach to the chart container for PDF capture */
   chartContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
+
+const UNIT_PRIORITY: Record<import('@/types').VariableUnit, number> = {
+  currency: 0, percent: 1, ratio: 2, count: 3, months: 4, days: 5, hours: 6,
+};
+
+const BPV_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function BusinessPlanView({ chartAnimationDisabled = false, chartContainerRef }: BusinessPlanViewProps) {
   // Business context
@@ -224,24 +310,12 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
 
   const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
 
-  if (isLoading) {
-    return (
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <p className="text-muted-foreground text-sm">Loading business plan...</p>
-      </div>
-    );
-  }
-
   // Dynamic KPI cards from evaluated variables (sorted by unit priority)
-  const unitPriority: Record<import('@/types').VariableUnit, number> = {
-    currency: 0, percent: 1, ratio: 2, count: 3, months: 4, days: 5, hours: 6,
-  };
-
   const computedVariables = useMemo(() => {
     if (!definitions) return [];
     return Object.values(definitions)
       .filter((v) => v.type === 'computed')
-      .sort((a, b) => (unitPriority[a.unit] ?? 99) - (unitPriority[b.unit] ?? 99));
+      .sort((a, b) => (UNIT_PRIORITY[a.unit] ?? 99) - (UNIT_PRIORITY[b.unit] ?? 99));
   }, [definitions]);
 
   const primaryKpis = computedVariables.slice(0, 4);
@@ -258,9 +332,8 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       .slice(0, 3);
   }, [allVariables]);
 
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dynamicChartData = useMemo(() => {
-    return MONTHS.map((month) => {
+    return BPV_MONTHS.map((month) => {
       const point: Record<string, string | number> = { month };
       chartVariables.forEach((v) => {
         point[v.label] = evaluated[v.id] ?? 0;
@@ -270,6 +343,14 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
   }, [chartVariables, evaluated]);
 
   const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <p className="text-muted-foreground text-sm">Loading business plan...</p>
+      </div>
+    );
+  }
 
   function formatKpiValue(v: { id: string; unit: string }): string {
     const val = evaluated[v.id] ?? 0;
@@ -342,29 +423,13 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
         <>
           <SectionHeader number={getSectionNumber('market-analysis')} title="Market Analysis" id={`section-${getSectionNumber('market-analysis')}`} />
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Target Demographic</h3>
-                <p className="text-sm">Age: {marketAnalysis.targetDemographic.ageRange}</p>
-                <p className="text-sm">Location: {marketAnalysis.targetDemographic.location} ({marketAnalysis.targetDemographic.radius} mile radius)</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Market Size</h3>
-                <p className="text-sm leading-relaxed">{marketAnalysis.marketSize}</p>
-                {(marketAnalysis.tamDollars > 0 || marketAnalysis.targetMarketShare) && (
-                  <div className="flex gap-4 mt-2">
-                    {marketAnalysis.tamDollars > 0 && (
-                      <p className="text-sm"><span className="font-medium">TAM:</span> ${marketAnalysis.tamDollars.toLocaleString()}</p>
-                    )}
-                    {marketAnalysis.targetMarketShare && (
-                      <p className="text-sm"><span className="font-medium">Target Share:</span> {marketAnalysis.targetMarketShare}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* TAM / SAM / SOM */}
+            {marketAnalysis.enabledBlocks?.sizing !== false && marketAnalysis.marketSizing?.tam?.steps?.length > 0 && (
+              <MarketSizingExportBlock sizing={marketAnalysis.marketSizing} narrative={marketAnalysis.marketNarrative} />
+            )}
 
-            {marketAnalysis.competitors.length > 0 && (
+            {/* Competitors */}
+            {marketAnalysis.enabledBlocks?.competitors !== false && marketAnalysis.competitors.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Competitors</h3>
                 <table className="w-full text-sm border">
@@ -390,18 +455,62 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
               </div>
             )}
 
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Demographics</h3>
-              <p className="text-sm">Population: {marketAnalysis.demographics.population.toLocaleString()}</p>
-              {marketAnalysis.demographics.householdsWithKids > 0 && (
-                <p className="text-sm">Households with Kids: {marketAnalysis.demographics.householdsWithKids.toLocaleString()}</p>
-              )}
-              {marketAnalysis.demographics.annualTourists > 0 && (
-                <p className="text-sm">Annual Tourists: {marketAnalysis.demographics.annualTourists.toLocaleString()}</p>
-              )}
-              <p className="text-sm">Languages: {marketAnalysis.demographics.languages.join(', ')}</p>
-              <p className="text-sm">Income: {marketAnalysis.demographics.income}</p>
-            </div>
+            {/* Demographics */}
+            {marketAnalysis.enabledBlocks?.demographics !== false && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Demographics</h3>
+                <p className="text-sm">Population: {marketAnalysis.demographics.population.toLocaleString()}</p>
+                <p className="text-sm">Income: {marketAnalysis.demographics.income}</p>
+                {marketAnalysis.demographics.metrics?.map((m, i) => (
+                  <p key={i} className="text-sm">{m.label}: {m.value}{m.source ? ` (${m.source})` : ''}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Acquisition Funnel */}
+            {marketAnalysis.enabledBlocks?.acquisitionFunnel !== false && marketAnalysis.acquisitionFunnel?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Acquisition Funnel</h3>
+                <table className="w-full text-sm border">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left py-2 px-3 font-medium border-b">Stage</th>
+                      <th className="text-left py-2 px-3 font-medium border-b">Description</th>
+                      <th className="text-right py-2 px-3 font-medium border-b">Volume</th>
+                      <th className="text-right py-2 px-3 font-medium border-b">Conv. Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {marketAnalysis.acquisitionFunnel.map((s, i) => (
+                      <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                        <td className="py-2 px-3 border-b font-medium">{s.label}</td>
+                        <td className="py-2 px-3 border-b text-muted-foreground">{s.description}</td>
+                        <td className="py-2 px-3 border-b text-right tabular-nums">{s.volume.toLocaleString()}</td>
+                        <td className="py-2 px-3 border-b text-right tabular-nums">{s.conversionRate}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Adoption Model */}
+            {marketAnalysis.enabledBlocks?.adoptionModel !== false && marketAnalysis.adoptionModel && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Adoption Model</h3>
+                <p className="text-sm">Type: {marketAnalysis.adoptionModel.type === 's-curve' ? 'S-Curve (Logistic)' : 'Linear'} | Total Market: {marketAnalysis.adoptionModel.totalMarket.toLocaleString()} | Initial Users: {marketAnalysis.adoptionModel.initialUsers} | Growth Rate: {marketAnalysis.adoptionModel.growthRate} | Projection: {marketAnalysis.adoptionModel.projectionMonths} months</p>
+              </div>
+            )}
+
+            {/* Custom Metrics */}
+            {marketAnalysis.enabledBlocks?.customMetrics !== false && marketAnalysis.customMetrics?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Custom Metrics</h3>
+                {marketAnalysis.customMetrics.map((m, i) => (
+                  <p key={i} className="text-sm">{m.label}: {m.value}{m.source ? ` (${m.source})` : ''}</p>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

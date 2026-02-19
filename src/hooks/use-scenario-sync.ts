@@ -42,7 +42,7 @@ export function useScenarioSync() {
 
   // Keep the ref in sync with the atom value (for reading inside the debounce callback)
   const scenarioListRef = useRef(scenarioList);
-  scenarioListRef.current = scenarioList;
+  scenarioListRef.current = scenarioList; // eslint-disable-line react-hooks/refs
 
   const save = useCallback(async () => {
     if (!businessId) return;

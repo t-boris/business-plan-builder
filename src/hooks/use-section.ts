@@ -93,6 +93,7 @@ export function useSection<T extends BusinessPlanSection>(
     return () => {
       cancelled = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, sectionSlug]);
 
   // Debounced save to Firestore
@@ -144,7 +145,6 @@ export function useSection<T extends BusinessPlanSection>(
         }
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, sectionSlug]);
 
   const updateField = useCallback(
