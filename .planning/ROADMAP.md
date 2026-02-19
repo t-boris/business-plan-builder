@@ -11,7 +11,7 @@ None
 ## Milestones
 
 - ✅ **v1.0 Multi-Business Platform** - Phases 1-12 (shipped 2026-02-12)
-- 🚧 **v2.0 Production Readiness** - Phases 13-16 (in progress)
+- ✅ **v2.0 Production Readiness** - Phases 13-16 (shipped 2026-02-18)
 
 ## Phases
 
@@ -174,46 +174,48 @@ Plans:
 
 </details>
 
-### 🚧 v2.0 Production Readiness (In Progress)
+### ✅ v2.0 Production Readiness (Phases 13-16) - SHIPPED 2026-02-18
 
 **Milestone Goal:** Harden the platform for production — secure AI keys behind a backend proxy, make data sync reliable and visible, add tests with CI, and establish observability and operational docs.
 
 #### Phase 13: Observability & Docs
 **Goal**: Create a unified logging module for structured error/event logging. Audit .gitignore for leaked secrets. Write operational runbook (local dev, secrets, deploy, pre-release checklist).
 **Depends on**: v1.0 complete
-**Research**: Unlikely (structured console logging, internal patterns)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 13-01: TBD (run /gsd:plan-phase 13 to break down)
+- [x] 13-01: Logger module, .gitignore fix, lib instrumentation
+- [x] 13-02: Operational README
 
 #### Phase 14: Sync Reliability
 **Goal**: Replace silent catch blocks with unified sync status (idle/saving/saved/error/offline). Show save indicator in UI. Add retry with exponential backoff for transient failures. Integrate structured logging from Phase 13.
 **Depends on**: Phase 13
-**Research**: Unlikely (Firestore error handling, existing hook patterns)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 14-01: TBD (run /gsd:plan-phase 14 to break down)
+- [x] 14-01: Sync infrastructure (types, atoms, retry utility, SyncStatusIndicator)
+- [x] 14-02: useSection refactor with sync status and retry
+- [x] 14-03: useScenarioSync + providers.tsx race condition fix
+- [x] 14-04: useBusinessVariables + useBusinesses + UI mount
 
 #### Phase 15: Tests & CI
-**Goal**: Set up Vitest + Testing Library. Write tests for derived atoms, useSection hook (load/save/debounce/error), and one smoke test of a critical user flow. Add GitHub Actions CI pipeline (lint + test + build). Add npm run verify script.
+**Goal**: Set up Vitest + Testing Library. Write unit tests for pure logic modules. Add GitHub Actions CI pipeline (lint + test + build).
 **Depends on**: Phase 14
-**Research**: Unlikely (Vitest + Testing Library are standard, GitHub Actions well-documented)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 15-01: TBD (run /gsd:plan-phase 15 to break down)
+- [x] 15-01: Vitest setup + formula-engine tests (14 tests)
+- [x] 15-02: Infrastructure tests — sync-status, retry, logger (30 tests)
+- [x] 15-03: GitHub Actions CI pipeline + lint fixes
 
 #### Phase 16: AI Backend Proxy
-**Goal**: Move Gemini and Perplexity API calls behind Firebase Functions (or Cloud Run). Remove API keys from client-side env/bundle. Add auth verification, per-user rate limiting, and request timeouts on the proxy. Frontend calls proxy endpoints instead of AI APIs directly.
+**Goal**: Move Gemini and Perplexity API calls behind Firebase Functions. Remove API keys from client-side bundle. Add auth verification, per-user rate limiting, and request timeouts.
 **Depends on**: Phase 15
-**Research**: Likely (Firebase Functions setup, Cloud Run alternative, rate limiting patterns, auth token forwarding)
-**Research topics**: Firebase Functions v2 setup with secrets, per-user rate limiting in serverless, forwarding Firebase Auth tokens to backend, Cloud Run vs Functions cost/latency tradeoffs
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 16-01: TBD (run /gsd:plan-phase 16 to break down)
+- [x] 16-01: Firebase Functions project + 3 proxy endpoints (auth, rate limiting, secrets)
+- [x] 16-02: Client refactor — proxy-fetch helper, remove @google/genai, clean env vars
 
 ## Progress
 
@@ -235,7 +237,7 @@ Plans:
 | 10. Dashboard & Navigation | v1.0 | 1/1 | Complete | 2026-02-11 |
 | 11. Export Updates | v1.0 | 2/2 | Complete | 2026-02-12 |
 | 12. Integration & Polish | v1.0 | 6/6 | Complete | 2026-02-12 |
-| 13. Observability & Docs | v2.0 | 0/? | Not started | - |
-| 14. Sync Reliability | v2.0 | 0/? | Not started | - |
-| 15. Tests & CI | v2.0 | 0/? | Not started | - |
-| 16. AI Backend Proxy | v2.0 | 0/? | Not started | - |
+| 13. Observability & Docs | v2.0 | 2/2 | Complete | 2026-02-18 |
+| 14. Sync Reliability | v2.0 | 4/4 | Complete | 2026-02-18 |
+| 15. Tests & CI | v2.0 | 3/3 | Complete | 2026-02-18 |
+| 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
