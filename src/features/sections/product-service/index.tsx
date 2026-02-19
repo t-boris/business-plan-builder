@@ -96,6 +96,12 @@ export function ProductService() {
   }
 
   function removeOffering(index: number) {
+    const offering = displayData.offerings[index];
+    if (offering?.image?.storagePath) {
+      removeImage(offering.image.storagePath).catch(() => {
+        // Best-effort cleanup — do not block offering deletion
+      });
+    }
     updateData((prev) => ({
       ...prev,
       offerings: prev.offerings.filter((_, i) => i !== index),
