@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 20 next
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 20 complete
 
 ## Current Position
 
 Phase: 20 of 20 (Generic Industry-Agnostic Operations)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-19 — Completed 20-03-PLAN.md
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-02-19 — Completed 20-04-PLAN.md
 
-Progress: ██████████████████████████████░░ 66/67
+Progress: ████████████████████████████████ 67/67
 
 ## Performance Metrics
 
@@ -60,7 +60,7 @@ Progress: ███████████████████████�
 | 17-generic-product-service-offerings | 6/6 | Complete |
 | 18-advanced-scenario-engine | 8/8 | Complete |
 | 19-granular-field-level-ai-generation | 2/2 | Complete |
-| 20-generic-industry-agnostic-operations | 3/4 | In Progress |
+| 20-generic-industry-agnostic-operations | 4/4 | Complete |
 
 ## Accumulated Context
 
@@ -76,6 +76,7 @@ Progress: ███████████████████████�
 - Phase 19 added: Granular Field-Level AI Generation
 - Phase 19 complete: All 2 plans shipped (2026-02-19)
 - Phase 20 added: Generic Industry-Agnostic Operations
+- Phase 20 complete: All 4 plans shipped (2026-02-19)
 
 ### Decisions
 
@@ -104,6 +105,7 @@ Progress: ███████████████████████�
 - Phase 20-01: Generic Operations types (WorkforceMember/CapacityConfig/CostItem/CostDriverType/OperationalMetric), normalizeOperations at read boundary, computeOperationsCosts pure function, 160h/month workforce calc
 - Phase 20-02: 8-section collapsible Operations editor, no AiFieldTrigger needed (quantitative data only), Collapsible+Select from radix-ui, recharts charts removed
 - Phase 20-03: Single OperationsSchema for all business types, industry differentiation via overlay prompts only, all 6 overlays structured as Workforce/Capacity/Variable/Fixed/Metrics
+- Phase 20-04: Web+PDF export uses normalizeOperations+computeOperationsCosts at read boundary, cost summary as 4 stat cards, 17 new tests (10 normalize + 7 compute), 82 total tests green
 
 ### Deferred Issues
 
@@ -116,5 +118,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 20-03-PLAN.md (AI Schema + Prompts Rewrite)
+Stopped at: Completed 20-04-PLAN.md (Export Update + Tests) — Phase 20 complete
 Resume file: None
