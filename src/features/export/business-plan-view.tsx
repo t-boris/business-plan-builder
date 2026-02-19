@@ -7,6 +7,8 @@ import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
 import { StatCard } from '@/components/stat-card';
 import { normalizeProductService } from '@/features/sections/product-service/normalize';
+import { normalizeOperations } from '@/features/sections/operations/normalize';
+import { computeOperationsCosts } from '@/features/sections/operations/compute';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -19,7 +21,6 @@ import type {
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
-  MarketingChannelName,
   RiskSeverity,
   ComplianceStatus,
   TaskStatus,
@@ -69,13 +70,6 @@ const defaultProductService: ProductService = {
   addOns: [],
 };
 
-const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
-  'meta-ads': 'Meta Ads',
-  'google-ads': 'Google Ads',
-  'organic-social': 'Organic Social',
-  partnerships: 'Partnerships',
-};
-
 const defaultMarketing: MarketingStrategy = {
   channels: [],
   offers: [],
@@ -83,22 +77,12 @@ const defaultMarketing: MarketingStrategy = {
 };
 
 const defaultOperations: Operations = {
-  crew: [],
-  hoursPerEvent: 0,
-  capacity: { maxBookingsPerDay: 0, maxBookingsPerWeek: 0, maxBookingsPerMonth: 0 },
-  travelRadius: 0,
+  workforce: [],
+  capacity: { outputUnitLabel: '', plannedOutputPerMonth: 0, maxOutputPerDay: 0, maxOutputPerWeek: 0, maxOutputPerMonth: 0, utilizationRate: 0 },
+  costItems: [],
   equipment: [],
   safetyProtocols: [],
-  costBreakdown: {
-    suppliesPerChild: 0, participantsPerEvent: 0, museumTicketPrice: 0, ticketsPerEvent: 0,
-    fuelPricePerGallon: 0, vehicleMPG: 0, avgRoundTripMiles: 0, parkingPerEvent: 0,
-    ownerSalary: 0, marketingPerson: 0, eventCoordinator: 0,
-    vehiclePayment: 0, vehicleInsurance: 0, vehicleMaintenance: 0,
-    crmSoftware: 0, websiteHosting: 0, aiChatbot: 0, cloudServices: 0, phonePlan: 0,
-    contentCreation: 0, graphicDesign: 0,
-    storageRent: 0, equipmentAmortization: 0, businessLicenses: 0, miscFixed: 0,
-    customExpenses: [],
-  },
+  operationalMetrics: [],
 };
 
 const defaultFinancials: FinancialProjectionsType = {
@@ -533,11 +517,13 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                 {normalizedPS.offerings.map((offering) => (
                   <div key={offering.id} className="border rounded-lg overflow-hidden">
                     {offering.image?.url && (
-                      <img
-                        src={offering.image.url}
-                        alt={offering.image.alt || offering.name}
-                        className="w-full h-24 object-cover"
-                      />
+                      <div className="h-24 bg-muted/30">
+                        <img
+                          src={offering.image.url}
+                          alt={offering.image.alt || offering.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
                     )}
                     <div className="p-4">
                       <h4 className="font-semibold text-sm">{offering.name}</h4>
@@ -594,7 +580,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
             <div className="grid grid-cols-2 gap-4">
               {marketingStrategy.channels.map((ch, i) => (
                 <div key={i} className="border rounded-lg p-4">
-                  <h4 className="font-semibold text-sm">{CHANNEL_DISPLAY_NAMES[ch.name] || ch.name}</h4>
+                  <h4 className="font-semibold text-sm">{ch.name}</h4>
                   <div className="flex gap-4 text-xs text-muted-foreground mt-1">
                     <span>Budget: {formatCurrency(ch.budget, currencyCode)}/mo</span>
                     <span>Leads: {ch.expectedLeads}</span>
@@ -630,73 +616,162 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       )}
 
       {/* Section 5: Operations */}
-      {enabledSections.includes('operations') && (
-        <>
-          <SectionHeader number={getSectionNumber('operations')} title="Operations" id={`section-${getSectionNumber('operations')}`} />
-          <div className="space-y-4 py-4">
-            {operations.crew.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Crew</h3>
-                <table className="w-full text-sm border">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="text-left py-2 px-3 font-medium border-b">Role</th>
-                      <th className="text-right py-2 px-3 font-medium border-b">Hourly Rate</th>
-                      <th className="text-right py-2 px-3 font-medium border-b">Count</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {operations.crew.map((m, i) => (
-                      <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
-                        <td className="py-2 px-3 border-b font-medium">{m.role}</td>
-                        <td className="py-2 px-3 border-b text-right tabular-nums">${m.hourlyRate}/hr</td>
-                        <td className="py-2 px-3 border-b text-right tabular-nums">{m.count}</td>
+      {enabledSections.includes('operations') && (() => {
+        const ops = normalizeOperations(operations);
+        const costSummary = computeOperationsCosts(ops);
+        return (
+          <>
+            <SectionHeader number={getSectionNumber('operations')} title="Operations" id={`section-${getSectionNumber('operations')}`} />
+            <div className="space-y-4 py-4">
+              {ops.workforce.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Workforce</h3>
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left py-2 px-3 font-medium border-b">Role</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Rate/Hour</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Count</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {ops.workforce.map((m, i) => (
+                        <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                          <td className="py-2 px-3 border-b font-medium">{m.role}</td>
+                          <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(m.ratePerHour, currencyCode)}/hr</td>
+                          <td className="py-2 px-3 border-b text-right tabular-nums">{m.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {ops.capacity.plannedOutputPerMonth > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Capacity</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {ops.capacity.outputUnitLabel && (
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Output Unit</p>
+                        <p className="text-lg font-bold">{ops.capacity.outputUnitLabel}</p>
+                      </div>
+                    )}
+                    <div className="border rounded-lg p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Planned/Month</p>
+                      <p className="text-lg font-bold tabular-nums">{ops.capacity.plannedOutputPerMonth}</p>
+                    </div>
+                    {ops.capacity.maxOutputPerDay > 0 && (
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Max/Day</p>
+                        <p className="text-lg font-bold tabular-nums">{ops.capacity.maxOutputPerDay}</p>
+                      </div>
+                    )}
+                    {ops.capacity.maxOutputPerWeek > 0 && (
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Max/Week</p>
+                        <p className="text-lg font-bold tabular-nums">{ops.capacity.maxOutputPerWeek}</p>
+                      </div>
+                    )}
+                    {ops.capacity.maxOutputPerMonth > 0 && (
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Max/Month</p>
+                        <p className="text-lg font-bold tabular-nums">{ops.capacity.maxOutputPerMonth}</p>
+                      </div>
+                    )}
+                    {ops.capacity.utilizationRate > 0 && (
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Utilization Rate</p>
+                        <p className="text-lg font-bold tabular-nums">{ops.capacity.utilizationRate}%</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {costSummary.monthlyOperationsTotal > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Cost Summary</h3>
+                  <div className="stat-grid">
+                    <StatCard label="Variable Costs/mo" value={formatCurrency(costSummary.variableMonthlyTotal, currencyCode)} />
+                    <StatCard label="Fixed Costs/mo" value={formatCurrency(costSummary.fixedMonthlyTotal, currencyCode)} />
+                    <StatCard label="Workforce/mo" value={formatCurrency(costSummary.workforceMonthlyTotal, currencyCode)} />
+                    <StatCard label="Total Operations/mo" value={formatCurrency(costSummary.monthlyOperationsTotal, currencyCode)} />
+                  </div>
+                </div>
+              )}
+
+              {ops.costItems.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Cost Items</h3>
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left py-2 px-3 font-medium border-b">Category</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Type</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Rate</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Driver</th>
+                        <th className="text-right py-2 px-3 font-medium border-b">Monthly</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ops.costItems.map((item, i) => {
+                        const monthly = item.rate * item.driverQuantityPerMonth;
+                        return (
+                          <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                            <td className="py-2 px-3 border-b font-medium">{item.category}</td>
+                            <td className="py-2 px-3 border-b capitalize">{item.type}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(item.rate, currencyCode)}</td>
+                            <td className="py-2 px-3 border-b">{item.driverType}</td>
+                            <td className="py-2 px-3 border-b text-right tabular-nums">{formatCurrency(monthly, currencyCode)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {ops.operationalMetrics.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Operational Metrics</h3>
+                  <div className="stat-grid">
+                    {ops.operationalMetrics.map((m, i) => (
+                      <StatCard
+                        key={i}
+                        label={m.name}
+                        value={`${m.value} ${m.unit}${m.target > 0 ? ` (target: ${m.target} ${m.unit})` : ''}`}
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+                </div>
+              )}
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Daily Capacity</p>
-                <p className="text-lg font-bold tabular-nums">{operations.capacity.maxBookingsPerDay}</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Weekly Capacity</p>
-                <p className="text-lg font-bold tabular-nums">{operations.capacity.maxBookingsPerWeek}</p>
-              </div>
-              <div className="border rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">Monthly Capacity</p>
-                <p className="text-lg font-bold tabular-nums">{operations.capacity.maxBookingsPerMonth}</p>
-              </div>
+              {ops.equipment.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Equipment</h3>
+                  <ul className="list-disc list-inside text-sm space-y-0.5">
+                    {ops.equipment.map((e, i) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {ops.safetyProtocols.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Safety Protocols</h3>
+                  <ol className="list-decimal list-inside text-sm space-y-0.5">
+                    {ops.safetyProtocols.map((p, i) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
             </div>
-
-            {operations.equipment.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Equipment</h3>
-                <ul className="list-disc list-inside text-sm space-y-0.5">
-                  {operations.equipment.map((e, i) => (
-                    <li key={i}>{e}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {operations.safetyProtocols.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Safety Protocols</h3>
-                <ol className="list-decimal list-inside text-sm space-y-0.5">
-                  {operations.safetyProtocols.map((p, i) => (
-                    <li key={i}>{p}</li>
-                  ))}
-                </ol>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
 
       {/* Section 6: Financial Projections */}
       {enabledSections.includes('financial-projections') && (

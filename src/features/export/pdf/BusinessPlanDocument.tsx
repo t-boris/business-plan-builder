@@ -4,6 +4,8 @@ import { CoverPage } from './CoverPage';
 import { SectionPage } from './SectionPage';
 import { SECTION_SLUGS } from '@/lib/constants';
 import { normalizeProductService } from '@/features/sections/product-service/normalize';
+import { normalizeOperations } from '@/features/sections/operations/normalize';
+import { computeOperationsCosts } from '@/features/sections/operations/compute';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -15,7 +17,6 @@ import type {
   KpisMetrics,
   LaunchPlan,
   MonthlyCosts,
-  MarketingChannelName,
   RiskSeverity,
   ComplianceStatus,
   TaskStatus,
@@ -38,13 +39,6 @@ function formatCurrency(value: number, currency = 'USD'): string {
 function sumCosts(costs: MonthlyCosts): number {
   return costs.marketing + costs.labor + costs.supplies + costs.museum + costs.transport;
 }
-
-const CHANNEL_NAMES: Record<MarketingChannelName, string> = {
-  'meta-ads': 'Meta Ads',
-  'google-ads': 'Google Ads',
-  'organic-social': 'Organic Social',
-  partnerships: 'Partnerships',
-};
 
 const severityBadge: Record<RiskSeverity, keyof typeof styles> = {
   critical: 'badgeCritical',
@@ -447,7 +441,7 @@ export function BusinessPlanDocument({
               <SubsectionTitle>Channels</SubsectionTitle>
               {marketingStrategy.channels.map((ch, i) => (
                 <View key={i} style={styles.infoCard}>
-                  <Text style={styles.infoCardTitle}>{CHANNEL_NAMES[ch.name] || ch.name}</Text>
+                  <Text style={styles.infoCardTitle}>{ch.name}</Text>
                   <View style={[styles.row, { marginBottom: 4 }]}>
                     <Text style={styles.smallText}>Budget: {formatCurrency(ch.budget, currencyCode)}/mo</Text>
                     <Text style={styles.smallText}>  Leads: {ch.expectedLeads}</Text>
@@ -481,62 +475,128 @@ export function BusinessPlanDocument({
       )}
 
       {/* Section: Operations */}
-      {enabledSlugs.includes('operations') && (
-        <SectionPage number={getSectionNumber('operations')} title="Operations">
-          {operations ? (
-            <View>
-              {operations.crew.length > 0 && (
-                <View>
-                  <SubsectionTitle>Crew</SubsectionTitle>
-                  <View style={styles.table}>
-                    <View style={styles.tableHeaderRow}>
-                      <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Role</Text>
-                      <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Hourly Rate</Text>
-                      <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Count</Text>
+      {enabledSlugs.includes('operations') && (() => {
+        const ops = operations ? normalizeOperations(operations) : null;
+        const costSummary = ops ? computeOperationsCosts(ops) : null;
+        return (
+          <SectionPage number={getSectionNumber('operations')} title="Operations">
+            {ops ? (
+              <View>
+                {ops.workforce.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Workforce</SubsectionTitle>
+                    <View style={styles.table}>
+                      <View style={styles.tableHeaderRow}>
+                        <Text style={[styles.tableHeaderCell, { width: '50%' }]}>Role</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Rate/Hour</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '25%', textAlign: 'right' }]}>Count</Text>
+                      </View>
+                      {ops.workforce.map((m, i) => (
+                        <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                          <Text style={[styles.tableCellBold, { width: '50%' }]}>{m.role}</Text>
+                          <Text style={[styles.tableCellRight, { width: '25%' }]}>{formatCurrency(m.ratePerHour, currencyCode)}/hr</Text>
+                          <Text style={[styles.tableCellRight, { width: '25%' }]}>{m.count}</Text>
+                        </View>
+                      ))}
                     </View>
-                    {operations.crew.map((m, i) => (
-                      <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
-                        <Text style={[styles.tableCellBold, { width: '50%' }]}>{m.role}</Text>
-                        <Text style={[styles.tableCellRight, { width: '25%' }]}>{formatCurrency(m.hourlyRate, currencyCode)}/hr</Text>
-                        <Text style={[styles.tableCellRight, { width: '25%' }]}>{m.count}</Text>
+                  </View>
+                )}
+
+                {ops.capacity.plannedOutputPerMonth > 0 && (
+                  <View>
+                    <SubsectionTitle>Capacity</SubsectionTitle>
+                    <View style={styles.statCardRow}>
+                      {ops.capacity.outputUnitLabel ? (
+                        <StatCard label="Output Unit" value={ops.capacity.outputUnitLabel} />
+                      ) : null}
+                      <StatCard label="Planned/Month" value={String(ops.capacity.plannedOutputPerMonth)} />
+                      {ops.capacity.maxOutputPerDay > 0 && <StatCard label="Max/Day" value={String(ops.capacity.maxOutputPerDay)} />}
+                      {ops.capacity.maxOutputPerWeek > 0 && <StatCard label="Max/Week" value={String(ops.capacity.maxOutputPerWeek)} />}
+                      {ops.capacity.maxOutputPerMonth > 0 && <StatCard label="Max/Month" value={String(ops.capacity.maxOutputPerMonth)} />}
+                      {ops.capacity.utilizationRate > 0 && <StatCard label="Utilization" value={`${ops.capacity.utilizationRate}%`} />}
+                    </View>
+                  </View>
+                )}
+
+                {costSummary && costSummary.monthlyOperationsTotal > 0 && (
+                  <View>
+                    <SubsectionTitle>Cost Summary</SubsectionTitle>
+                    <View style={styles.statCardRow}>
+                      <StatCard label="Variable/mo" value={formatCurrency(costSummary.variableMonthlyTotal, currencyCode)} />
+                      <StatCard label="Fixed/mo" value={formatCurrency(costSummary.fixedMonthlyTotal, currencyCode)} />
+                      <StatCard label="Workforce/mo" value={formatCurrency(costSummary.workforceMonthlyTotal, currencyCode)} />
+                      <StatCard label="Total Ops/mo" value={formatCurrency(costSummary.monthlyOperationsTotal, currencyCode)} />
+                    </View>
+                  </View>
+                )}
+
+                {ops.costItems.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Cost Items</SubsectionTitle>
+                    <View style={styles.table}>
+                      <View style={styles.tableHeaderRow}>
+                        <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Category</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '15%' }]}>Type</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Rate</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Driver</Text>
+                        <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Monthly</Text>
+                      </View>
+                      {ops.costItems.map((item, i) => {
+                        const monthly = item.rate * item.driverQuantityPerMonth;
+                        return (
+                          <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                            <Text style={[styles.tableCellBold, { width: '25%' }]}>{item.category}</Text>
+                            <Text style={[styles.tableCell, { width: '15%' }]}>{item.type}</Text>
+                            <Text style={[styles.tableCellRight, { width: '20%' }]}>{formatCurrency(item.rate, currencyCode)}</Text>
+                            <Text style={[styles.tableCell, { width: '20%' }]}>{item.driverType}</Text>
+                            <Text style={[styles.tableCellRight, { width: '20%' }]}>{formatCurrency(monthly, currencyCode)}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {ops.operationalMetrics.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Operational Metrics</SubsectionTitle>
+                    <View style={styles.statCardRow}>
+                      {ops.operationalMetrics.map((m, i) => (
+                        <StatCard
+                          key={i}
+                          label={m.name}
+                          value={`${m.value} ${m.unit}${m.target > 0 ? ` (target: ${m.target})` : ''}`}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {ops.equipment.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Equipment</SubsectionTitle>
+                    <BulletList items={ops.equipment} />
+                  </View>
+                )}
+
+                {ops.safetyProtocols.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Safety Protocols</SubsectionTitle>
+                    {ops.safetyProtocols.map((p, i) => (
+                      <View key={i} style={styles.listItem}>
+                        <Text style={styles.listBullet}>{i + 1}.</Text>
+                        <Text style={styles.listText}>{p}</Text>
                       </View>
                     ))}
                   </View>
-                </View>
-              )}
-
-              <SubsectionTitle>Capacity</SubsectionTitle>
-              <View style={styles.statCardRow}>
-                <StatCard label="Daily" value={String(operations.capacity.maxBookingsPerDay)} />
-                <StatCard label="Weekly" value={String(operations.capacity.maxBookingsPerWeek)} />
-                <StatCard label="Monthly" value={String(operations.capacity.maxBookingsPerMonth)} />
-                <StatCard label="Travel Radius" value={`${operations.travelRadius} mi`} />
+                )}
               </View>
-
-              {operations.equipment.length > 0 && (
-                <View>
-                  <SubsectionTitle>Equipment</SubsectionTitle>
-                  <BulletList items={operations.equipment} />
-                </View>
-              )}
-
-              {operations.safetyProtocols.length > 0 && (
-                <View>
-                  <SubsectionTitle>Safety Protocols</SubsectionTitle>
-                  {operations.safetyProtocols.map((p, i) => (
-                    <View key={i} style={styles.listItem}>
-                      <Text style={styles.listBullet}>{i + 1}.</Text>
-                      <Text style={styles.listText}>{p}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : (
-            <EmptyState section="Operations" />
-          )}
-        </SectionPage>
-      )}
+            ) : (
+              <EmptyState section="Operations" />
+            )}
+          </SectionPage>
+        );
+      })()}
 
       {/* Section: Financial Projections */}
       {enabledSlugs.includes('financial-projections') && (
