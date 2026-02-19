@@ -231,7 +231,7 @@ Plans:
 Plans:
 - [x] 17-01: Domain model (Offering/AddOn types) + normalization function with tests
 - [x] 17-02: Firebase Storage setup + image upload hook
-- [ ] 17-03: Product & Service UI rewrite (offering cards, add-on catalog, multi-select linking)
+- [x] 17-03: Product & Service UI rewrite (offering cards, add-on catalog, multi-select linking)
 - [x] 17-04: AI schema + prompts update + industry overlays for product-service
 - [ ] 17-05: Offering image upload UI (upload/preview/replace/remove)
 - [ ] 17-06: Export update (web + PDF) + final verification
