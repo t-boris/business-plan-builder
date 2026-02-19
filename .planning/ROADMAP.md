@@ -2,11 +2,16 @@
 
 ## Overview
 
-Transform a single-business Fun Box planning app into a generic multi-business platform. The journey goes: new data model → business management → strip hardcoded content → generic configuration → dynamic scenario engine → AI adaptation → sharing → polish. The financial calculator and scenario modeling are the core value; text sections are secondary. Every phase must preserve the existing architecture patterns (Jotai atoms, useSection hook, feature modules) while making them business-aware.
+Transform a single-business Fun Box planning app into a generic multi-business platform, then harden it for production with security, reliability, testing, and observability.
 
 ## Domain Expertise
 
 None
+
+## Milestones
+
+- ✅ **v1.0 Multi-Business Platform** - Phases 1-12 (shipped 2026-02-12)
+- 🚧 **v2.0 Production Readiness** - Phases 13-16 (in progress)
 
 ## Phases
 
@@ -16,7 +21,10 @@ None
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Firestore Data Model** - New multi-business data structure, TypeScript types, Firestore service layer
+<details>
+<summary>✅ v1.0 Multi-Business Platform (Phases 1-12) - SHIPPED 2026-02-12</summary>
+
+- [x] **Phase 1: Firestore Data Model** - New multi-business data structure, TypeScript types, Firestore service layer
 - [x] **Phase 2: Business CRUD** - Create, list, switch, delete businesses with selector UI
 - [x] **Phase 3: Dynamic Business Context** - Replace hardcoded plan ID, wire atoms/hooks/routing to active business
 - [x] **Phase 4: Strip Hardcoded Content** - Remove Fun Box from 12+ files, create generic defaults system
@@ -29,8 +37,6 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 11: Export Updates** - Fix PDF export and business plan view for generic businesses
 - [x] **Phase 12: Integration & Polish** - End-to-end verification, edge cases, UI polish
 
-## Phase Details
-
 ### Phase 1: Firestore Data Model
 **Goal**: Design and implement the new multi-business Firestore document structure and TypeScript types. This is the foundation everything else builds on.
 **Depends on**: Nothing (first phase)
@@ -39,7 +45,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01: Define TypeScript types and interfaces for multi-business data model (Business, BusinessConfig, BusinessProfile)
-- [ ] 01-02: Implement new Firestore service layer (business CRUD operations, section/scenario paths scoped to business)
+- [x] 01-02: Implement new Firestore service layer (business CRUD operations, section/scenario paths scoped to business)
 
 ### Phase 2: Business CRUD
 **Goal**: Users can create new businesses, see a list of their businesses, switch between them, and delete businesses. Business selector appears in UI.
@@ -166,25 +172,70 @@ Plans:
 - [x] 12-05: Section editors part 2 — Operations, Financial Projections, Risks, KPIs, Launch Plan
 - [x] 12-06: Scenario engine & export polish — scenario modeling tool, business plan view, AI components
 
+</details>
+
+### 🚧 v2.0 Production Readiness (In Progress)
+
+**Milestone Goal:** Harden the platform for production — secure AI keys behind a backend proxy, make data sync reliable and visible, add tests with CI, and establish observability and operational docs.
+
+#### Phase 13: Observability & Docs
+**Goal**: Create a unified logging module for structured error/event logging. Audit .gitignore for leaked secrets. Write operational runbook (local dev, secrets, deploy, pre-release checklist).
+**Depends on**: v1.0 complete
+**Research**: Unlikely (structured console logging, internal patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 13-01: TBD (run /gsd:plan-phase 13 to break down)
+
+#### Phase 14: Sync Reliability
+**Goal**: Replace silent catch blocks with unified sync status (idle/saving/saved/error/offline). Show save indicator in UI. Add retry with exponential backoff for transient failures. Integrate structured logging from Phase 13.
+**Depends on**: Phase 13
+**Research**: Unlikely (Firestore error handling, existing hook patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 14-01: TBD (run /gsd:plan-phase 14 to break down)
+
+#### Phase 15: Tests & CI
+**Goal**: Set up Vitest + Testing Library. Write tests for derived atoms, useSection hook (load/save/debounce/error), and one smoke test of a critical user flow. Add GitHub Actions CI pipeline (lint + test + build). Add npm run verify script.
+**Depends on**: Phase 14
+**Research**: Unlikely (Vitest + Testing Library are standard, GitHub Actions well-documented)
+**Plans**: TBD
+
+Plans:
+- [ ] 15-01: TBD (run /gsd:plan-phase 15 to break down)
+
+#### Phase 16: AI Backend Proxy
+**Goal**: Move Gemini and Perplexity API calls behind Firebase Functions (or Cloud Run). Remove API keys from client-side env/bundle. Add auth verification, per-user rate limiting, and request timeouts on the proxy. Frontend calls proxy endpoints instead of AI APIs directly.
+**Depends on**: Phase 15
+**Research**: Likely (Firebase Functions setup, Cloud Run alternative, rate limiting patterns, auth token forwarding)
+**Research topics**: Firebase Functions v2 setup with secrets, per-user rate limiting in serverless, forwarding Firebase Auth tokens to backend, Cloud Run vs Functions cost/latency tradeoffs
+**Plans**: TBD
+
+Plans:
+- [ ] 16-01: TBD (run /gsd:plan-phase 16 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+- v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+- v2.0: 13 → 14 → 15 → 16
 
-Note: Phase 6 can start in parallel with Phases 2-5 (depends only on Phase 1).
-Phase 9 can start after Phase 2 (independent of Phases 3-8).
-
-| Phase | Plans Complete | Status | Completed |
-|-------|---------------|--------|-----------|
-| 1. Firestore Data Model | 2/2 | Complete | 2026-02-11 |
-| 2. Business CRUD | 5/5 | Complete | 2026-02-11 |
-| 3. Dynamic Business Context | 2/2 | Complete | 2026-02-11 |
-| 4. Strip Hardcoded Content | 3/3 | Complete | 2026-02-12 |
-| 5. Business Profile & Section Config | 2/2 | Complete | 2026-02-12 |
-| 6. Variable Library | 4/4 | Complete | 2026-02-12 |
-| 7. Generic Scenario Engine | 4/4 | Complete | 2026-02-12 |
-| 8. Business-Aware AI | 2/2 | Complete | 2026-02-12 |
-| 9. Sharing & Access | 3/3 | Complete | 2026-02-12 |
-| 10. Dashboard & Navigation | 1/1 | Complete | 2026-02-11 |
-| 11. Export Updates | 2/2 | Complete | 2026-02-12 |
-| 12. Integration & Polish | 6/6 | Complete | 2026-02-12 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|---------------|--------|-----------|
+| 1. Firestore Data Model | v1.0 | 2/2 | Complete | 2026-02-11 |
+| 2. Business CRUD | v1.0 | 5/5 | Complete | 2026-02-11 |
+| 3. Dynamic Business Context | v1.0 | 2/2 | Complete | 2026-02-11 |
+| 4. Strip Hardcoded Content | v1.0 | 3/3 | Complete | 2026-02-12 |
+| 5. Business Profile & Section Config | v1.0 | 2/2 | Complete | 2026-02-12 |
+| 6. Variable Library | v1.0 | 4/4 | Complete | 2026-02-12 |
+| 7. Generic Scenario Engine | v1.0 | 4/4 | Complete | 2026-02-12 |
+| 8. Business-Aware AI | v1.0 | 2/2 | Complete | 2026-02-12 |
+| 9. Sharing & Access | v1.0 | 3/3 | Complete | 2026-02-12 |
+| 10. Dashboard & Navigation | v1.0 | 1/1 | Complete | 2026-02-11 |
+| 11. Export Updates | v1.0 | 2/2 | Complete | 2026-02-12 |
+| 12. Integration & Polish | v1.0 | 6/6 | Complete | 2026-02-12 |
+| 13. Observability & Docs | v2.0 | 0/? | Not started | - |
+| 14. Sync Reliability | v2.0 | 0/? | Not started | - |
+| 15. Tests & CI | v2.0 | 0/? | Not started | - |
+| 16. AI Backend Proxy | v2.0 | 0/? | Not started | - |
