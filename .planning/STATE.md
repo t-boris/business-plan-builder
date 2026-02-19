@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 18 (Advanced Scenario Engine)
-Plan: 1 of 8 in current phase
+Plan: 2 of 8 in current phase
 Status: In progress
-Last activity: 2026-02-19 — Completed 18-01-PLAN.md
+Last activity: 2026-02-19 — Completed 18-02-PLAN.md
 
-Progress: ██████░░░░░░░░░░ 1/8
+Progress: ████████░░░░░░░░ 2/8
 
 ## Performance Metrics
 
@@ -58,7 +58,7 @@ Progress: ██████░░░░░░░░░░ 1/8
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 17-generic-product-service-offerings | 6/6 | Complete |
-| 18-advanced-scenario-engine | 1/8 | In progress |
+| 18-advanced-scenario-engine | 2/8 | In progress |
 
 ## Accumulated Context
 
@@ -86,6 +86,7 @@ Progress: ██████░░░░░░░░░░ 1/8
 - Phase 17-05: Per-offering image upload with progress, hover overlay for replace/remove, Storage cleanup on offering deletion
 - Phase 17-06: Web + PDF export updated for Offering model with images, normalizeProductService at read boundary
 - Phase 18-01: DynamicScenario v2 with optional fields, normalizeScenario at read boundary, SectionVariant CRUD as subcollection
+- Phase 18-02: effective-plan.ts pure merge (base->variant->override), arrays replace not concat, one-level deep object merge, variantRefs/sectionOverrides atoms
 
 ### Deferred Issues
 
@@ -98,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 18-01-PLAN.md (data model v2 + backward compatibility)
+Stopped at: Completed 18-02-PLAN.md (effective plan composition + v2 scenario atoms)
 Resume file: None
