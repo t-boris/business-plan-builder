@@ -69,6 +69,9 @@ export function useSection<T extends BusinessPlanSection>(
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const baseDataRef = useRef<T>(baseData);
   const effectiveDataRef = useRef<T>(effectiveData);
+  // Track whether data has been loaded from Firestore at least once.
+  // Prevents unmount flush from saving defaults before real data arrives.
+  const hasLoadedRef = useRef(false);
 
   // Keep base data ref in sync for flush/save
   useEffect(() => {
@@ -91,6 +94,7 @@ export function useSection<T extends BusinessPlanSection>(
     // Reset to defaults before loading new business data (clear stale data)
     setBaseData(defaultData);
     setIsLoading(true);
+    hasLoadedRef.current = false;
 
     let cancelled = false;
 
@@ -108,6 +112,7 @@ export function useSection<T extends BusinessPlanSection>(
         });
       } finally {
         if (!cancelled) {
+          hasLoadedRef.current = true;
           setIsLoading(false);
         }
       }
@@ -170,7 +175,7 @@ export function useSection<T extends BusinessPlanSection>(
   // Debounced save to Firestore
   const debounceSave = useCallback(
     (newData: T) => {
-      if (!businessId || !canEdit) return;
+      if (!businessId || !canEdit || !hasLoadedRef.current) return;
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -213,8 +218,8 @@ export function useSection<T extends BusinessPlanSection>(
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
-        // Save current data immediately (best-effort, log on failure)
-        if (businessId) {
+        // Only flush if data was loaded from Firestore first — never save defaults.
+        if (businessId && hasLoadedRef.current) {
           saveSectionData(businessId, sectionSlug, baseDataRef.current).catch(
             (err) =>
               log.warn('flush.failed', {
