@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, AlertCircle, Package as PackageIcon, Gift, Link, ImagePlus, X, RefreshCw } from 'lucide-react';
+import { AiFieldTrigger } from '@/components/ai-field-trigger';
 
 const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
 
@@ -226,7 +227,19 @@ export function ProductService() {
 
       {/* Overview */}
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Overview</label>
+        <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+          Overview
+          {canEdit && !isPreview && (
+            <AiFieldTrigger
+              fieldName="overview"
+              fieldLabel="Overview"
+              currentValue={rawData.overview ?? ''}
+              sectionSlug="product-service"
+              sectionData={rawData as unknown as Record<string, unknown>}
+              onResult={(val) => updateData((prev) => ({ ...prev, overview: val }))}
+            />
+          )}
+        </label>
         <Textarea
           value={displayData.overview ?? ''}
           onChange={(e) => updateData((prev) => ({ ...prev, overview: e.target.value }))}
@@ -263,11 +276,11 @@ export function ProductService() {
               <div key={offering.id ?? offeringIndex} className="card-elevated rounded-lg group overflow-hidden">
                 {/* Image section */}
                 {offering.image?.url ? (
-                  <div className="relative">
+                  <div className="relative h-32 bg-muted/40">
                     <img
                       src={offering.image.url}
                       alt={offering.image.alt || offering.name}
-                      className="w-full h-32 object-cover"
+                      className="w-full h-full object-contain"
                     />
                     {/* Upload progress overlay */}
                     {isThisUploading && (
@@ -388,13 +401,32 @@ export function ProductService() {
                   </div>
 
                   {/* Description */}
-                  <Textarea
-                    value={offering.description}
-                    onChange={(e) => updateOffering(offeringIndex, 'description', e.target.value)}
-                    placeholder="Describe this offering..."
-                    rows={4}
-                    readOnly={!canEdit || isPreview}
-                  />
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium flex items-center gap-1">
+                      Description
+                      {canEdit && !isPreview && (
+                        <AiFieldTrigger
+                          fieldName="offering-description"
+                          fieldLabel={`Description for ${offering.name || 'Offering'}`}
+                          currentValue={offering.description}
+                          sectionSlug="product-service"
+                          sectionData={rawData as unknown as Record<string, unknown>}
+                          onResult={(val) => updateData((prev) => {
+                            const offerings = [...prev.offerings];
+                            offerings[offeringIndex] = { ...offerings[offeringIndex], description: val };
+                            return { ...prev, offerings };
+                          })}
+                        />
+                      )}
+                    </label>
+                    <Textarea
+                      value={offering.description}
+                      onChange={(e) => updateOffering(offeringIndex, 'description', e.target.value)}
+                      placeholder="Describe this offering..."
+                      rows={4}
+                      readOnly={!canEdit || isPreview}
+                    />
+                  </div>
 
                   {/* Linked Add-ons */}
                   <div className="space-y-2">

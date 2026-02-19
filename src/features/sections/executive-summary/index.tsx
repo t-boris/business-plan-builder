@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { AiFieldTrigger } from '@/components/ai-field-trigger';
 
 const defaultSummary: ExecutiveSummaryType = {
   summary: '',
@@ -33,7 +34,8 @@ export function ExecutiveSummary() {
     );
   }
 
-  const displayData = aiSuggestion.state.status === 'preview' && aiSuggestion.state.suggested
+  const isPreview = aiSuggestion.state.status === 'preview';
+  const displayData = isPreview && aiSuggestion.state.suggested
     ? aiSuggestion.state.suggested
     : data;
 
@@ -70,36 +72,72 @@ export function ExecutiveSummary() {
     <div className="space-y-4">
       {/* Summary */}
       <div className="card-elevated rounded-lg p-5 space-y-2">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Business Summary</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+          Business Summary
+          {canEdit && !isPreview && (
+            <AiFieldTrigger
+              fieldName="summary"
+              fieldLabel="Business Summary"
+              currentValue={data.summary}
+              sectionSlug="executive-summary"
+              sectionData={data as unknown as Record<string, unknown>}
+              onResult={(val) => updateData((prev) => ({ ...prev, summary: val }))}
+            />
+          )}
+        </h2>
         <Textarea
           value={displayData.summary}
           onChange={(e) => updateField('summary', e.target.value)}
           rows={5}
           placeholder="Executive summary of the business..."
-          readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
+          readOnly={!canEdit || isPreview}
         />
       </div>
 
       {/* Mission & Vision */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="card-elevated rounded-lg p-5 space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Mission</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            Mission
+            {canEdit && !isPreview && (
+              <AiFieldTrigger
+                fieldName="mission"
+                fieldLabel="Mission"
+                currentValue={data.mission}
+                sectionSlug="executive-summary"
+                sectionData={data as unknown as Record<string, unknown>}
+                onResult={(val) => updateData((prev) => ({ ...prev, mission: val }))}
+              />
+            )}
+          </h2>
           <Textarea
             value={displayData.mission}
             onChange={(e) => updateField('mission', e.target.value)}
             rows={4}
             placeholder="Company mission statement..."
-            readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
+            readOnly={!canEdit || isPreview}
           />
         </div>
         <div className="card-elevated rounded-lg p-5 space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Vision</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            Vision
+            {canEdit && !isPreview && (
+              <AiFieldTrigger
+                fieldName="vision"
+                fieldLabel="Vision"
+                currentValue={data.vision}
+                sectionSlug="executive-summary"
+                sectionData={data as unknown as Record<string, unknown>}
+                onResult={(val) => updateData((prev) => ({ ...prev, vision: val }))}
+              />
+            )}
+          </h2>
           <Textarea
             value={displayData.vision}
             onChange={(e) => updateField('vision', e.target.value)}
             rows={4}
             placeholder="Company vision statement..."
-            readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
+            readOnly={!canEdit || isPreview}
           />
         </div>
       </div>
@@ -108,7 +146,7 @@ export function ExecutiveSummary() {
       <div className="card-elevated rounded-lg p-5 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Key Highlights</h2>
-          {canEdit && aiSuggestion.state.status !== 'preview' && (
+          {canEdit && !isPreview && (
             <Button variant="outline" size="sm" onClick={addHighlight}>
               <Plus className="size-4" />
               Add Highlight
@@ -122,9 +160,9 @@ export function ExecutiveSummary() {
                 value={highlight}
                 onChange={(e) => updateHighlight(index, e.target.value)}
                 placeholder="Key highlight..."
-                readOnly={!canEdit || aiSuggestion.state.status === 'preview'}
+                readOnly={!canEdit || isPreview}
               />
-              {canEdit && aiSuggestion.state.status !== 'preview' && (
+              {canEdit && !isPreview && (
                 <Button variant="ghost" size="icon-xs" onClick={() => removeHighlight(index)}>
                   <Trash2 className="size-3" />
                 </Button>

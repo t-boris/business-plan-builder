@@ -8,11 +8,19 @@ import { EmptyState } from '@/components/empty-state';
 import type {
   MarketingStrategy as MarketingStrategyType,
   MarketingChannel,
-  MarketingChannelName,
 } from '@/types';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Tooltip,
   TooltipTrigger,
@@ -27,15 +35,22 @@ import {
   Users,
   Target,
   CalendarCheck,
-  AtSign,
-  Search,
-  Share2,
-  Handshake,
   HelpCircle,
   Gift,
   ExternalLink,
   Link,
   Megaphone,
+  Search,
+  FileText,
+  Share2,
+  Handshake,
+  UserPlus,
+  Newspaper,
+  CalendarDays,
+  Mail,
+  MessageCircle,
+  Pencil,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   PieChart,
@@ -45,41 +60,58 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
 } from 'recharts';
+import { AiFieldTrigger } from '@/components/ai-field-trigger';
 
-const CHANNEL_DISPLAY_NAMES: Record<MarketingChannelName, string> = {
-  'meta-ads': 'Meta Ads',
-  'google-ads': 'Google Ads',
-  'organic-social': 'Organic Social',
-  partnerships: 'Partnerships',
+const PREDEFINED_CHANNELS = [
+  'Google Ads',
+  'Meta Ads',
+  'Instagram Ads',
+  'TikTok Ads',
+  'LinkedIn Ads',
+  'YouTube Ads',
+  'Email Marketing',
+  'SEO / Organic Search',
+  'Content Marketing',
+  'Organic Social',
+  'Partnerships',
+  'Referral Program',
+  'PR & Media',
+  'Events & Trade Shows',
+  'Direct Outreach',
+];
+
+const CHANNEL_ICONS: Record<string, LucideIcon> = {
+  'Google Ads': Search,
+  'Meta Ads': Megaphone,
+  'Instagram Ads': MessageCircle,
+  'TikTok Ads': MessageCircle,
+  'LinkedIn Ads': UserPlus,
+  'YouTube Ads': Megaphone,
+  'Email Marketing': Mail,
+  'SEO / Organic Search': Search,
+  'Content Marketing': FileText,
+  'Organic Social': Share2,
+  'Partnerships': Handshake,
+  'Referral Program': UserPlus,
+  'PR & Media': Newspaper,
+  'Events & Trade Shows': CalendarDays,
+  'Direct Outreach': Mail,
 };
 
-const CHANNEL_ICONS: Record<MarketingChannelName, React.ReactNode> = {
-  'meta-ads': <AtSign className="size-4" />,
-  'google-ads': <Search className="size-4" />,
-  'organic-social': <Share2 className="size-4" />,
-  partnerships: <Handshake className="size-4" />,
-};
+function getChannelIcon(name: string): LucideIcon {
+  return CHANNEL_ICONS[name] || Pencil;
+}
 
-const CHANNEL_STYLES: Record<MarketingChannelName, { borderColor: string; iconBg: string }> = {
-  'meta-ads': {
-    borderColor: 'border-l-blue-500',
-    iconBg: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400',
-  },
-  'google-ads': {
-    borderColor: 'border-l-green-500',
-    iconBg: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400',
-  },
-  'organic-social': {
-    borderColor: 'border-l-purple-500',
-    iconBg: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400',
-  },
-  partnerships: {
-    borderColor: 'border-l-amber-500',
-    iconBg: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
-  },
-};
+const CHANNEL_COLORS = [
+  { border: 'border-l-blue-500', bg: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
+  { border: 'border-l-green-500', bg: 'bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400' },
+  { border: 'border-l-purple-500', bg: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400' },
+  { border: 'border-l-amber-500', bg: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  { border: 'border-l-rose-500', bg: 'bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
+  { border: 'border-l-cyan-500', bg: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400' },
+];
 
-const PIE_COLORS = ['var(--chart-profit)', 'var(--chart-revenue)', 'var(--chart-accent-1)', 'var(--chart-cost)'];
+const PIE_COLORS = ['var(--chart-profit)', 'var(--chart-revenue)', 'var(--chart-accent-1)', 'var(--chart-cost)', 'var(--chart-profit)', 'var(--chart-revenue)'];
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
@@ -113,6 +145,7 @@ export function MarketingStrategy() {
     defaultMarketing
   );
   const aiSuggestion = useAiSuggestion<MarketingStrategyType>('marketing-strategy');
+  const [customNameIndices, setCustomNameIndices] = useState<Set<number>>(new Set());
 
   if (isLoading) {
     return (
@@ -141,7 +174,7 @@ export function MarketingStrategy() {
   function addChannel() {
     updateData((prev) => ({
       ...prev,
-      channels: [...prev.channels, { name: 'meta-ads' as MarketingChannelName, budget: 0, expectedLeads: 0, expectedCAC: 0, description: '', tactics: [] }],
+      channels: [...prev.channels, { name: '', budget: 0, expectedLeads: 0, expectedCAC: 0, description: '', tactics: [] }],
     }));
   }
 
@@ -208,7 +241,7 @@ export function MarketingStrategy() {
   const budgetPieData = displayData.channels
     .filter((ch) => ch.budget > 0)
     .map((ch) => ({
-      name: CHANNEL_DISPLAY_NAMES[ch.name],
+      name: ch.name || 'Unnamed',
       value: ch.budget,
     }));
 
@@ -311,16 +344,58 @@ export function MarketingStrategy() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {displayData.channels.map((channel, chIndex) => {
-                const style = CHANNEL_STYLES[channel.name];
+                const colorSet = CHANNEL_COLORS[chIndex % CHANNEL_COLORS.length];
+                const ChannelIcon = getChannelIcon(channel.name);
                 return (
-                  <div key={chIndex} className={`card-elevated rounded-lg border-l-2 ${style.borderColor}`}>
+                  <div key={chIndex} className={`card-elevated rounded-lg border-l-2 ${colorSet.border}`}>
                     {/* Channel Header */}
                     <div className="px-5 pt-4 pb-3 space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className={`flex items-center justify-center size-8 rounded-full ${style.iconBg}`}>
-                          {CHANNEL_ICONS[channel.name]}
+                        <div className={`flex items-center justify-center size-8 rounded-full ${colorSet.bg}`}>
+                          <ChannelIcon className="size-4" />
                         </div>
-                        <span className="text-sm font-semibold flex-1">{CHANNEL_DISPLAY_NAMES[channel.name] || channel.name}</span>
+                        {(customNameIndices.has(chIndex) || (channel.name !== '' && !PREDEFINED_CHANNELS.includes(channel.name))) ? (
+                          <Input
+                            value={channel.name}
+                            onChange={(e) => updateChannel(chIndex, 'name', e.target.value)}
+                            placeholder="Channel name"
+                            readOnly={!canEdit || isPreview}
+                            className="border-0 px-0 shadow-none focus-visible:ring-0 text-sm font-semibold flex-1 h-auto py-0"
+                          />
+                        ) : (
+                          <Select
+                            value={channel.name || undefined}
+                            onValueChange={(val) => {
+                              if (val === '__custom__') {
+                                setCustomNameIndices((prev) => new Set(prev).add(chIndex));
+                                updateChannel(chIndex, 'name', '');
+                              } else {
+                                updateChannel(chIndex, 'name', val);
+                              }
+                            }}
+                            disabled={!canEdit || isPreview}
+                          >
+                            <SelectTrigger className="border-0 shadow-none focus-visible:ring-0 text-sm font-semibold flex-1 h-auto py-0 px-0 w-auto">
+                              <SelectValue placeholder="Select channel" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PREDEFINED_CHANNELS.map((ch) => {
+                                const Icon = CHANNEL_ICONS[ch] || Megaphone;
+                                return (
+                                  <SelectItem key={ch} value={ch}>
+                                    <Icon className="size-3.5 text-muted-foreground" />
+                                    {ch}
+                                  </SelectItem>
+                                );
+                              })}
+                              <SelectSeparator />
+                              <SelectItem value="__custom__">
+                                <Pencil className="size-3.5 text-muted-foreground" />
+                                Custom...
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                         <span className="text-xs text-muted-foreground">{channel.budget > 0 ? 'Paid' : 'Organic'}</span>
                         {canEdit && !isPreview && (
                           <Button variant="ghost" size="icon-xs" onClick={() => removeChannel(chIndex)}>
@@ -362,7 +437,19 @@ export function MarketingStrategy() {
                     {/* Channel Details */}
                     <div className="px-5 pb-5 space-y-4 border-t pt-4">
                       <div>
-                        <label className="text-sm font-medium">Description</label>
+                        <label className="text-sm font-medium flex items-center gap-1">
+                          Description
+                          {canEdit && !isPreview && (
+                            <AiFieldTrigger
+                              fieldName="channel-description"
+                              fieldLabel={`Description for ${channel.name || 'Channel'}`}
+                              currentValue={channel.description}
+                              sectionSlug="marketing-strategy"
+                              sectionData={data as unknown as Record<string, unknown>}
+                              onResult={(val) => updateChannel(chIndex, 'description', val)}
+                            />
+                          )}
+                        </label>
                         <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit || isPreview} />
                       </div>
 
@@ -481,7 +568,19 @@ export function MarketingStrategy() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Description
+                {canEdit && !isPreview && (
+                  <AiFieldTrigger
+                    fieldName="landing-page-description"
+                    fieldLabel="Landing Page Description"
+                    currentValue={data.landingPage.description}
+                    sectionSlug="marketing-strategy"
+                    sectionData={data as unknown as Record<string, unknown>}
+                    onResult={(val) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: val } }))}
+                  />
+                )}
+              </label>
               <Textarea value={displayData.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit || isPreview} />
             </div>
           </div>
