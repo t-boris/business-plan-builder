@@ -21,6 +21,7 @@ import { ScenarioManager } from './scenario-manager.tsx';
 import { ScenarioComparison } from './scenario-comparison.tsx';
 import { AssumptionsEditor } from './assumptions-editor.tsx';
 import { SectionVariants } from './section-variants.tsx';
+import { DecisionMatrix } from './decision-matrix.tsx';
 import type { ScenarioStatus } from '@/types/scenario';
 
 // --- Status badge config ---
@@ -172,11 +173,9 @@ export function Scenarios() {
           <ScenarioComparison />
         </TabsContent>
 
-        {/* Decision tab (placeholder) */}
+        {/* Decision tab */}
         <TabsContent value="decision" className="mt-6">
-          <div className="text-center text-muted-foreground py-12">
-            Decision matrix -- coming in Plan 18-05
-          </div>
+          <DecisionMatrix canEdit={canEdit} />
         </TabsContent>
       </Tabs>
     </div>
