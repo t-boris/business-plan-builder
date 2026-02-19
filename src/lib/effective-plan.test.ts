@@ -13,7 +13,8 @@ describe('deepMergeSection', () => {
 
   it('merges nested objects one level deep', () => {
     const base = { x: { a: 1, b: 2 } };
-    const overlay = { x: { b: 3 } };
+    // Cast to Partial — at runtime deepMergeSection handles partial nested objects
+    const overlay = { x: { b: 3 } } as Partial<typeof base>;
 
     const result = deepMergeSection(base, overlay);
 
