@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 19 complete
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 20 next
 
 ## Current Position
 
-Phase: 19 (Granular Field-Level AI Generation)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-19 — Completed 19-02-PLAN.md
+Phase: 20 of 20 (Generic Industry-Agnostic Operations)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-19 — Completed 20-01-PLAN.md
 
-Progress: ███████████████████████████████ 63/63
+Progress: ██████████████████████████████░░ 64/67
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: ███████████████████████�
 | 17-generic-product-service-offerings | 6/6 | Complete |
 | 18-advanced-scenario-engine | 8/8 | Complete |
 | 19-granular-field-level-ai-generation | 2/2 | Complete |
+| 20-generic-industry-agnostic-operations | 1/4 | In Progress |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Progress: ███████████████████████�
 - Phase 18 complete: All 8 plans shipped (2026-02-19)
 - Phase 19 added: Granular Field-Level AI Generation
 - Phase 19 complete: All 2 plans shipped (2026-02-19)
+- Phase 20 added: Generic Industry-Agnostic Operations
 
 ### Decisions
 
@@ -99,6 +101,7 @@ Progress: ███████████████████████�
 - Phase 18-08: 15 Vitest tests for merge logic + normalizeScenario backward compat, full suite 65 tests green, type assertion for partial nested merge
 - Phase 19-01: useFieldAi hook returns string directly (no preview), buildFieldPrompt skips getSectionPrompt, AiFieldTrigger auto-detects generate/improve
 - Phase 19-02: SizingBlock receives sectionData prop for AI context, per-array-item AI updates via closure over index, 11 trigger instances across 5 sections
+- Phase 20-01: Generic Operations types (WorkforceMember/CapacityConfig/CostItem/CostDriverType/OperationalMetric), normalizeOperations at read boundary, computeOperationsCosts pure function, 160h/month workforce calc
 
 ### Deferred Issues
 
@@ -111,5 +114,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 19-02-PLAN.md (Wire AiFieldTrigger into Section Editors) — Phase 19 complete
+Stopped at: Completed 20-01-PLAN.md (Data Model v2 + Normalization + Cost Computation)
 Resume file: None
