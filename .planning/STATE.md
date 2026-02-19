@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 17 (Generic Product/Service Offerings & Images)
-Plan: 6 plans in 3 waves, ready for execution
-Status: Planned
-Last activity: 2026-02-18 — Phase 17 added to roadmap
+Plan: 2 of 6 in current phase
+Status: In progress
+Last activity: 2026-02-18 — Completed 17-02-PLAN.md
 
-Progress: ░░░░░░░░░░░░ 0%
+Progress: █░░░░░ 17%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: ░░░░░░░░░░░░ 0%
 - Phase 14: Jotai atoms for sync state aggregation (syncEntriesAtom → syncSummaryAtom), withRetry exponential backoff
 - Phase 15: Vitest with jsdom, 44 tests, GitHub Actions CI (lint → test → build), npx commands to skip tsc -b
 - Phase 16: Firebase Functions v2 with defineSecret, per-user rate limiting (30 req/min), proxy-fetch helper on client
+- Phase 17-02: Firebase Storage with uploadBytesResumable, dual validation (client hook + storage rules), emulator on 9199
 
 ### Deferred Issues
 
@@ -82,5 +83,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Phase 17 added, needs planning
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None
