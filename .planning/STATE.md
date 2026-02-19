@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 20 of 20 (Generic Industry-Agnostic Operations)
-Plan: 1 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-19 — Completed 20-01-PLAN.md
+Last activity: 2026-02-19 — Completed 20-03-PLAN.md
 
-Progress: ██████████████████████████████░░ 64/67
+Progress: ██████████████████████████████░░ 66/67
 
 ## Performance Metrics
 
@@ -60,7 +60,7 @@ Progress: ███████████████████████�
 | 17-generic-product-service-offerings | 6/6 | Complete |
 | 18-advanced-scenario-engine | 8/8 | Complete |
 | 19-granular-field-level-ai-generation | 2/2 | Complete |
-| 20-generic-industry-agnostic-operations | 1/4 | In Progress |
+| 20-generic-industry-agnostic-operations | 3/4 | In Progress |
 
 ## Accumulated Context
 
@@ -102,6 +102,7 @@ Progress: ███████████████████████�
 - Phase 19-01: useFieldAi hook returns string directly (no preview), buildFieldPrompt skips getSectionPrompt, AiFieldTrigger auto-detects generate/improve
 - Phase 19-02: SizingBlock receives sectionData prop for AI context, per-array-item AI updates via closure over index, 11 trigger instances across 5 sections
 - Phase 20-01: Generic Operations types (WorkforceMember/CapacityConfig/CostItem/CostDriverType/OperationalMetric), normalizeOperations at read boundary, computeOperationsCosts pure function, 160h/month workforce calc
+- Phase 20-03: Single OperationsSchema for all business types, industry differentiation via overlay prompts only, all 6 overlays structured as Workforce/Capacity/Variable/Fixed/Metrics
 
 ### Deferred Issues
 
@@ -114,5 +115,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 20-01-PLAN.md (Data Model v2 + Normalization + Cost Computation)
+Stopped at: Completed 20-03-PLAN.md (AI Schema + Prompts Rewrite)
 Resume file: None

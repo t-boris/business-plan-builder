@@ -302,7 +302,7 @@ Key changes:
 Plans:
 - [x] 20-01: Data model v2 + normalizeOperations + computeOperationsCosts (Wave 1)
 - [ ] 20-02: UI rewrite — tabbed/sectioned generic editor (Wave 2)
-- [ ] 20-03: AI schema + prompts rewrite for generic model (Wave 2)
+- [x] 20-03: AI schema + prompts rewrite for generic model (Wave 2)
 - [ ] 20-04: Export update (web + PDF) + tests (Wave 2)
 
 **Details:**
@@ -356,4 +356,4 @@ Plans:
 | 17. Generic Product/Service Offerings & Images | v3.0 | 6/6 | Complete | 2026-02-18 |
 | 18. Advanced Scenario Engine | v3.0 | 8/8 | Complete | 2026-02-19 |
 | 19. Granular Field-Level AI Generation | v3.0 | 2/2 | Complete | 2026-02-19 |
-| 20. Generic Industry-Agnostic Operations | v3.0 | 1/4 | In progress | - |
+| 20. Generic Industry-Agnostic Operations | v3.0 | 3/4 | In progress | - |
