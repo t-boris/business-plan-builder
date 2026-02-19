@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 18 (Advanced Scenario Engine)
-Plan: 5 of 8 in current phase
+Plan: 6 of 8 in current phase
 Status: In progress
-Last activity: 2026-02-19 — Completed 18-05-PLAN.md
+Last activity: 2026-02-19 — Completed 18-06-PLAN.md
 
-Progress: ██████████████░░ 5/8
+Progress: ████████████████░░ 6/8
 
 ## Performance Metrics
 
@@ -58,7 +58,7 @@ Progress: ██████████████░░ 5/8
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 17-generic-product-service-offerings | 6/6 | Complete |
-| 18-advanced-scenario-engine | 5/8 | In progress |
+| 18-advanced-scenario-engine | 6/8 | In progress |
 
 ## Accumulated Context
 
@@ -90,6 +90,7 @@ Progress: ██████████████░░ 5/8
 - Phase 18-03: 5-tab scenario UI (Assumptions/Levers/Variants/Compare/Decision), status badge click-to-cycle, useScenarioSync persists v2 fields
 - Phase 18-04: SectionVariants component for 3 sections (product-service/operations/marketing-strategy), window.prompt for naming, variantRefs+sectionOverrides in useScenarioSync
 - Phase 18-05: Collapsible multi-dimensional comparison (metrics/inputs/assumptions/info), DecisionMatrix with weighted auto+manual criteria, min-max normalization, recommendation banner
+- Phase 18-06: buildScenarioV2Context XML context injection, scenarioV2Context always built/passed, scenario-aware instruction in <task> block
 
 ### Deferred Issues
 
@@ -102,5 +103,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 18-05-PLAN.md (Comparison + Decision Matrix)
+Stopped at: Completed 18-06-PLAN.md (AI Scenario-Aware Context)
 Resume file: None

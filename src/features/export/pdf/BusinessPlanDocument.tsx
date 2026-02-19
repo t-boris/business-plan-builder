@@ -157,9 +157,6 @@ export function BusinessPlanDocument({
   currencyCode,
   scenarioPack,
 }: BusinessPlanDocumentProps) {
-  // scenarioPack is used for Scenario Analysis appendix rendering below
-  void scenarioPack;
-
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -746,6 +743,150 @@ export function BusinessPlanDocument({
           )}
         </SectionPage>
       )}
+
+      {/* Appendix: Scenario Analysis */}
+      {scenarioPack && (() => {
+        const { active, scenarios } = scenarioPack;
+        const metricKeys = scenarios.length > 0 ? Object.keys(scenarios[0].metrics) : [];
+        const hasMultiple = scenarios.length > 1;
+
+        // Determine recommendation: highest profit-related metric
+        let recommendationText: string | null = null;
+        if (hasMultiple) {
+          const profitKey = metricKeys.find((k) => {
+            const label = scenarios[0].metrics[k]?.label.toLowerCase() ?? '';
+            return label.includes('profit') || label.includes('net income') || label.includes('margin');
+          });
+          if (profitKey) {
+            let bestName = '';
+            let bestValue = -Infinity;
+            for (const s of scenarios) {
+              const val = s.metrics[profitKey]?.value ?? 0;
+              if (val > bestValue) {
+                bestValue = val;
+                bestName = s.name;
+              }
+            }
+            if (bestName) {
+              recommendationText = `Based on financial metrics, "${bestName}" appears strongest.`;
+            }
+          }
+        }
+
+        // Calculate column widths dynamically
+        const scenarioCount = scenarios.length;
+        const labelWidth = scenarioCount <= 3 ? '30%' : '25%';
+        const valueWidth = scenarioCount <= 3
+          ? `${Math.floor(70 / scenarioCount)}%`
+          : `${Math.floor(75 / scenarioCount)}%`;
+
+        // Format metric values for PDF
+        const fmtVal = (value: number, unit: string): string => {
+          if (unit === 'currency') return formatCurrency(value, currencyCode);
+          if (unit === 'percent') return `${(value * 100).toFixed(1)}%`;
+          return String(Math.round(value));
+        };
+
+        return (
+          <SectionPage number={enabledSlugs.length + 1} title="Scenario Analysis">
+            <View>
+              {/* Active Scenario Summary */}
+              <SubsectionTitle>Active Scenario</SubsectionTitle>
+              <View style={styles.infoCard}>
+                <View style={[styles.row, { alignItems: 'center', marginBottom: 4 }]}>
+                  <Text style={styles.infoCardTitle}>{active.name}</Text>
+                  <Text style={[styles.badge, styles.badgeBlue, { marginLeft: 8 }]}>
+                    {active.status === 'active' ? 'Active' : 'Draft'}
+                  </Text>
+                </View>
+                <Text style={styles.bodyText}>Horizon: {active.horizon} months</Text>
+                {active.assumptions.length > 0 && (
+                  <View style={{ marginTop: 4 }}>
+                    <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2, textTransform: 'uppercase' }]}>Assumptions</Text>
+                    {active.assumptions.map((a) => (
+                      <View key={a.id} style={styles.listItem}>
+                        <Text style={styles.listBullet}>{'\u2022'}</Text>
+                        <Text style={styles.listText}>
+                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{a.label}:</Text> {a.value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Comparison Table */}
+              {hasMultiple && metricKeys.length > 0 && (
+                <View>
+                  <SubsectionTitle>Scenario Comparison</SubsectionTitle>
+                  <View style={styles.table}>
+                    {/* Header Row */}
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: labelWidth }]}>Metric</Text>
+                      {scenarios.map((s) => (
+                        <Text key={s.name} style={[styles.tableHeaderCell, { width: valueWidth, textAlign: 'right' }]}>{s.name}</Text>
+                      ))}
+                    </View>
+                    {/* Data Rows */}
+                    {metricKeys.map((varId, i) => {
+                      const firstMetric = scenarios[0].metrics[varId];
+                      const values = scenarios.map((s) => s.metrics[varId]?.value ?? 0);
+                      const bestValue = Math.max(...values);
+                      const uniqueBest = values.filter((v) => v === bestValue).length === 1;
+
+                      return (
+                        <View key={varId} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                          <Text style={[styles.tableCellBold, { width: labelWidth }]}>{firstMetric.label}</Text>
+                          {scenarios.map((s) => {
+                            const m = s.metrics[varId];
+                            const isBest = uniqueBest && m.value === bestValue;
+                            return (
+                              <Text
+                                key={s.name}
+                                style={[
+                                  isBest ? styles.tableCellBold : styles.tableCell,
+                                  { width: valueWidth, textAlign: 'right' },
+                                  isBest ? { color: '#16a34a' } : {},
+                                ]}
+                              >
+                                {fmtVal(m.value, m.unit)}
+                              </Text>
+                            );
+                          })}
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Single scenario - just show summary without table */}
+              {!hasMultiple && scenarios.length === 1 && (
+                <View>
+                  <SubsectionTitle>Scenario Metrics</SubsectionTitle>
+                  <View style={styles.statCardRow}>
+                    {metricKeys.slice(0, 4).map((varId) => {
+                      const m = scenarios[0].metrics[varId];
+                      return (
+                        <StatCard key={varId} label={m.label} value={fmtVal(m.value, m.unit)} />
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Recommendation */}
+              {recommendationText && (
+                <View style={[styles.infoCard, { borderLeftWidth: 3, borderLeftColor: '#16a34a', marginTop: 8 }]}>
+                  <Text style={[styles.bodyText, { fontFamily: 'Helvetica-Bold', color: '#166534' }]}>
+                    {recommendationText}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </SectionPage>
+        );
+      })()}
     </Document>
   );
 }
