@@ -6,12 +6,16 @@ import {
   scenarioNameAtom,
   scenarioStatusAtom,
 } from "@/store/scenario-atoms";
+import { SectionVariantSwitcher } from "@/components/section-variant-switcher";
+import type { SectionSlug } from "@/types/plan";
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   children?: ReactNode;
   showScenarioBadge?: boolean;
+  /** When provided, shows variant switcher for this section. */
+  sectionSlug?: SectionSlug;
 }
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
@@ -25,6 +29,7 @@ export function PageHeader({
   description,
   children,
   showScenarioBadge = false,
+  sectionSlug,
 }: PageHeaderProps) {
   const currentScenarioId = useAtomValue(currentScenarioIdAtom);
   const scenarioList = useAtomValue(scenarioListAtom);
@@ -38,7 +43,7 @@ export function PageHeader({
   const statusClass =
     STATUS_BADGE_CLASS[scenarioStatus] ?? STATUS_BADGE_CLASS.draft;
   const isBaseline = currentScenarioId === "baseline";
-  const shouldRenderRight = Boolean(showScenarioBadge || children);
+  const shouldRenderRight = Boolean(showScenarioBadge || sectionSlug || children);
 
   return (
     <div className="flex items-start justify-between gap-4 mb-6">
@@ -53,7 +58,7 @@ export function PageHeader({
           {showScenarioBadge && hasActiveScenario && (
             <>
               <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
-                Scenario: {scenarioLabel}
+                {scenarioLabel}
               </span>
               {isBaseline && (
                 <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
@@ -67,6 +72,7 @@ export function PageHeader({
               </span>
             </>
           )}
+          {sectionSlug && <SectionVariantSwitcher sectionSlug={sectionSlug} />}
           {children}
         </div>
       )}

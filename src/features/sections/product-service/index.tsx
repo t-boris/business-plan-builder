@@ -61,7 +61,7 @@ export function ProductService() {
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader showScenarioBadge title="Product & Service" description="Offerings, pricing, and add-ons" />
+        <PageHeader showScenarioBadge sectionSlug="product-service" title="Product & Service" description="Offerings, pricing, and add-ons" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -557,7 +557,7 @@ export function ProductService() {
 
   return (
     <div className="page-container">
-      <PageHeader showScenarioBadge title="Product & Service" description="Offerings, pricing, and add-ons" />
+      <PageHeader showScenarioBadge sectionSlug="product-service" title="Product & Service" description="Offerings, pricing, and add-ons" />
       {sectionContent}
     </div>
   );

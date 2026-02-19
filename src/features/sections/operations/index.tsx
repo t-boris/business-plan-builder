@@ -128,7 +128,7 @@ export function Operations() {
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader showScenarioBadge title="Operations" description="Loading..." />
+        <PageHeader showScenarioBadge sectionSlug="operations" title="Operations" description="Loading..." />
       </div>
     );
   }
@@ -1324,7 +1324,7 @@ export function Operations() {
 
   return (
     <div className="page-container">
-      <PageHeader showScenarioBadge title="Operations" description="Cost structure, team, capacity, and operational details" />
+      <PageHeader showScenarioBadge sectionSlug="operations" title="Operations" description="Cost structure, team, capacity, and operational details" />
       {sectionContent}
     </div>
   );

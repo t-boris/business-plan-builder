@@ -144,7 +144,7 @@ export function MarketingStrategy() {
   if (isLoading) {
     return (
       <div className="page-container">
-        <PageHeader showScenarioBadge title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
+        <PageHeader showScenarioBadge sectionSlug="marketing-strategy" title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -575,7 +575,7 @@ export function MarketingStrategy() {
 
   return (
     <div className="page-container">
-      <PageHeader showScenarioBadge title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
+      <PageHeader showScenarioBadge sectionSlug="marketing-strategy" title="Marketing Strategy" description="Channels, budget allocation, and promotional offers" />
       {sectionContent}
     </div>
   );
