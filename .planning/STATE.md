@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 17 (Generic Product/Service Offerings & Images)
-Plan: 2 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: In progress
-Last activity: 2026-02-18 — Completed 17-02-PLAN.md
+Last activity: 2026-02-18 — Completed 17-04-PLAN.md
 
-Progress: █░░░░░ 17%
+Progress: █████░ 56%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: █░░░░░ 17%
 - Phase 16: Firebase Functions v2 with defineSecret, per-user rate limiting (30 req/min), proxy-fetch helper on client
 - Phase 17-01: Package type removed, Offering/OfferingImage/AddOn v2 types, normalizeProductService for backward compat
 - Phase 17-02: Firebase Storage with uploadBytesResumable, dual validation (client hook + storage rules), emulator on 9199
+- Phase 17-04: Offering-based Zod schemas replace PackageSchema, tier terminology prohibited, 6 industry overlays for product-service
 
 ### Deferred Issues
 
@@ -84,5 +85,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 17-02-PLAN.md
+Stopped at: Completed 17-04-PLAN.md
 Resume file: None

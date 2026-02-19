@@ -232,7 +232,7 @@ Plans:
 - [x] 17-01: Domain model (Offering/AddOn types) + normalization function with tests
 - [x] 17-02: Firebase Storage setup + image upload hook
 - [ ] 17-03: Product & Service UI rewrite (offering cards, add-on catalog, multi-select linking)
-- [ ] 17-04: AI schema + prompts update + industry overlays for product-service
+- [x] 17-04: AI schema + prompts update + industry overlays for product-service
 - [ ] 17-05: Offering image upload UI (upload/preview/replace/remove)
 - [ ] 17-06: Export update (web + PDF) + final verification
 
@@ -271,4 +271,4 @@ Key changes:
 | 14. Sync Reliability | v2.0 | 4/4 | Complete | 2026-02-18 |
 | 15. Tests & CI | v2.0 | 3/3 | Complete | 2026-02-18 |
 | 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
-| 17. Generic Product/Service Offerings & Images | v3.0 | 2/6 | In progress | - |
+| 17. Generic Product/Service Offerings & Images | v3.0 | 4/6 | In progress | - |
