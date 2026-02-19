@@ -70,6 +70,7 @@ Progress: █░░░░░ 17%
 - Phase 14: Jotai atoms for sync state aggregation (syncEntriesAtom → syncSummaryAtom), withRetry exponential backoff
 - Phase 15: Vitest with jsdom, 44 tests, GitHub Actions CI (lint → test → build), npx commands to skip tsc -b
 - Phase 16: Firebase Functions v2 with defineSecret, per-user rate limiting (30 req/min), proxy-fetch helper on client
+- Phase 17-01: Package type removed, Offering/OfferingImage/AddOn v2 types, normalizeProductService for backward compat
 - Phase 17-02: Firebase Storage with uploadBytesResumable, dual validation (client hook + storage rules), emulator on 9199
 
 ### Deferred Issues
