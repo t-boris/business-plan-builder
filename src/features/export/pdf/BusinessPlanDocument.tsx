@@ -3,6 +3,7 @@ import { styles } from './pdfStyles';
 import { CoverPage } from './CoverPage';
 import { SectionPage } from './SectionPage';
 import { SECTION_SLUGS } from '@/lib/constants';
+import { normalizeProductService } from '@/features/sections/product-service/normalize';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -20,7 +21,9 @@ import type {
   TaskStatus,
   InvestmentVerdict,
   DueDiligencePriority,
+  CalcStep,
 } from '@/types';
+import { computeTam, computeSam, computeSom } from '@/features/sections/market-analysis/lib/sizing-math';
 
 // ---- Helpers ----
 
@@ -226,19 +229,68 @@ export function BusinessPlanDocument({
         <SectionPage number={getSectionNumber('market-analysis')} title="Market Analysis">
           {marketAnalysis ? (
             <View>
-              <View style={styles.col2}>
-                <View style={styles.flex1}>
-                  <SubsectionTitle>Target Demographic</SubsectionTitle>
-                  <Text style={styles.bodyText}>Age: {marketAnalysis.targetDemographic.ageRange}</Text>
-                  <Text style={styles.bodyText}>Location: {marketAnalysis.targetDemographic.location} ({marketAnalysis.targetDemographic.radius} mi)</Text>
-                </View>
-                <View style={styles.flex1}>
-                  <SubsectionTitle>Market Size</SubsectionTitle>
-                  <Text style={styles.bodyText}>{marketAnalysis.marketSize}</Text>
-                </View>
-              </View>
+              {/* TAM / SAM / SOM */}
+              {marketAnalysis.enabledBlocks?.sizing !== false && marketAnalysis.marketSizing?.tam?.steps?.length > 0 && (() => {
+                const tamVal = computeTam(marketAnalysis.marketSizing.tam);
+                const samVal = computeSam(marketAnalysis.marketSizing.tam, marketAnalysis.marketSizing.sam);
+                const somVal = computeSom(marketAnalysis.marketSizing.tam, marketAnalysis.marketSizing.sam, marketAnalysis.marketSizing.som);
+                const fmt = (v: number) => v >= 1e9 ? `$${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v/1e3).toFixed(0)}K` : formatCurrency(v, currencyCode);
+                const typeLabel = (t: CalcStep['type']) => t === 'currency' ? '$' : t === 'percentage' ? '%' : '#';
 
-              {marketAnalysis.competitors.length > 0 && (
+                return (
+                  <View>
+                    <SubsectionTitle>Market Sizing</SubsectionTitle>
+                    <View style={styles.statCardRow}>
+                      {tamVal > 0 && <StatCard label={`TAM (${marketAnalysis.marketSizing.tam.approach})`} value={fmt(tamVal)} />}
+                      {samVal > 0 && <StatCard label="SAM" value={fmt(samVal)} />}
+                      {somVal > 0 && <StatCard label="SOM" value={fmt(somVal)} />}
+                    </View>
+
+                    {/* TAM steps */}
+                    {marketAnalysis.marketSizing.tam.steps.length > 0 && (
+                      <View style={{ marginTop: 4 }}>
+                        <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2 }]}>TAM Steps</Text>
+                        {marketAnalysis.marketSizing.tam.steps.map((s: CalcStep, i: number) => (
+                          <Text key={i} style={styles.bodyText}>
+                            {s.label}: {s.type === 'currency' ? formatCurrency(s.value, currencyCode) : `${s.value}`}{typeLabel(s.type) !== '$' ? typeLabel(s.type) : ''}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* SAM steps */}
+                    {marketAnalysis.marketSizing.sam.steps.length > 0 && (
+                      <View style={{ marginTop: 4 }}>
+                        <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2 }]}>SAM Steps</Text>
+                        {marketAnalysis.marketSizing.sam.steps.map((s: CalcStep, i: number) => (
+                          <Text key={i} style={styles.bodyText}>
+                            {s.label}: {s.type === 'currency' ? formatCurrency(s.value, currencyCode) : `${s.value}`}{typeLabel(s.type) !== '$' ? typeLabel(s.type) : ''}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* SOM steps */}
+                    {marketAnalysis.marketSizing.som.steps.length > 0 && (
+                      <View style={{ marginTop: 4 }}>
+                        <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2 }]}>SOM Steps</Text>
+                        {marketAnalysis.marketSizing.som.steps.map((s: CalcStep, i: number) => (
+                          <Text key={i} style={styles.bodyText}>
+                            {s.label}: {s.type === 'currency' ? formatCurrency(s.value, currencyCode) : `${s.value}`}{typeLabel(s.type) !== '$' ? typeLabel(s.type) : ''}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {marketAnalysis.marketNarrative ? (
+                      <Text style={[styles.bodyText, { marginTop: 4 }]}>{marketAnalysis.marketNarrative}</Text>
+                    ) : null}
+                  </View>
+                );
+              })()}
+
+              {/* Competitors */}
+              {marketAnalysis.enabledBlocks?.competitors !== false && marketAnalysis.competitors.length > 0 && (
                 <View>
                   <SubsectionTitle>Competitors</SubsectionTitle>
                   <View style={styles.table}>
@@ -260,10 +312,60 @@ export function BusinessPlanDocument({
                 </View>
               )}
 
-              <SubsectionTitle>Demographics</SubsectionTitle>
-              <Text style={styles.bodyText}>Population: {marketAnalysis.demographics.population.toLocaleString()}</Text>
-              <Text style={styles.bodyText}>Languages: {marketAnalysis.demographics.languages.join(', ')}</Text>
-              <Text style={styles.bodyText}>Income: {marketAnalysis.demographics.income}</Text>
+              {/* Demographics */}
+              {marketAnalysis.enabledBlocks?.demographics !== false && (
+                <View>
+                  <SubsectionTitle>Demographics</SubsectionTitle>
+                  <Text style={styles.bodyText}>Population: {marketAnalysis.demographics.population.toLocaleString()}</Text>
+                  <Text style={styles.bodyText}>Income: {marketAnalysis.demographics.income}</Text>
+                  {marketAnalysis.demographics.metrics?.map((m, i) => (
+                    <Text key={i} style={styles.bodyText}>{m.label}: {m.value}{m.source ? ` (${m.source})` : ''}</Text>
+                  ))}
+                </View>
+              )}
+
+              {/* Acquisition Funnel */}
+              {marketAnalysis.enabledBlocks?.acquisitionFunnel !== false && marketAnalysis.acquisitionFunnel?.length > 0 && (
+                <View>
+                  <SubsectionTitle>Acquisition Funnel</SubsectionTitle>
+                  <View style={styles.table}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Stage</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '40%' }]}>Description</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Volume</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '20%', textAlign: 'right' }]}>Conv. Rate</Text>
+                    </View>
+                    {marketAnalysis.acquisitionFunnel.map((s, i) => (
+                      <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                        <Text style={[styles.tableCellBold, { width: '20%' }]}>{s.label}</Text>
+                        <Text style={[styles.tableCell, { width: '40%' }]}>{s.description}</Text>
+                        <Text style={[styles.tableCellRight, { width: '20%' }]}>{s.volume.toLocaleString()}</Text>
+                        <Text style={[styles.tableCellRight, { width: '20%' }]}>{s.conversionRate}%</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Adoption Model */}
+              {marketAnalysis.enabledBlocks?.adoptionModel !== false && marketAnalysis.adoptionModel && (
+                <View>
+                  <SubsectionTitle>Adoption Model</SubsectionTitle>
+                  <Text style={styles.bodyText}>
+                    {marketAnalysis.adoptionModel.type === 's-curve' ? 'S-Curve (Logistic)' : 'Linear'} | Market: {marketAnalysis.adoptionModel.totalMarket.toLocaleString()} | Initial: {marketAnalysis.adoptionModel.initialUsers} | Rate: {marketAnalysis.adoptionModel.growthRate} | {marketAnalysis.adoptionModel.projectionMonths}mo
+                  </Text>
+                </View>
+              )}
+
+              {/* Custom Metrics */}
+              {marketAnalysis.enabledBlocks?.customMetrics !== false && marketAnalysis.customMetrics?.length > 0 && (
+                <View>
+                  <SubsectionTitle>Custom Metrics</SubsectionTitle>
+                  {marketAnalysis.customMetrics.map((m, i) => (
+                    <Text key={i} style={styles.bodyText}>{m.label}: {m.value}{m.source ? ` (${m.source})` : ''}</Text>
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <EmptyState section="Market Analysis" />
@@ -272,37 +374,68 @@ export function BusinessPlanDocument({
       )}
 
       {/* Section: Product & Service */}
-      {enabledSlugs.includes('product-service') && (
-        <SectionPage number={getSectionNumber('product-service')} title="Product & Service">
-          {productService ? (
-            <View>
-              <SubsectionTitle>Packages</SubsectionTitle>
-              {productService.packages.map((pkg, i) => (
-                <View key={i} style={styles.infoCard}>
-                  <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }]}>
-                    <Text style={styles.infoCardTitle}>{pkg.name}</Text>
-                    <Text style={[styles.statValue, { color: '#2563eb', fontSize: 12 }]}>{formatCurrency(pkg.price, currencyCode)}</Text>
-                  </View>
-                  <Text style={styles.smallText}>{pkg.duration} | Up to {pkg.maxParticipants} guests</Text>
-                  <Text style={[styles.bodyText, { marginTop: 4 }]}>{pkg.description}</Text>
-                  <BulletList items={pkg.includes} />
-                </View>
-              ))}
+      {enabledSlugs.includes('product-service') && (() => {
+        const normalizedPS = productService ? normalizeProductService(productService) : null;
+        return (
+          <SectionPage number={getSectionNumber('product-service')} title="Product & Service">
+            {normalizedPS ? (
+              <View>
+                {normalizedPS.overview ? (
+                  <Text style={styles.bodyText}>{normalizedPS.overview}</Text>
+                ) : null}
 
-              {productService.addOns.length > 0 && (
-                <View>
-                  <SubsectionTitle>Add-Ons</SubsectionTitle>
-                  {productService.addOns.map((a, i) => (
-                    <Text key={i} style={styles.bodyText}>{a.name} -- {formatCurrency(a.price, currencyCode)}</Text>
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : (
-            <EmptyState section="Product & Service" />
-          )}
-        </SectionPage>
-      )}
+                <SubsectionTitle>Offerings</SubsectionTitle>
+                {normalizedPS.offerings.map((offering) => (
+                  <View key={offering.id} style={styles.infoCard}>
+                    {offering.image?.url && (
+                      <Image
+                        src={offering.image.url}
+                        style={{ width: '100%', height: 60, objectFit: 'cover', borderRadius: 4, marginBottom: 4 }}
+                      />
+                    )}
+                    <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }]}>
+                      <Text style={styles.infoCardTitle}>{offering.name}</Text>
+                      <View style={[styles.row, { alignItems: 'baseline' }]}>
+                        <Text style={[styles.statValue, { color: '#2563eb', fontSize: 12 }]}>
+                          {offering.price != null ? formatCurrency(offering.price, currencyCode) : 'On request'}
+                        </Text>
+                        {offering.priceLabel ? (
+                          <Text style={[styles.smallText, { marginLeft: 3 }]}>{offering.priceLabel}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <Text style={[styles.bodyText, { marginTop: 4 }]}>{offering.description}</Text>
+                    {offering.addOnIds.length > 0 && (() => {
+                      const linked = offering.addOnIds
+                        .map((aid) => normalizedPS.addOns.find((a) => a.id === aid))
+                        .filter(Boolean);
+                      if (linked.length === 0) return null;
+                      return (
+                        <Text style={[styles.smallText, { marginTop: 4 }]}>
+                          Add-ons: {linked.map((a) => `${a!.name} (${formatCurrency(a!.price, currencyCode)})`).join(', ')}
+                        </Text>
+                      );
+                    })()}
+                  </View>
+                ))}
+
+                {normalizedPS.addOns.length > 0 && (
+                  <View>
+                    <SubsectionTitle>Add-Ons</SubsectionTitle>
+                    {normalizedPS.addOns.map((a) => (
+                      <Text key={a.id} style={styles.bodyText}>
+                        {a.name}{a.description ? ` -- ${a.description}` : ''} -- {formatCurrency(a.price, currencyCode)}{a.priceLabel ? ` ${a.priceLabel}` : ''}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ) : (
+              <EmptyState section="Product & Service" />
+            )}
+          </SectionPage>
+        );
+      })()}
 
       {/* Section: Marketing Strategy */}
       {enabledSlugs.includes('marketing-strategy') && (
