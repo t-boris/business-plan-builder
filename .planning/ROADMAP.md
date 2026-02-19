@@ -12,6 +12,7 @@ None
 
 - ✅ **v1.0 Multi-Business Platform** - Phases 1-12 (shipped 2026-02-12)
 - ✅ **v2.0 Production Readiness** - Phases 13-16 (shipped 2026-02-18)
+- **v3.0 Section Enhancements** - Phases 17+
 
 ## Phases
 
@@ -217,11 +218,40 @@ Plans:
 - [x] 16-01: Firebase Functions project + 3 proxy endpoints (auth, rate limiting, secrets)
 - [x] 16-02: Client refactor — proxy-fetch helper, remove @google/genai, clean env vars
 
+### v3.0 Section Enhancements (Phases 17+)
+
+**Milestone Goal:** Evolve section editors from package/tier-oriented UI to generic, descriptive offering-based models. Add rich content capabilities (images, flexible pricing).
+
+#### Phase 17: Generic Product/Service Offerings & Images
+**Goal**: Replace tier-based package UI (Starter/Popular/Premium) with a generic Offering model. Each offering has name, description, price, price label, linked add-ons, and optional image. Backward-compatible with existing Firestore `packages` data. Update AI schemas, prompts, and export (web + PDF) to match.
+**Depends on**: Phase 16
+**Research**: Unlikely (refactoring existing UI and data model)
+**Plans**: 6 plans
+
+Plans:
+- [ ] 17-01: Domain model (Offering/AddOn types) + normalization function with tests
+- [ ] 17-02: Firebase Storage setup + image upload hook
+- [ ] 17-03: Product & Service UI rewrite (offering cards, add-on catalog, multi-select linking)
+- [ ] 17-04: AI schema + prompts update + industry overlays for product-service
+- [ ] 17-05: Offering image upload UI (upload/preview/replace/remove)
+- [ ] 17-06: Export update (web + PDF) + final verification
+
+**Details:**
+
+Key changes:
+1. **Domain model**: New `Offering` entity (id, name, description, price, priceLabel, addOnIds, image) replaces `Package`. Enhanced `AddOn` (id, name, description, price, priceLabel). Top-level `overview` field.
+2. **Backward compatibility**: Read-path normalizes old `packages` format to `offerings`. Write-path saves new format only.
+3. **UI**: Remove all tier styling/icons/labels. Neutral offering cards with add-on multi-select. Image upload/preview/replace/remove per offering.
+4. **AI**: Updated schemas and prompts for offering-based generation. No tier terminology.
+5. **Export**: Web and PDF export updated for offering model with images.
+6. **Storage**: Firebase Storage for offering images (jpg/png/webp, max 5MB). Metadata only in Firestore document.
+
 ## Progress
 
 **Execution Order:**
 - v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 - v2.0: 13 → 14 → 15 → 16
+- v3.0: 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
@@ -241,3 +271,4 @@ Plans:
 | 14. Sync Reliability | v2.0 | 4/4 | Complete | 2026-02-18 |
 | 15. Tests & CI | v2.0 | 3/3 | Complete | 2026-02-18 |
 | 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
+| 17. Generic Product/Service Offerings & Images | v3.0 | 0/6 | Planned | - |
