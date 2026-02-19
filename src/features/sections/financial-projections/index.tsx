@@ -1063,70 +1063,84 @@ export function FinancialProjections() {
       </div>
 
       {/* Unit Economics */}
-      <div className="card-elevated rounded-lg p-4 space-y-4">
-        <h2 className="text-sm font-semibold">Unit Economics</h2>
+      {(() => {
+        const displayPrice = round2(suggestedPricePerUnit);
+        const displayVariableCost = round2(suggestedVariableCostPerUnit);
+        const displayOutput = Math.round(suggestedBaseBookings);
+        const displayMonthlyOverhead = round2(suggestedMonthlyWorkforce + suggestedMonthlyFixedOnly + suggestedMonthlyMarketing);
+        const displayProfitPerUnit = round2(displayPrice - displayVariableCost);
+        const displayBreakEven = displayProfitPerUnit > 0 ? Math.ceil(displayMonthlyOverhead / displayProfitPerUnit) : 0;
+        const displayMonthlyRevenue = displayPrice * displayOutput;
 
-        {/* Capacity context */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Capacity Planned / Month</p>
-            <p className="text-lg font-semibold tabular-nums">{Math.round(derived.baseOutputPerMonth).toLocaleString()}</p>
-          </div>
-          <div className="rounded-md border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Capacity Max / Month</p>
-            <p className="text-lg font-semibold tabular-nums">{Math.round(derived.totalMaxOutputPerMonth).toLocaleString()}</p>
-          </div>
-        </div>
+        return (
+          <div className="card-elevated rounded-lg p-4 space-y-4">
+            <h2 className="text-sm font-semibold">Unit Economics</h2>
 
-        {/* Per-unit breakdown */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {/* Price per Unit — editable */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Price / Unit</label>
-            <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input type="number" className="pl-7 tabular-nums" value={unitEconomics.pricePerUnit} onChange={(e) => updateUnitEconomics('pricePerUnit', Number(e.target.value))} readOnly={!effectiveCanEdit} />
+            {/* Per-unit breakdown */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {/* Price per Unit */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Price / Unit</label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input type="number" className="pl-7 tabular-nums" value={displayPrice} onChange={(e) => updateUnitEconomics('pricePerUnit', Number(e.target.value))} readOnly={!effectiveCanEdit} />
+                </div>
+              </div>
+              {/* Variable Cost — shown as negative */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Variable Cost / Unit</label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 text-sm">-$</span>
+                  <Input type="number" className="pl-8 tabular-nums text-red-600" value={displayVariableCost} onChange={(e) => updateUnitEconomics('variableCostPerUnit', Number(e.target.value))} readOnly={!effectiveCanEdit} />
+                </div>
+              </div>
+              {/* Profit Per Unit */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profit / Unit</p>
+                <div className={`mt-1 flex h-9 items-center rounded-md px-3 text-sm font-semibold tabular-nums ${displayProfitPerUnit >= 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'}`}>
+                  {displayProfitPerUnit >= 0 ? <TrendingUp className="size-3.5 mr-1.5 shrink-0" /> : <TrendingDown className="size-3.5 mr-1.5 shrink-0" />}
+                  {formatCurrency(displayProfitPerUnit)}
+                </div>
+              </div>
+              {/* Output / Month */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Output / Month</p>
+                <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums">
+                  {displayOutput.toLocaleString()} units
+                </div>
+              </div>
+              {/* Fixed Cost / Month */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fixed Cost / Month</p>
+                <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums text-red-600">
+                  -{formatCurrency(displayMonthlyOverhead)}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Labor + fixed + marketing</p>
+              </div>
+              {/* Break-Even */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Break-Even / Mo</p>
+                <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums">
+                  {displayBreakEven} units
+                </div>
+              </div>
             </div>
-          </div>
-          {/* Variable Cost — editable, shown as negative */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Variable Cost / Unit</label>
-            <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 text-sm">-$</span>
-              <Input type="number" className="pl-8 tabular-nums text-red-600" value={unitEconomics.variableCostPerUnit} onChange={(e) => updateUnitEconomics('variableCostPerUnit', Number(e.target.value))} readOnly={!effectiveCanEdit} />
-            </div>
-          </div>
-          {/* Fixed Cost / Month — read-only derived */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fixed Cost / Month</p>
-            <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums text-red-600">
-              -{formatCurrency(suggestedMonthlyWorkforce + suggestedMonthlyFixedOnly + suggestedMonthlyMarketing)}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1">Labor + fixed + marketing</p>
-          </div>
-          {/* Profit Per Unit — computed */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profit / Unit</p>
-            <div className={`mt-1 flex h-9 items-center rounded-md px-3 text-sm font-semibold tabular-nums ${unitEconomics.profitPerUnit >= 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'}`}>
-              {unitEconomics.profitPerUnit >= 0 ? <TrendingUp className="size-3.5 mr-1.5 shrink-0" /> : <TrendingDown className="size-3.5 mr-1.5 shrink-0" />}
-              {formatCurrency(unitEconomics.profitPerUnit)}
-            </div>
-          </div>
-          {/* Break-Even — computed */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Break-Even / Mo</p>
-            <div className="mt-1 flex h-9 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums">
-              {unitEconomics.breakEvenUnits} units
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1">To cover monthly overhead</p>
-          </div>
-        </div>
 
-        <p className="text-xs text-muted-foreground">
-          Derived from Product/Service prices, Operations capacity/costs, and Marketing budgets.
-          {isProductServiceLoading || isOperationsLoading || isMarketingLoading ? ' Loading...' : ''}
-        </p>
-      </div>
+            {/* Revenue summary */}
+            <div className="rounded-md border bg-muted/30 p-3 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Revenue / Month = {formatCurrency(displayPrice)} × {displayOutput} units
+              </p>
+              <p className="text-sm font-semibold tabular-nums text-green-600">{formatCurrency(displayMonthlyRevenue)}</p>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Derived from Product/Service prices, Operations capacity/costs, and Marketing budgets.
+              {isProductServiceLoading || isOperationsLoading || isMarketingLoading ? ' Loading...' : ''}
+            </p>
+          </div>
+        );
+      })()}
 
     </div>
   );
