@@ -378,6 +378,50 @@ export function FinancialProjections() {
     return prices.reduce((sum, price) => sum + price, 0) / prices.length;
   }, [normalizedProductService.offerings]);
 
+  const firstMonth = months[0];
+  const fallbackMonthlyWorkforce = firstMonth ? firstMonth.costs.labor : 0;
+  const fallbackMonthlyFixed = firstMonth ? (firstMonth.costs.fixed ?? 0) : 0;
+  const fallbackMonthlyMarketing = firstMonth ? firstMonth.costs.marketing : 0;
+  const fallbackBaseBookings =
+    months.length > 0 && unitEconomics.pricePerUnit > 0
+      ? Math.round(
+          months.reduce(
+            (sum, month) =>
+              sum +
+              (month.revenue > 0
+                ? month.revenue / unitEconomics.pricePerUnit
+                : 0),
+            0,
+          ) / months.length,
+        )
+      : 0;
+
+  const suggestedPricePerUnit = derived.hasPriceSignal
+    ? derived.averagePricePerOutput
+    : unitEconomics.pricePerUnit;
+  const suggestedVariableCostPerUnit = derived.hasCapacityOutput
+    ? derived.variableCostPerOutput
+    : unitEconomics.variableCostPerUnit;
+  const suggestedMonthlyWorkforce =
+    derived.monthlyWorkforceCost > 0
+      ? derived.monthlyWorkforceCost
+      : fallbackMonthlyWorkforce;
+  const suggestedMonthlyFixedOnly =
+    derived.monthlyFixedCost > 0
+      ? derived.monthlyFixedCost
+      : fallbackMonthlyFixed;
+  const suggestedMonthlyMarketing =
+    derived.monthlyMarketing > 0
+      ? derived.monthlyMarketing
+      : fallbackMonthlyMarketing;
+  const suggestedBaseBookings = derived.hasCapacityOutput
+    ? derived.baseOutputPerMonth
+    : fallbackBaseBookings;
+  const suggestedMaxOutputPerMonth =
+    derived.totalMaxOutputPerMonth > 0
+      ? derived.totalMaxOutputPerMonth
+      : undefined;
+
   const growthComputeInput: GrowthComputeInput = useMemo(() => {
     const legacyFinancialPrice = (data.unitEconomics as { avgCheck?: number } | undefined)?.avgCheck;
     const legacyKpiPrice = (kpis.targets as { avgCheck?: number } | undefined)?.avgCheck;
@@ -425,50 +469,6 @@ export function FinancialProjections() {
     () => JSON.stringify(growthComputed.projections),
     [growthComputed.projections],
   );
-
-  const firstMonth = months[0];
-  const fallbackMonthlyWorkforce = firstMonth ? firstMonth.costs.labor : 0;
-  const fallbackMonthlyFixed = firstMonth ? (firstMonth.costs.fixed ?? 0) : 0;
-  const fallbackMonthlyMarketing = firstMonth ? firstMonth.costs.marketing : 0;
-  const fallbackBaseBookings =
-    months.length > 0 && unitEconomics.pricePerUnit > 0
-      ? Math.round(
-          months.reduce(
-            (sum, month) =>
-              sum +
-              (month.revenue > 0
-                ? month.revenue / unitEconomics.pricePerUnit
-                : 0),
-            0,
-          ) / months.length,
-        )
-      : 0;
-
-  const suggestedPricePerUnit = derived.hasPriceSignal
-    ? derived.averagePricePerOutput
-    : unitEconomics.pricePerUnit;
-  const suggestedVariableCostPerUnit = derived.hasCapacityOutput
-    ? derived.variableCostPerOutput
-    : unitEconomics.variableCostPerUnit;
-  const suggestedMonthlyWorkforce =
-    derived.monthlyWorkforceCost > 0
-      ? derived.monthlyWorkforceCost
-      : fallbackMonthlyWorkforce;
-  const suggestedMonthlyFixedOnly =
-    derived.monthlyFixedCost > 0
-      ? derived.monthlyFixedCost
-      : fallbackMonthlyFixed;
-  const suggestedMonthlyMarketing =
-    derived.monthlyMarketing > 0
-      ? derived.monthlyMarketing
-      : fallbackMonthlyMarketing;
-  const suggestedBaseBookings = derived.hasCapacityOutput
-    ? derived.baseOutputPerMonth
-    : fallbackBaseBookings;
-  const suggestedMaxOutputPerMonth =
-    derived.totalMaxOutputPerMonth > 0
-      ? derived.totalMaxOutputPerMonth
-      : undefined;
 
   const lastGrowthSyncSignatureRef = useRef('');
   const didAutoInitRef = useRef(false);
