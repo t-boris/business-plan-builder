@@ -15,7 +15,11 @@ import {
 } from '@/lib/business-firestore';
 import { BUSINESS_TYPE_TEMPLATES } from '@/lib/business-templates';
 import { getDefaultVariables } from '@/lib/variable-templates';
+import { createLogger } from '@/lib/logger';
+import { updateSyncAtom } from '@/store/sync-atoms';
 import type { BusinessType, BusinessProfile } from '@/types';
+
+const log = createLogger('business');
 
 export function useBusinesses() {
   // State access
@@ -24,6 +28,7 @@ export function useBusinesses() {
   const isLoading = useAtomValue(businessesLoadingAtom);
   const setBusinessList = useSetAtom(businessListAtom);
   const setBusinessesLoaded = useSetAtom(businessesLoadedAtom);
+  const setSyncStatus = useSetAtom(updateSyncAtom);
   const { user } = useAuth();
 
   // Load businesses for current user from Firestore
@@ -34,8 +39,9 @@ export function useBusinesses() {
     try {
       const list = await getUserBusinesses(user.uid);
       setBusinessList(list);
-    } catch {
-      /* silent - app works without businesses loaded */
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log.warn('load.failed', { userId: user.uid, error: message });
     } finally {
       setBusinessesLoaded(true);
     }
@@ -113,9 +119,17 @@ export function useBusinesses() {
           : b
       )
     );
-    updateBusiness(activeBusiness.id, { profile: updatedProfile }).catch(
-      (err) => console.error("Failed to update profile:", err)
-    );
+    setSyncStatus({ domain: 'profile', state: 'saving' });
+    updateBusiness(activeBusiness.id, { profile: updatedProfile })
+      .then(() => {
+        setSyncStatus({ domain: 'profile', state: 'saved', lastSaved: Date.now() });
+        log.info('profile.saved', { businessId: activeBusiness.id });
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : 'Profile save failed';
+        setSyncStatus({ domain: 'profile', state: 'error', error: message });
+        log.error('profile.save.failed', { businessId: activeBusiness.id, error: message });
+      });
   }
 
   // Toggle a section slug on/off for the active business
@@ -133,9 +147,17 @@ export function useBusinesses() {
           : b
       )
     );
-    updateBusiness(activeBusiness.id, { enabledSections: newSections }).catch(
-      (err) => console.error("Failed to toggle section:", err)
-    );
+    setSyncStatus({ domain: 'sections', state: 'saving' });
+    updateBusiness(activeBusiness.id, { enabledSections: newSections })
+      .then(() => {
+        setSyncStatus({ domain: 'sections', state: 'saved', lastSaved: Date.now() });
+        log.info('sections.saved', { businessId: activeBusiness.id, slug });
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : 'Section toggle failed';
+        setSyncStatus({ domain: 'sections', state: 'error', error: message });
+        log.error('sections.save.failed', { businessId: activeBusiness.id, slug, error: message });
+      });
   }
 
   return {
