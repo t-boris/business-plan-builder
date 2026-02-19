@@ -190,4 +190,29 @@ describe('normalizeProductService', () => {
     expect(result.offerings[0].id).not.toBe('');
     expect(result.addOns[0].id).toBeTruthy();
   });
+
+  it('generates stable fallback ids across repeated normalization', () => {
+    const data = {
+      offerings: [
+        {
+          name: 'No ID Offering',
+          description: 'Missing id',
+          price: 100,
+          addOnIds: [],
+        },
+      ],
+      addOns: [
+        {
+          name: 'No ID Addon',
+          price: 25,
+        },
+      ],
+    };
+
+    const first = normalizeProductService(data);
+    const second = normalizeProductService(data);
+
+    expect(first.offerings[0].id).toBe(second.offerings[0].id);
+    expect(first.addOns[0].id).toBe(second.addOns[0].id);
+  });
 });

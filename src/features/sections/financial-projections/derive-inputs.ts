@@ -115,6 +115,11 @@ export function deriveFinancialInputsFromSections(
   const averagePricePerOutput =
     baseOutputPerMonth > 0 ? totalPriceWeightedRevenue / baseOutputPerMonth : 0;
 
+  const variableCostPerOutput =
+    baseOutputPerMonth > 0
+      ? opsSummary.variableMonthlyTotal / baseOutputPerMonth
+      : 0;
+
   const channels = Array.isArray(rawMarketing.channels)
     ? rawMarketing.channels
     : [];
@@ -131,7 +136,7 @@ export function deriveFinancialInputsFromSections(
     baseOutputPerMonth,
     totalMaxOutputPerMonth: opsSummary.totalMaxOutputPerMonth,
     averagePricePerOutput,
-    variableCostPerOutput: opsSummary.variableCostPerOutput,
+    variableCostPerOutput,
     monthlyFixedOverhead,
     monthlyWorkforceCost,
     monthlyFixedCost,

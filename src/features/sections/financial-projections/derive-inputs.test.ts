@@ -231,4 +231,53 @@ describe('deriveFinancialInputsFromSections', () => {
     expect(result.totalMaxOutputPerMonth).toBeCloseTo(86.67, 0);
     expect(result.averagePricePerOutput).toBe(100);
   });
+
+  it('computes variable cost per output using effective (capacity-limited) output', () => {
+    const productService = makeProductService({
+      offerings: [
+        { id: 'o1', name: 'A', description: '', price: 100, addOnIds: [] },
+      ],
+    });
+
+    const operations = makeOperations({
+      capacityItems: [
+        {
+          id: 'c1',
+          name: 'Line',
+          offeringId: 'o1',
+          outputUnitLabel: 'units',
+          plannedOutputPerMonth: 100,
+          maxOutputPerDay: 0,
+          maxOutputPerWeek: 0,
+          maxOutputPerMonth: 10,
+          utilizationRate: 0,
+        },
+      ],
+      variableComponents: [
+        {
+          id: 'vc1',
+          name: 'Material',
+          offeringId: 'o1',
+          sourcingModel: 'purchase-order',
+          supplier: '',
+          componentUnitLabel: 'kg',
+          costPerComponentUnit: 2,
+          componentUnitsPerOutput: 1,
+          orderQuantity: 100,
+          orderFee: 0,
+        },
+      ],
+    });
+
+    const result = deriveFinancialInputsFromSections(
+      productService,
+      operations,
+      makeMarketing(),
+    );
+
+    // Variable monthly total is based on planned output (100 * 2 = 200),
+    // while per-output denominator must follow effective output (10).
+    expect(result.baseOutputPerMonth).toBe(10);
+    expect(result.variableCostPerOutput).toBe(20);
+  });
 });

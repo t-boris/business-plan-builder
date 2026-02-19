@@ -17,7 +17,10 @@ import type {
 import { scenarioHorizonAtom } from '@/store/scenario-atoms';
 import { defaultGrowthTimeline } from '@/features/sections/growth-timeline/defaults';
 import { computeGrowthTimeline } from '@/features/sections/growth-timeline/compute';
-import type { GrowthComputeInput } from '@/features/sections/growth-timeline/compute';
+import type {
+  GrowthComputeInput,
+  GrowthComputeResult,
+} from '@/features/sections/growth-timeline/compute';
 import { normalizeProductService } from '@/features/sections/product-service/normalize';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -148,6 +151,66 @@ function deriveBaseBookingsFromOperations(operations: OperationsType): number {
 function round2(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.round(value * 100) / 100;
+}
+
+function deriveUnitEconomicsFromGrowthMonths(
+  months: GrowthComputeResult['months'],
+  fallbackPricePerUnit: number,
+  fallbackVariableCostPerUnit: number,
+  fallbackMonthlyOverhead: number,
+) {
+  const safeFallbackPrice = Number.isFinite(fallbackPricePerUnit)
+    ? fallbackPricePerUnit
+    : 0;
+  const safeFallbackVariable = Number.isFinite(fallbackVariableCostPerUnit)
+    ? fallbackVariableCostPerUnit
+    : 0;
+  const safeFallbackOverhead = Number.isFinite(fallbackMonthlyOverhead)
+    ? fallbackMonthlyOverhead
+    : 0;
+
+  const totalBookings = months.reduce(
+    (sum, month) => sum + Math.max(0, month.bookings),
+    0,
+  );
+  const totalRevenue = months.reduce(
+    (sum, month) => sum + Math.max(0, month.revenue),
+    0,
+  );
+  const totalVariableCost = months.reduce(
+    (sum, month) => sum + Math.max(0, month.variableCost),
+    0,
+  );
+  const averageMonthlyOverhead =
+    months.length > 0
+      ? months.reduce(
+          (sum, month) =>
+            sum +
+            Math.max(0, month.marketingBudget) +
+            Math.max(0, month.workforceCost) +
+            Math.max(0, month.fixedCost),
+          0,
+        ) / months.length
+      : safeFallbackOverhead;
+
+  const pricePerUnit =
+    totalBookings > 0 ? totalRevenue / totalBookings : safeFallbackPrice;
+  const variableCostPerUnit =
+    totalBookings > 0
+      ? totalVariableCost / totalBookings
+      : safeFallbackVariable;
+  const profitPerUnit = pricePerUnit - variableCostPerUnit;
+  const breakEvenUnits =
+    profitPerUnit > 0
+      ? Math.ceil(averageMonthlyOverhead / profitPerUnit)
+      : 0;
+
+  return {
+    pricePerUnit: round2(pricePerUnit),
+    variableCostPerUnit: round2(variableCostPerUnit),
+    profitPerUnit: round2(profitPerUnit),
+    breakEvenUnits,
+  };
 }
 
 function formatCurrency(value: number): string {
@@ -354,6 +417,7 @@ export function FinancialProjections() {
   );
 
   const firstMonth = months[0];
+  const fallbackMonthlyWorkforce = firstMonth ? firstMonth.costs.labor : 0;
   const fallbackMonthlyFixed = firstMonth ? (firstMonth.costs.fixed ?? 0) : 0;
   const fallbackMonthlyMarketing = firstMonth ? firstMonth.costs.marketing : 0;
   const fallbackBaseBookings =
@@ -376,11 +440,13 @@ export function FinancialProjections() {
   const suggestedVariableCostPerUnit = derived.hasCapacityOutput
     ? derived.variableCostPerOutput
     : unitEconomics.variableCostPerUnit;
-  const suggestedMonthlyWorkforce = derived.monthlyWorkforceCost;
-  const suggestedMonthlyFixedOnly = derived.monthlyFixedCost;
-  const suggestedMonthlyFixed =
-    derived.monthlyFixedOverhead > 0
-      ? derived.monthlyFixedOverhead
+  const suggestedMonthlyWorkforce =
+    derived.monthlyWorkforceCost > 0
+      ? derived.monthlyWorkforceCost
+      : fallbackMonthlyWorkforce;
+  const suggestedMonthlyFixedOnly =
+    derived.monthlyFixedCost > 0
+      ? derived.monthlyFixedCost
       : fallbackMonthlyFixed;
   const suggestedMonthlyMarketing =
     derived.monthlyMarketing > 0
@@ -410,13 +476,33 @@ export function FinancialProjections() {
   useEffect(() => {
     if (!isGrowthDriven || !canEdit) return;
     if (lastGrowthSyncSignatureRef.current === growthSyncSignature) return;
-    updateData((prev) => ({ ...prev, months: growthComputed.projections }));
+    const unitEconomicsFromGrowth = deriveUnitEconomicsFromGrowthMonths(
+      growthComputed.months,
+      round2(growthComputeInput.basePricePerUnit),
+      round2(suggestedVariableCostPerUnit),
+      round2(
+        suggestedMonthlyWorkforce +
+          suggestedMonthlyFixedOnly +
+          suggestedMonthlyMarketing,
+      ),
+    );
+    updateData((prev) => ({
+      ...prev,
+      months: growthComputed.projections,
+      unitEconomics: unitEconomicsFromGrowth,
+    }));
     lastGrowthSyncSignatureRef.current = growthSyncSignature;
   }, [
     canEdit,
+    growthComputeInput.basePricePerUnit,
+    growthComputed.months,
     growthSyncSignature,
     growthComputed.projections,
     isGrowthDriven,
+    suggestedMonthlyFixedOnly,
+    suggestedMonthlyMarketing,
+    suggestedMonthlyWorkforce,
+    suggestedVariableCostPerUnit,
     updateData,
   ]);
 
@@ -581,7 +667,10 @@ export function FinancialProjections() {
       };
       const next = { ...safe, [field]: value };
       next.profitPerUnit = next.pricePerUnit - next.variableCostPerUnit;
-      const monthlyOverhead = suggestedMonthlyMarketing + suggestedMonthlyFixed;
+      const monthlyOverhead =
+        suggestedMonthlyWorkforce +
+        suggestedMonthlyFixedOnly +
+        suggestedMonthlyMarketing;
       next.breakEvenUnits = next.profitPerUnit > 0 ? Math.ceil(monthlyOverhead / next.profitPerUnit) : 0;
       return { ...prev, unitEconomics: next };
     });

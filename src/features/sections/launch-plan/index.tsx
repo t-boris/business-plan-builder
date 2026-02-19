@@ -114,6 +114,13 @@ export function LaunchPlan() {
     }));
   }
 
+  function removeStage(stageIndex: number) {
+    updateData((prev) => ({
+      ...prev,
+      stages: prev.stages.filter((_, index) => index !== stageIndex),
+    }));
+  }
+
   const sectionContent = (
     <div className="page-container">
       {data.stages.length === 0 ? (
@@ -139,14 +146,27 @@ export function LaunchPlan() {
                   <div className={`card-elevated rounded-lg border-l-4 ${accentColor} overflow-hidden`}>
                     {/* Stage header */}
                     <div className="p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 uppercase tracking-wider">
-                          Stage {stageIndex + 1}
-                        </span>
-                        {totalTasks > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {completedTasks}/{totalTasks} tasks
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground shrink-0 uppercase tracking-wider">
+                            Stage {stageIndex + 1}
                           </span>
+                          {totalTasks > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              {completedTasks}/{totalTasks} tasks
+                            </span>
+                          )}
+                        </div>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-destructive"
+                            onClick={() => removeStage(stageIndex)}
+                            aria-label={`Delete stage ${stageIndex + 1}`}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
                         )}
                       </div>
                       <Input

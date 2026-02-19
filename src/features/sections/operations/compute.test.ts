@@ -210,6 +210,46 @@ describe('computeOperationsCosts', () => {
     expect(shared?.monthlyVariableTotal).toBe(50);
   });
 
+  it('falls back to total planned output when component offering link has no mapped capacity output', () => {
+    const ops = makeOps({
+      capacityItems: [
+        {
+          id: 'cap-1',
+          name: 'Primary',
+          offeringId: 'off-a',
+          outputUnitLabel: 'units',
+          plannedOutputPerMonth: 100,
+          maxOutputPerDay: 0,
+          maxOutputPerWeek: 0,
+          maxOutputPerMonth: 0,
+          utilizationRate: 0,
+        },
+      ],
+      variableComponents: [
+        {
+          id: 'var-1',
+          name: 'Material',
+          // Intentionally mismatched offeringId.
+          offeringId: 'off-missing',
+          sourcingModel: 'in-house',
+          componentUnitLabel: 'kg',
+          costPerComponentUnit: 3,
+          componentUnitsPerOutput: 2,
+          orderQuantity: 0,
+          orderFee: 0,
+        },
+      ],
+    });
+
+    const result = computeOperationsCosts(ops);
+
+    // Fallback output basis = total planned output (100), not zero.
+    expect(result.variableComponentCosts[0].outputBasisPerMonth).toBe(100);
+    expect(result.variableComponentCosts[0].requiredComponentUnits).toBe(200);
+    expect(result.variableComponentCosts[0].monthlyTotal).toBe(600);
+    expect(result.variableMonthlyTotal).toBe(600);
+  });
+
   it('sums fixed costs with monthly normalization', () => {
     const ops = makeOps({
       costItems: [

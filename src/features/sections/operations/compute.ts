@@ -85,9 +85,16 @@ export function computeOperationsCosts(ops: Operations): OperationsCostSummary {
   }, 0);
 
   const variableComponentCosts = ops.variableComponents.map((component) => {
-    const outputBasisPerMonth = component.offeringId
+    // If a component is linked to an offering that currently has no mapped
+    // capacity output, fall back to total planned output instead of zero.
+    // This keeps estimates usable even when offering links are temporarily out of sync.
+    const linkedOutput = component.offeringId
       ? (outputByOffering.get(component.offeringId) ?? 0)
-      : totalPlannedOutputPerMonth;
+      : 0;
+    const outputBasisPerMonth =
+      component.offeringId && linkedOutput > 0
+        ? linkedOutput
+        : totalPlannedOutputPerMonth;
     const componentUnitsPerOutput = Math.max(0, component.componentUnitsPerOutput);
     const requiredComponentUnits = outputBasisPerMonth * componentUnitsPerOutput;
     const monthlyMaterialCost =
@@ -129,9 +136,13 @@ export function computeOperationsCosts(ops: Operations): OperationsCostSummary {
       existing.monthlyVariableTotal += line.monthlyTotal;
       continue;
     }
-    const outputPerMonth = line.offeringId
+    const linkedOutput = line.offeringId
       ? (outputByOffering.get(line.offeringId) ?? 0)
-      : totalPlannedOutputPerMonth;
+      : 0;
+    const outputPerMonth =
+      line.offeringId && linkedOutput > 0
+        ? linkedOutput
+        : totalPlannedOutputPerMonth;
     variableByOfferingMap.set(key, {
       offeringId: line.offeringId,
       outputPerMonth,

@@ -429,7 +429,11 @@ export function Operations() {
 
   const variableComponentsWithCosts = displayData.variableComponents.map((component, index) => ({
     component,
-    monthlyCost: summary.variableComponentCosts.find((line) => line.componentId === component.id),
+    // Prefer id matching, but fall back to same index to stay robust when
+    // legacy data has unstable/missing ids.
+    monthlyCost:
+      summary.variableComponentCosts.find((line) => line.componentId === component.id) ??
+      summary.variableComponentCosts[index],
     index,
   }));
 

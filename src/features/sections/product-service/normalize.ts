@@ -22,9 +22,22 @@ interface LegacyProductService {
   addOns?: LegacyAddOn[];
 }
 
-/** Generate a unique ID, falling back for environments without crypto.randomUUID */
-function generateId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+}
+
+/**
+ * Deterministic fallback ID for legacy/missing IDs.
+ * Keeps IDs stable across renders so selects don't reset.
+ */
+function fallbackId(prefix: string, index: number, name?: string): string {
+  const slug = name ? slugify(name) : '';
+  return slug ? `${prefix}-${index + 1}-${slug}` : `${prefix}-${index + 1}`;
 }
 
 /**
@@ -32,7 +45,7 @@ function generateId(): string {
  * - `duration` becomes `priceLabel` (e.g. "2 hours")
  * - `includes` items are folded into description as bullet points
  */
-function legacyPackageToOffering(pkg: LegacyPackage): Offering {
+function legacyPackageToOffering(pkg: LegacyPackage, index: number): Offering {
   let description = pkg.description ?? '';
   if (pkg.includes && pkg.includes.length > 0) {
     const bullets = pkg.includes.map((item) => `\u2022 ${item}`).join('\n');
@@ -40,7 +53,7 @@ function legacyPackageToOffering(pkg: LegacyPackage): Offering {
   }
 
   return {
-    id: generateId(),
+    id: fallbackId('off-legacy', index, pkg.name),
     name: pkg.name,
     description,
     price: pkg.price,
@@ -50,9 +63,9 @@ function legacyPackageToOffering(pkg: LegacyPackage): Offering {
 }
 
 /** Convert a legacy AddOn to the new AddOn format (adds id). */
-function legacyAddOnToNew(addon: LegacyAddOn): AddOn {
+function legacyAddOnToNew(addon: LegacyAddOn, index: number): AddOn {
   return {
-    id: generateId(),
+    id: fallbackId('addon-legacy', index, addon.name),
     name: addon.name,
     price: addon.price,
   };
@@ -78,15 +91,21 @@ export function normalizeProductService(raw: unknown): ProductService {
 
   // Case 1: New format — offerings array exists
   if (Array.isArray(data.offerings)) {
-    const offerings = (data.offerings as Offering[]).map((o) => ({
+    const offerings = (data.offerings as Offering[]).map((o, index) => ({
       ...o,
-      id: o.id || generateId(),
+      id:
+        typeof o.id === 'string' && o.id.length > 0
+          ? o.id
+          : fallbackId('off', index, o.name),
     }));
 
     const addOns = Array.isArray(data.addOns)
-      ? (data.addOns as AddOn[]).map((a) => ({
+      ? (data.addOns as AddOn[]).map((a, index) => ({
           ...a,
-          id: a.id || generateId(),
+          id:
+            typeof a.id === 'string' && a.id.length > 0
+              ? a.id
+              : fallbackId('addon', index, a.name),
         }))
       : [];
 
@@ -96,8 +115,12 @@ export function normalizeProductService(raw: unknown): ProductService {
   // Case 2: Legacy format — packages array exists
   if (Array.isArray(data.packages)) {
     const legacy = data as unknown as LegacyProductService;
-    const offerings = (legacy.packages ?? []).map(legacyPackageToOffering);
-    const addOns = (legacy.addOns ?? []).map(legacyAddOnToNew);
+    const offerings = (legacy.packages ?? []).map((pkg, index) =>
+      legacyPackageToOffering(pkg, index),
+    );
+    const addOns = (legacy.addOns ?? []).map((addon, index) =>
+      legacyAddOnToNew(addon, index),
+    );
     return { overview, offerings, addOns };
   }
 
