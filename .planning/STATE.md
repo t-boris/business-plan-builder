@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 17 complete
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 18 in progress
 
 ## Current Position
 
-Phase: 17 (Generic Product/Service Offerings & Images)
-Plan: 6 of 6 in current phase
-Status: Complete
-Last activity: 2026-02-18 — Completed all 6 plans (3 waves)
+Phase: 18 (Advanced Scenario Engine)
+Plan: 1 of 8 in current phase
+Status: In progress
+Last activity: 2026-02-19 — Completed 18-01-PLAN.md
 
-Progress: ██████ 100%
+Progress: ██████░░░░░░░░░░ 1/8
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: ██████ 100%
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 17-generic-product-service-offerings | 6/6 | Complete |
+| 18-advanced-scenario-engine | 1/8 | In progress |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Progress: ██████ 100%
 - Milestone v3.0 created: Section Enhancements
 - Phase 17 added: Generic Product/Service Offerings & Images
 - Phase 17 complete: All 6 plans shipped (2026-02-18)
+- Phase 18 added: Advanced Scenario Engine (8 plans)
 
 ### Decisions
 
@@ -83,6 +85,7 @@ Progress: ██████ 100%
 - Phase 17-04: Offering-based Zod schemas replace PackageSchema, tier terminology prohibited, 6 industry overlays for product-service
 - Phase 17-05: Per-offering image upload with progress, hover overlay for replace/remove, Storage cleanup on offering deletion
 - Phase 17-06: Web + PDF export updated for Offering model with images, normalizeProductService at read boundary
+- Phase 18-01: DynamicScenario v2 with optional fields, normalizeScenario at read boundary, SectionVariant CRUD as subcollection
 
 ### Deferred Issues
 
@@ -94,6 +97,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-18
-Stopped at: Phase 17 complete — all 6 plans executed across 3 waves
+Last session: 2026-02-19
+Stopped at: Completed 18-01-PLAN.md (data model v2 + backward compatibility)
 Resume file: None

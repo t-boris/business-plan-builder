@@ -220,7 +220,7 @@ Plans:
 
 ### v3.0 Section Enhancements (Phases 17+)
 
-**Milestone Goal:** Evolve section editors from package/tier-oriented UI to generic, descriptive offering-based models. Add rich content capabilities (images, flexible pricing).
+**Milestone Goal:** Evolve section editors and scenario engine into a full-featured business planning platform. Generic offering model, advanced scenario composition with section variants, comparison/decision matrix, and AI-aware scenario context.
 
 #### Phase 17: Generic Product/Service Offerings & Images
 **Goal**: Replace tier-based package UI (Starter/Popular/Premium) with a generic Offering model. Each offering has name, description, price, price label, linked add-ons, and optional image. Backward-compatible with existing Firestore `packages` data. Update AI schemas, prompts, and export (web + PDF) to match.
@@ -246,12 +246,41 @@ Key changes:
 5. **Export**: Web and PDF export updated for offering model with images.
 6. **Storage**: Firebase Storage for offering images (jpg/png/webp, max 5MB). Metadata only in Firestore document.
 
+#### Phase 18: Advanced Scenario Engine
+**Goal**: Evolve the scenario system from simple numeric overrides to a full decision-support tool. Scenarios gain assumptions, section variants (alternative product/ops/marketing configurations), comparison matrix with weighted scoring, and AI awareness of the active scenario context. Backward-compatible with existing values-only scenarios.
+**Depends on**: Phase 17
+**Research**: Likely (effective plan composition, section variant architecture, dynamic Jotai atom merging)
+**Research topics**: Section variant data model, effective plan merge strategies, weighted decision matrix algorithms, scenario-aware AI context injection
+**Plans**: 8 plans
+
+Plans:
+- [x] 18-01: Data model v2 + backward compatibility (assumptions, variantRefs, sectionOverrides, status, horizonMonths)
+- [ ] 18-02: Effective scenario engine (composition layer: base + variants + overrides)
+- [ ] 18-03: Scenario Editor UI (tabs: Assumptions, Levers, Section Variants, Compare, Decision)
+- [ ] 18-04: Section variants for key tabs (product-service, operations, marketing-strategy)
+- [ ] 18-05: Comparison + Decision Matrix (risk/timeline/regulatory comparison, weighted score, recommendations)
+- [ ] 18-06: AI scenario-aware (context-builder + use-ai-suggestion with active scenario/assumptions/variants)
+- [ ] 18-07: Export scenario pack (Base + Scenarios appendix + Comparison table + Decision summary)
+- [ ] 18-08: Tests & quality (merge logic, migration, lint/test/build verification)
+
+**Details:**
+
+Key changes:
+1. **Data model v2**: Scenario gains `assumptions` (text), `variantRefs` (per-section variant pointers), `sectionOverrides` (partial section data), `status` (draft/active/archived), `horizonMonths`. Legacy values-only scenarios load without migration.
+2. **Effective plan composition**: New `effective-plan.ts` module computes the "effective" business plan by merging: base section data + selected variants + scenario overrides + numeric variable overrides.
+3. **Scenario Editor UI**: Tabbed interface — Assumptions (text/structured), Levers (numeric variables), Section Variants (pick alternative configs per section), Compare (side-by-side), Decision (verdict/recommendation).
+4. **Section variants**: Product-service, operations, and marketing-strategy sections support per-scenario variants. Each variant is a full or partial section snapshot selectable within a scenario.
+5. **Comparison + Decision Matrix**: Extend comparison beyond KPIs to include risks, timelines, regulatory requirements. Weighted scoring system with rule-based recommendation engine.
+6. **AI scenario-aware**: AI context builder injects active scenario assumptions, selected variants, and overrides so AI suggestions are scenario-contextual.
+7. **Export**: Business plan export includes base plan + scenarios appendix + comparison table + decision summary.
+8. **Testing**: Merge logic tests, legacy migration tests, full build/lint/test verification.
+
 ## Progress
 
 **Execution Order:**
 - v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 - v2.0: 13 → 14 → 15 → 16
-- v3.0: 17
+- v3.0: 17 → 18
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
@@ -272,3 +301,4 @@ Key changes:
 | 15. Tests & CI | v2.0 | 3/3 | Complete | 2026-02-18 |
 | 16. AI Backend Proxy | v2.0 | 2/2 | Complete | 2026-02-18 |
 | 17. Generic Product/Service Offerings & Images | v3.0 | 6/6 | Complete | 2026-02-18 |
+| 18. Advanced Scenario Engine | v3.0 | 1/8 | In progress | - |
