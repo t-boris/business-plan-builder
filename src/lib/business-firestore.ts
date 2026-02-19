@@ -93,9 +93,11 @@ export async function deleteBusiness(businessId: string): Promise<void> {
  */
 export async function getUserBusinesses(uid: string): Promise<Business[]> {
   // Firestore path: businesses (filtered by roles.{uid})
+  // Must use "in" with exact role values so Firestore can prove the query
+  // results satisfy the security rule: resource.data.roles[uid] in ['owner','editor','viewer']
   const q = query(
     collection(db, "businesses"),
-    where(`roles.${uid}`, "!=", null)
+    where(`roles.${uid}`, "in", ["owner", "editor", "viewer"])
   );
   const snap = await getDocs(q);
   const businesses = snap.docs.map(
@@ -198,7 +200,14 @@ export async function createBusinessFromTemplate(
 
   batch.set(businessRef, businessData);
 
-  // 4. Create section documents from template.sections
+  // 4. Commit business document first — Firestore security rules for
+  //    subcollections use get() to read the parent business roles, and get()
+  //    only sees committed data, not pending writes in the same batch.
+  await batch.commit();
+
+  // 5. Create section documents + default scenario in a second batch
+  const batch2 = writeBatch(db);
+
   const sectionEntries = Object.entries(template.sections);
   for (const [sectionKey, sectionDef] of sectionEntries) {
     // Firestore path: businesses/{businessId}/sections/{sectionKey}
@@ -219,10 +228,9 @@ export async function createBusinessFromTemplate(
       data: sectionDef.defaultData,
       updatedAt: now,
     };
-    batch.set(sectionRef, sectionData);
+    batch2.set(sectionRef, sectionData);
   }
 
-  // 5. Create default scenario from template.defaultVariables
   // Firestore path: businesses/{businessId}/scenarios/{scenarioId}
   const scenarioRef = doc(
     collection(db, "businesses", businessId, "scenarios")
@@ -234,11 +242,10 @@ export async function createBusinessFromTemplate(
     createdAt: now,
     updatedAt: now,
   };
-  batch.set(scenarioRef, scenarioData);
+  batch2.set(scenarioRef, scenarioData);
 
-  // 6. Commit batch
-  // Total operations: 1 (business) + sections + 1 (scenario) — well within 500 limit
-  await batch.commit();
+  // 6. Commit subcollections
+  await batch2.commit();
 
   // 7. Return business ID
   return businessId;
@@ -516,7 +523,7 @@ export async function saveSectionData(
   // Firestore path: businesses/{businessId}/sections/{sectionKey}
   await setDoc(
     doc(db, "businesses", businessId, "sections", sectionKey),
-    data,
+    { ...data, updatedAt: new Date().toISOString() },
     { merge: true }
   );
 }
