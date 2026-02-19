@@ -111,7 +111,7 @@ const ProductServiceSchema = z.object({
 });
 
 const MarketingChannelSchema = z.object({
-  name: z.enum(['meta-ads', 'google-ads', 'organic-social', 'partnerships']),
+  name: z.string().describe('Channel name, e.g. "Google Ads", "Instagram", "Email Marketing", "Partnerships"'),
   budget: z.number(),
   expectedLeads: z.number(),
   expectedCAC: z.number(),
@@ -128,57 +128,44 @@ const MarketingStrategySchema = z.object({
   }),
 });
 
-const CrewMemberSchema = z.object({
-  role: z.string(),
-  hourlyRate: z.number(),
-  count: z.number(),
+const WorkforceMemberSchema = z.object({
+  role: z.string().describe('Job role or position title'),
+  count: z.number().describe('Number of people in this role'),
+  ratePerHour: z.number().describe('Hourly rate for this role'),
 });
 
-const CostBreakdownSchema = z.object({
-  suppliesPerChild: z.number().describe('Cost of supplies/materials per participant'),
-  participantsPerEvent: z.number().describe('Number of participants per event'),
-  museumTicketPrice: z.number().describe('Venue/ticket cost per person'),
-  ticketsPerEvent: z.number().describe('Number of venue tickets per event'),
-  fuelPricePerGallon: z.number().describe('Current gas price per gallon'),
-  vehicleMPG: z.number().describe('Vehicle fuel efficiency in miles per gallon'),
-  avgRoundTripMiles: z.number().describe('Average round trip miles per event'),
-  parkingPerEvent: z.number().describe('Parking cost per event'),
-  ownerSalary: z.number().describe('Monthly owner/founder salary'),
-  marketingPerson: z.number().describe('Monthly marketing/social media manager salary'),
-  eventCoordinator: z.number().describe('Monthly event coordinator/sales salary'),
-  vehiclePayment: z.number().describe('Monthly vehicle loan/lease payment'),
-  vehicleInsurance: z.number().describe('Monthly vehicle insurance'),
-  vehicleMaintenance: z.number().describe('Monthly maintenance reserve'),
-  crmSoftware: z.number().describe('Monthly CRM and booking platform'),
-  websiteHosting: z.number().describe('Monthly website hosting and domain'),
-  aiChatbot: z.number().describe('Monthly AI chatbot API costs (Gemini, Instagram bot)'),
-  cloudServices: z.number().describe('Monthly cloud services (Firebase, storage)'),
-  phonePlan: z.number().describe('Monthly business phone plan'),
-  contentCreation: z.number().describe('Monthly content creation (video, photo) costs'),
-  graphicDesign: z.number().describe('Monthly graphic design costs'),
-  storageRent: z.number().describe('Monthly storage/warehouse rent'),
-  equipmentAmortization: z.number().describe('Monthly equipment depreciation'),
-  businessLicenses: z.number().describe('Monthly amortized business license cost'),
-  miscFixed: z.number().describe('Monthly miscellaneous/buffer costs'),
-  customExpenses: z.array(z.object({
-    name: z.string().describe('Expense name'),
-    amount: z.number().describe('Dollar amount'),
-    type: z.enum(['per-event', 'monthly']).describe('Whether this is a per-event or monthly cost'),
-  })).describe('Additional custom expenses'),
+const CapacityConfigSchema = z.object({
+  outputUnitLabel: z.string().describe('What the business produces: units, orders, bookings, meals, etc.'),
+  plannedOutputPerMonth: z.number().describe('Planned monthly output volume'),
+  maxOutputPerDay: z.number().describe('Maximum output capacity per day'),
+  maxOutputPerWeek: z.number().describe('Maximum output capacity per week'),
+  maxOutputPerMonth: z.number().describe('Maximum output capacity per month'),
+  utilizationRate: z.number().describe('Target utilization rate as percentage 0-100'),
+});
+
+const CostItemSchema = z.object({
+  category: z.string().describe('Cost category name, e.g. Raw Materials, Rent, Software'),
+  type: z.enum(['variable', 'fixed']).describe('Variable costs scale with output, fixed costs stay constant'),
+  rate: z.number().describe('Cost amount per driver unit'),
+  driverType: z.enum(['per-unit', 'per-order', 'per-service-hour', 'per-machine-hour', 'monthly', 'quarterly', 'yearly'])
+    .describe('What drives this cost: per unit of output, per time period, etc.'),
+  driverQuantityPerMonth: z.number().describe('How many driver units per month'),
+});
+
+const OperationalMetricSchema = z.object({
+  name: z.string().describe('Metric name, e.g. Yield Rate, OEE, Customer Satisfaction'),
+  unit: z.string().describe('Measurement unit: %, units, hours, score'),
+  value: z.number().describe('Current measured value'),
+  target: z.number().describe('Target value to achieve'),
 });
 
 const OperationsSchema = z.object({
-  crew: z.array(CrewMemberSchema),
-  hoursPerEvent: z.number().describe('Average hours crew works per event'),
-  capacity: z.object({
-    maxBookingsPerDay: z.number(),
-    maxBookingsPerWeek: z.number(),
-    maxBookingsPerMonth: z.number(),
-  }),
-  travelRadius: z.number(),
-  equipment: z.array(z.string()),
-  safetyProtocols: z.array(z.string()),
-  costBreakdown: CostBreakdownSchema,
+  workforce: z.array(WorkforceMemberSchema).describe('Team members and their roles'),
+  capacity: CapacityConfigSchema,
+  costItems: z.array(CostItemSchema).describe('All operational costs — both variable and fixed'),
+  equipment: z.array(z.string()).describe('List of equipment and tools'),
+  safetyProtocols: z.array(z.string()).describe('Safety procedures and protocols'),
+  operationalMetrics: z.array(OperationalMetricSchema).describe('Key operational performance metrics'),
 });
 
 const RiskSchema = z.object({
