@@ -49,8 +49,12 @@ export type {
 
 export type {
   ScenarioMetadata,
+  ScenarioAssumption,
+  ScenarioStatus,
   DynamicScenario,
 } from './scenario.ts';
+
+export { normalizeScenario } from './scenario.ts';
 
 export type {
   BusinessProfile,
