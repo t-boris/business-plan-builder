@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { getSectionData, saveSectionData } from '@/lib/business-firestore';
 import { useCanEdit } from '@/hooks/use-business-role';
+import { createLogger } from '@/lib/logger';
+import { withRetry } from '@/lib/retry';
+import { updateSyncAtom } from '@/store/sync-atoms';
 import type { SectionSlug, BusinessPlanSection } from '@/types';
+
+const log = createLogger('section');
 
 /** Shallow-merge each nested object so new fields from defaults are preserved. */
 function mergeWithDefaults<T>(stored: T, defaults: T): T {
@@ -24,6 +29,9 @@ interface UseSectionReturn<T> {
   updateData: (updater: (prev: T) => T) => void;
   isLoading: boolean;
   canEdit: boolean;
+  isSaving: boolean;
+  saveError: string | null;
+  lastSaved: number | null;
 }
 
 export function useSection<T extends BusinessPlanSection>(
@@ -32,8 +40,12 @@ export function useSection<T extends BusinessPlanSection>(
 ): UseSectionReturn<T> {
   const businessId = useAtomValue(activeBusinessIdAtom);
   const canEdit = useCanEdit();
+  const setSync = useSetAtom(updateSyncAtom);
   const [data, setData] = useState<T>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<T>(data);
 
@@ -63,8 +75,12 @@ export function useSection<T extends BusinessPlanSection>(
         if (!cancelled && stored) {
           setData(mergeWithDefaults(stored, defaultData));
         }
-      } catch {
-        // Firestore may not be available (no emulator) — use defaults silently
+      } catch (err) {
+        log.warn('load.failed', {
+          businessId: businessId!,
+          section: sectionSlug,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -87,14 +103,26 @@ export function useSection<T extends BusinessPlanSection>(
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(async () => {
+        setIsSaving(true);
+        setSaveError(null);
+        setSync({ domain: 'section', state: 'saving' });
         try {
-          await saveSectionData(businessId, sectionSlug, newData);
-        } catch {
-          // Firestore may not be available — silently fail
+          await withRetry(() => saveSectionData(businessId, sectionSlug, newData));
+          const now = Date.now();
+          setLastSaved(now);
+          setSync({ domain: 'section', state: 'saved', lastSaved: now });
+          log.info('saved', { businessId, section: sectionSlug });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Save failed';
+          setSaveError(message);
+          setSync({ domain: 'section', state: 'error', error: message });
+          log.error('save.failed', { businessId, section: sectionSlug, error: message });
+        } finally {
+          setIsSaving(false);
         }
       }, 500);
     },
-    [businessId, sectionSlug, canEdit]
+    [businessId, sectionSlug, canEdit, setSync]
   );
 
   // Flush pending save on unmount (don't lose unsaved changes on tab switch)
@@ -103,13 +131,16 @@ export function useSection<T extends BusinessPlanSection>(
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
-        // Save current data immediately
+        // Save current data immediately (best-effort, log on failure)
         if (businessId) {
-          try {
-            saveSectionData(businessId, sectionSlug, dataRef.current);
-          } catch {
-            // best-effort
-          }
+          saveSectionData(businessId, sectionSlug, dataRef.current).catch(
+            (err) =>
+              log.warn('flush.failed', {
+                businessId,
+                section: sectionSlug,
+                error: err instanceof Error ? err.message : 'Unknown error',
+              })
+          );
         }
       }
     };
@@ -138,5 +169,5 @@ export function useSection<T extends BusinessPlanSection>(
     [debounceSave]
   );
 
-  return { data, updateField, updateData, isLoading, canEdit };
+  return { data, updateField, updateData, isLoading, canEdit, isSaving, saveError, lastSaved };
 }
