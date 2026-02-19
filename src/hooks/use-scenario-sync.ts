@@ -6,6 +6,9 @@ import {
   currentScenarioIdAtom,
   scenarioListAtom,
   scenarioSyncReadyAtom,
+  scenarioStatusAtom,
+  scenarioHorizonAtom,
+  scenarioAssumptionsAtom,
 } from '@/store/scenario-atoms';
 import { activeBusinessIdAtom } from '@/store/business-atoms';
 import { updateSyncAtom } from '@/store/sync-atoms';
@@ -33,6 +36,9 @@ export function useScenarioSync() {
   const currentId = useAtomValue(currentScenarioIdAtom);
   const scenarioList = useAtomValue(scenarioListAtom);
   const syncReady = useAtomValue(scenarioSyncReadyAtom);
+  const scenarioStatus = useAtomValue(scenarioStatusAtom);
+  const scenarioHorizon = useAtomValue(scenarioHorizonAtom);
+  const scenarioAssumptions = useAtomValue(scenarioAssumptionsAtom);
   const setScenarioList = useSetAtom(scenarioListAtom);
   const setSyncStatus = useSetAtom(updateSyncAtom);
 
@@ -59,6 +65,10 @@ export function useScenarioSync() {
         isBaseline: existingMeta?.isBaseline ?? currentId === 'baseline',
       },
       values: inputValues,
+      // v2 fields
+      status: scenarioStatus,
+      horizonMonths: scenarioHorizon,
+      assumptions: scenarioAssumptions,
     };
 
     setSyncStatus({ domain: 'scenario', state: 'saving' });
@@ -94,7 +104,7 @@ export function useScenarioSync() {
       setSyncStatus({ domain: 'scenario', state: 'error', error: message });
       log.error('save.failed', { businessId, scenarioId: currentId, error: message });
     }
-  }, [businessId, currentId, scenarioName, inputValues, setSyncStatus, setScenarioList]);
+  }, [businessId, currentId, scenarioName, inputValues, scenarioStatus, scenarioHorizon, scenarioAssumptions, setSyncStatus, setScenarioList]);
 
   // Auto-save on any variable/name/id change (debounced 500ms)
   useEffect(() => {
@@ -114,5 +124,5 @@ export function useScenarioSync() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [inputValues, scenarioName, currentId, syncReady, businessId, save]);
+  }, [inputValues, scenarioName, currentId, scenarioStatus, scenarioHorizon, scenarioAssumptions, syncReady, businessId, save]);
 }
