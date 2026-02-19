@@ -7,9 +7,16 @@ import {
   generateStructuredContent,
 } from '@/lib/ai/gemini-client';
 import { buildSystemPrompt } from '@/lib/ai/system-prompt';
-import { buildPrompt } from '@/lib/ai/context-builder';
+import { buildPrompt, buildScenarioV2Context } from '@/lib/ai/context-builder';
 import { getSectionSchema } from '@/lib/ai/section-prompts';
 import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
+import {
+  scenarioNameAtom,
+  scenarioStatusAtom,
+  scenarioHorizonAtom,
+  scenarioAssumptionsAtom,
+  scenarioVariantRefsAtom,
+} from '@/store/scenario-atoms';
 import type { SectionSlug } from '@/types';
 
 export interface AiSuggestionState<T> {
@@ -28,6 +35,11 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
   const evaluated = useAtomValue(evaluatedValuesAtom);
   const business = useAtomValue(activeBusinessAtom);
   const variableDefinitions = useAtomValue(businessVariablesAtom);
+  const scenarioName = useAtomValue(scenarioNameAtom);
+  const scenarioStatus = useAtomValue(scenarioStatusAtom);
+  const horizonMonths = useAtomValue(scenarioHorizonAtom);
+  const assumptions = useAtomValue(scenarioAssumptionsAtom);
+  const variantRefs = useAtomValue(scenarioVariantRefsAtom);
 
   const generate = useCallback(
     async (
@@ -52,8 +64,16 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
           name: '', type: 'custom', industry: '', location: '', description: '', currency: 'USD',
         });
 
+        const scenarioV2Context = buildScenarioV2Context({
+          scenarioName,
+          status: scenarioStatus,
+          horizonMonths,
+          assumptions,
+          variantRefs,
+        });
+
         const prompt = buildPrompt(
-          { sectionSlug, action, userInstruction },
+          { sectionSlug, action, userInstruction, scenarioV2Context },
           profile,
           sectionData,
           evaluated,
@@ -82,7 +102,7 @@ export function useAiSuggestion<T>(sectionSlug: SectionSlug) {
         });
       }
     },
-    [sectionSlug, evaluated, business, variableDefinitions],
+    [sectionSlug, evaluated, business, variableDefinitions, scenarioName, scenarioStatus, horizonMonths, assumptions, variantRefs],
   );
 
   const accept = useCallback((): T | null => {
