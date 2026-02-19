@@ -41,7 +41,7 @@ export function AiActionBar({
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Configure VITE_GEMINI_API_KEY to enable AI</p>
+            <p>AI is not available right now</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
