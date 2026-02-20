@@ -79,6 +79,7 @@ Progress: ███████████████████████�
 - Phase 20 added: Generic Industry-Agnostic Operations
 - Phase 20 complete: All 4 plans shipped (2026-02-19)
 - Phase 21 added: Rich Growth Events — compound event templates, funding rounds, facility builds, hiring campaigns, revenue events, duration-based events
+- Phase 22 added: JSON Import/Export for Business Plans
 
 ### Decisions
 
