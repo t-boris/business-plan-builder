@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, useParams } from "react-router";
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -14,6 +14,8 @@ import {
   Milestone,
   GitBranch,
   Download,
+  Upload,
+  FileJson,
   Moon,
   Sun,
   LogOut,
@@ -28,6 +30,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBusinesses } from "@/hooks/use-businesses";
 import { ShareDialog } from "@/features/sharing/share-dialog";
 import { BUSINESS_TYPE_TEMPLATES } from "@/lib/business-templates";
+import {
+  exportBusinessData,
+  downloadJson,
+  generateExportSchema,
+  importBusinessData,
+  validateExportBundle,
+} from "@/lib/business-json";
 import type { BusinessType } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -110,6 +119,57 @@ export function AppSidebar() {
   // Current user's role for the active business
   const userRole = activeBusiness && user ? activeBusiness.roles[user.uid] : null;
 
+  // JSON import/export state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function handleExportData() {
+    if (!businessId || !activeBusiness) return;
+    try {
+      const bundle = await exportBusinessData(businessId);
+      const safeName = activeBusiness.profile.name.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'business';
+      downloadJson(bundle, `${safeName}-export.json`);
+    } catch {
+      alert('Failed to export business data.');
+    }
+  }
+
+  function handleExportSchema() {
+    const schema = generateExportSchema();
+    downloadJson(schema, 'business-plan-schema.json');
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !businessId) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!validateExportBundle(data)) {
+        alert('Invalid file format. Please select a valid business plan export file.');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        'This will overwrite all current business data (profile, sections, variables, and scenarios). This action cannot be undone.\n\nContinue?'
+      );
+      if (!confirmed) return;
+
+      setImporting(true);
+      await importBusinessData(businessId, data);
+      // Force full reload to pick up all changes
+      window.location.reload();
+    } catch {
+      alert('Failed to import business data. Please check the file format.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
   // Filter business plan items by enabledSections
   const filteredBusinessPlanItems = useMemo(() => {
     if (!activeBusiness) return businessPlanItemDefs;
@@ -183,6 +243,26 @@ export function AppSidebar() {
                     <span>All Businesses</span>
                   </Link>
                 </DropdownMenuItem>
+                {activeBusiness && userRole === "owner" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleExportData}>
+                      <Download className="size-4" />
+                      <span>Export Data</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportSchema}>
+                      <FileJson className="size-4" />
+                      <span>Export Schema</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={importing}
+                    >
+                      <Upload className="size-4" />
+                      <span>{importing ? "Importing..." : "Import Data"}</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
@@ -322,6 +402,14 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      {/* Hidden file input for JSON import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleImportFile}
+      />
     </Sidebar>
   );
 }
