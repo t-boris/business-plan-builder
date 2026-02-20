@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 21 complete
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 22 complete
 
 ## Current Position
 
-Phase: 21 of 21 (Rich Growth Events)
-Plan: 2 of 2 in current phase
+Phase: 22 of 22 (JSON Import/Export)
+Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-02-19 — Completed 21-02-PLAN.md
+Last activity: 2026-02-19 — Completed 22-01-PLAN.md
 
-Progress: ████████████████████████████████ 70/70
+Progress: ████████████████████████████████ 71/71
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: ███████████████████████�
 | 19-granular-field-level-ai-generation | 2/2 | Complete |
 | 20-generic-industry-agnostic-operations | 4/4 | Complete |
 | 21-rich-growth-events | 2/2 | Complete |
+| 22-json-import-export | 1/1 | Complete |
 
 ## Accumulated Context
 
@@ -80,6 +81,7 @@ Progress: ███████████████████████�
 - Phase 20 complete: All 4 plans shipped (2026-02-19)
 - Phase 21 added: Rich Growth Events — compound event templates, funding rounds, facility builds, hiring campaigns, revenue events, duration-based events
 - Phase 22 added: JSON Import/Export for Business Plans
+- Phase 22 complete: 1 plan shipped (2026-02-19)
 
 ### Decisions
 
@@ -111,6 +113,7 @@ Progress: ███████████████████████�
 - Phase 20-04: Web+PDF export uses normalizeOperations+computeOperationsCosts at read boundary, cost summary as 4 stat cards, 17 new tests (10 normalize + 7 compute), 82 total tests green
 - Phase 21-01: 6 new delta interfaces (FundingRound/FacilityBuild/HiringCampaign/PriceChange/EquipmentPurchase/SeasonalCampaign), GrowthEventType 11 members, durationMonths on GrowthEvent, 4 temporal patterns in compute, 8 new tests (116 total)
 - Phase 21-02: Full form UI for all 11 event types, duration input for 3 types, 6 unique icons/colors/summaries in event card, AI prompts reference all event types
+- Phase 22-01: BusinessExportBundle type (version/profile/sections/variables/scenarios), exportBusinessData reads all Firestore data, importBusinessData overwrites with validation, JSON Schema export (draft-07), UI in business switcher dropdown (owner-only)
 
 ### Deferred Issues
 
@@ -123,5 +126,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 21-02-PLAN.md (Rich Growth Events UI)
+Stopped at: Completed 22-01-PLAN.md (JSON Import/Export)
 Resume file: None

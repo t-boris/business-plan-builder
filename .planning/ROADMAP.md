@@ -346,13 +346,13 @@ Plans:
 **Goal**: Allow users to export a complete business plan (all sections, scenarios, variables) as a JSON file for local backup, and import a JSON file to restore or clone a business plan. Accessible from business settings or sidebar.
 **Depends on**: Phase 21
 **Research**: Unlikely (straightforward data serialization)
-**Plans**: 0 plans
+**Plans**: 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 22 to break down)
+- [x] 22-01: JSON import/export utility + UI in business switcher dropdown
 
 **Details:**
-[To be added during planning]
+BusinessExportBundle format (version 1.0): profile, enabledSections, sections (raw Firestore data), variables, scenarios. Export Data downloads complete snapshot, Export Schema downloads JSON Schema (draft-07), Import validates and overwrites. Owner-only access in business switcher dropdown.
 
 ## Progress
 
@@ -384,4 +384,4 @@ Plans:
 | 19. Granular Field-Level AI Generation | v3.0 | 2/2 | Complete | 2026-02-19 |
 | 20. Generic Industry-Agnostic Operations | v3.0 | 4/4 | Complete | 2026-02-19 |
 | 21. Rich Growth Events | v3.0 | 2/2 | Complete | 2026-02-19 |
-| 22. JSON Import/Export | v3.0 | 0/0 | Not started | - |
+| 22. JSON Import/Export | v3.0 | 1/1 | Complete | 2026-02-19 |
