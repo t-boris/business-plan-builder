@@ -3,6 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { parsePriceRange } from '../lib/format-helpers';
+import { MdPreview } from '@/components/md';
 import {
   BarChart,
   Bar,
@@ -66,9 +67,11 @@ export function CompetitorsBlock({ competitors, onUpdate, onAdd, onRemove, readO
                 </td>
                 <td className="px-4 py-2 hidden sm:table-cell align-top">
                   <Textarea value={competitor.strengths} onChange={(e) => onUpdate(index, 'strengths', e.target.value)} placeholder="Key strengths" readOnly={readOnly} className="min-h-8 text-sm py-1.5" />
+                  <MdPreview text={competitor.strengths} />
                 </td>
                 <td className="px-4 py-2 hidden sm:table-cell align-top">
                   <Textarea value={competitor.weaknesses} onChange={(e) => onUpdate(index, 'weaknesses', e.target.value)} placeholder="Key weaknesses" readOnly={readOnly} className="min-h-8 text-sm py-1.5" />
+                  <MdPreview text={competitor.weaknesses} />
                 </td>
                 {!readOnly && (
                   <td className="px-2 py-2">

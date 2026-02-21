@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, ShieldCheck, AlertTriangle, ClipboardCheck, CheckCircle2, Circle, CircleDot } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
+import { MdPreview } from '@/components/md';
 
 const defaultRisks: RisksDueDiligenceType = {
   investmentVerdict: undefined,
@@ -257,6 +258,7 @@ export function RisksDueDiligence() {
                       )}
                     </label>
                     <Textarea value={risk.description} onChange={(e) => updateRisk(index, 'description', e.target.value)} placeholder="Describe the risk..." rows={2} className="text-xs text-muted-foreground" readOnly={!canEdit} />
+                    <MdPreview text={risk.description} />
                   </div>
 
                   {/* Mitigation */}
@@ -280,6 +282,7 @@ export function RisksDueDiligence() {
                         )}
                       </label>
                       <Textarea value={risk.mitigation} onChange={(e) => updateRisk(index, 'mitigation', e.target.value)} placeholder="Mitigation strategy..." rows={2} className="text-xs" readOnly={!canEdit} />
+                      <MdPreview text={risk.mitigation} />
                     </div>
                   )}
                 </div>
@@ -357,6 +360,7 @@ export function RisksDueDiligence() {
                       )}
                     </label>
                     <Textarea value={item.detail} onChange={(e) => updateDDItem(index, 'detail', e.target.value)} placeholder="Details and findings..." rows={2} className="text-xs" readOnly={!canEdit} />
+                    <MdPreview text={item.detail} />
                   </div>
                 </div>
               ))}

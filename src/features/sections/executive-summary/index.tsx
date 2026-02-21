@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
+import { MdPreview } from '@/components/md';
 
 const defaultSummary: ExecutiveSummaryType = {
   summary: '',
@@ -78,6 +79,7 @@ export function ExecutiveSummary() {
             placeholder="Executive summary of the business..."
             readOnly={!canEdit}
           />
+          <MdPreview text={data.summary} />
         </div>
 
         {/* Mission & Vision */}
@@ -103,6 +105,7 @@ export function ExecutiveSummary() {
               placeholder="Company mission statement..."
               readOnly={!canEdit}
             />
+            <MdPreview text={data.mission} />
           </div>
           <div className="card-elevated rounded-lg p-5 space-y-2">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
@@ -125,6 +128,7 @@ export function ExecutiveSummary() {
               placeholder="Company vision statement..."
               readOnly={!canEdit}
             />
+            <MdPreview text={data.vision} />
           </div>
         </div>
 

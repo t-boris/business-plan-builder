@@ -56,6 +56,7 @@ import {
   Legend,
 } from 'recharts';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
+import { MdPreview } from '@/components/md';
 
 const PREDEFINED_CHANNELS = [
   'Google Ads',
@@ -281,17 +282,17 @@ export function MarketingStrategy() {
         {budgetPieData.length > 0 && (
           <div className="card-elevated rounded-lg p-5 space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Budget Allocation</h2>
-            <div className="h-[240px] w-full">
+            <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={budgetPieData}
                     cx="50%"
-                    cy="50%"
-                    outerRadius={90}
+                    cy="45%"
+                    outerRadius={80}
                     dataKey="value"
-                    label={({ name, percent }: { name?: string; percent?: number }) =>
-                      `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
+                    label={({ percent }: { percent?: number }) =>
+                      `${((percent ?? 0) * 100).toFixed(0)}%`
                     }
                     labelLine={false}
                   >
@@ -299,7 +300,9 @@ export function MarketingStrategy() {
                       <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <RechartsTooltip
+                    formatter={(value, name) => [formatCurrency(Number(value)), name]}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -435,6 +438,7 @@ export function MarketingStrategy() {
                           )}
                         </label>
                         <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit} />
+                        <MdPreview text={channel.description} />
                       </div>
 
                       {/* Campaign/Tracking URL */}
@@ -566,6 +570,7 @@ export function MarketingStrategy() {
                 )}
               </label>
               <Textarea value={data.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit} />
+              <MdPreview text={data.landingPage.description} />
             </div>
           </div>
         </div>

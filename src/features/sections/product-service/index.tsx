@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Package as PackageIcon, Gift, Link, ImagePlus, X, RefreshCw } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
+import { MdPreview } from '@/components/md';
 
 const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
 
@@ -230,6 +231,7 @@ export function ProductService() {
           rows={4}
           readOnly={!canEdit}
         />
+        <MdPreview text={rawData.overview ?? ''} />
       </div>
 
       {/* Offerings Section */}
@@ -409,6 +411,7 @@ export function ProductService() {
                       rows={4}
                       readOnly={!canEdit}
                     />
+                    <MdPreview text={offering.description} />
                   </div>
 
                   {/* Linked Add-ons */}
