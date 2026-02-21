@@ -331,14 +331,20 @@ async function translateAllSections(
     texts[key] = val;
   }
 
-  // 2. Split into chunks of ~20 and translate
+  // 2. Split into small chunks and translate in parallel
   const entries = Object.entries(texts);
   const translated: Record<string, string> = {};
-  const CHUNK_SIZE = 20;
+  const CHUNK_SIZE = 8;
 
+  const chunks: Record<string, string>[] = [];
   for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
-    const chunk = Object.fromEntries(entries.slice(i, i + CHUNK_SIZE));
-    const result = await translateTexts(chunk, targetLanguage);
+    chunks.push(Object.fromEntries(entries.slice(i, i + CHUNK_SIZE)));
+  }
+
+  const results = await Promise.all(
+    chunks.map((chunk) => translateTexts(chunk, targetLanguage)),
+  );
+  for (const result of results) {
     Object.assign(translated, result);
   }
 
