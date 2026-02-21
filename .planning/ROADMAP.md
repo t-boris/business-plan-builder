@@ -362,7 +362,7 @@ BusinessExportBundle format (version 1.0): profile, enabledSections, sections (r
 **Plans**: 2 plans
 
 Plans:
-- [ ] 23-01: Translation Cloud Function endpoint + client utility (Wave 1)
+- [x] 23-01: Translation Cloud Function endpoint + client utility (Wave 1)
 - [ ] 23-02: Language selector UI + PDF translation integration (Wave 2)
 
 **Details:**
@@ -399,4 +399,4 @@ Plans:
 | 20. Generic Industry-Agnostic Operations | v3.0 | 4/4 | Complete | 2026-02-19 |
 | 21. Rich Growth Events | v3.0 | 2/2 | Complete | 2026-02-19 |
 | 22. JSON Import/Export | v3.0 | 1/1 | Complete | 2026-02-19 |
-| 23. PDF Export Language Translation | v3.0 | 0/2 | Planned | — |
+| 23. PDF Export Language Translation | v3.0 | 1/2 | In progress | — |

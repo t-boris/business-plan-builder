@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: 22 of 23 (JSON Import/Export complete)
-Next phase: 23 (PDF Export Language Translation)
-Status: Phase 23 planned (2 plans in 2 waves)
-Last activity: 2026-02-21 — Added Phase 23
+Phase: 23 of 23 (PDF Export Language Translation)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-21 — Completed 23-01-PLAN.md
 
-Progress: ████████████████████████████████ 71/71
+Progress: ████████████████████████████████░ 72/73
 
 ## Performance Metrics
 
@@ -63,7 +63,7 @@ Progress: ███████████████████████�
 | 20-generic-industry-agnostic-operations | 4/4 | Complete |
 | 21-rich-growth-events | 2/2 | Complete |
 | 22-json-import-export | 1/1 | Complete |
-| 23-pdf-export-language-translation | 0/2 | Planned |
+| 23-pdf-export-language-translation | 1/2 | In progress |
 
 ## Accumulated Context
 
@@ -116,6 +116,7 @@ Progress: ███████████████████████�
 - Phase 21-01: 6 new delta interfaces (FundingRound/FacilityBuild/HiringCampaign/PriceChange/EquipmentPurchase/SeasonalCampaign), GrowthEventType 11 members, durationMonths on GrowthEvent, 4 temporal patterns in compute, 8 new tests (116 total)
 - Phase 21-02: Full form UI for all 11 event types, duration input for 3 types, 6 unique icons/colors/summaries in event card, AI prompts reference all event types
 - Phase 22-01: BusinessExportBundle type (version/profile/sections/variables/scenarios), exportBusinessData reads all Firestore data, importBusinessData overwrites with validation, JSON Schema export (draft-07), UI in business switcher dropdown (owner-only)
+- Phase 23-01: aiTranslateSection Cloud Function (dynamic responseSchema, temp 0.3, 180s timeout), translateTexts client helper via proxyFetch
 
 ### Deferred Issues
 
@@ -127,6 +128,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-19
-Stopped at: Completed 22-01-PLAN.md (JSON Import/Export)
+Last session: 2026-02-21
+Stopped at: Completed 23-01-PLAN.md (Translation Infrastructure)
 Resume file: None
