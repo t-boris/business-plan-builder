@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAtomValue } from 'jotai';
 import { listScenarioData } from '@/lib/business-firestore.ts';
-import { activeBusinessIdAtom, businessVariablesAtom } from '@/store/business-atoms.ts';
-import { evaluateVariables } from '@/lib/formula-engine.ts';
-import type { DynamicScenario, VariableDefinition, VariableUnit } from '@/types';
+import { activeBusinessIdAtom, sectionDerivedScopeAtom, seasonCoefficientsAtom } from '@/store/business-atoms.ts';
+import { evaluateScenarioFromFirestore, type ScenarioMetrics } from './compute.ts';
+import { LEVER_MAP } from './lever-definitions.ts';
+import type { DynamicScenario } from '@/types';
 import {
   Select,
   SelectContent,
@@ -42,12 +43,29 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function formatValue(value: number, unit: VariableUnit): string {
-  if (unit === 'currency') return formatCurrency(value);
-  if (unit === 'percent') return formatPercent(value);
-  if (unit === 'ratio') return value.toFixed(2);
+function formatCount(value: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 }
+
+// --- Financial metric row definitions ---
+
+interface MetricRow {
+  key: keyof ScenarioMetrics;
+  label: string;
+  format: (v: number) => string;
+  lowerIsBetter?: boolean;
+}
+
+const FINANCIAL_METRIC_ROWS: MetricRow[] = [
+  { key: 'monthlyRevenue', label: 'Monthly Revenue', format: formatCurrency },
+  { key: 'monthlyTotalCosts', label: 'Monthly Costs', format: formatCurrency, lowerIsBetter: true },
+  { key: 'monthlyProfit', label: 'Monthly Profit', format: formatCurrency },
+  { key: 'profitMargin', label: 'Profit Margin', format: formatPercent },
+  { key: 'grossMargin', label: 'Gross Margin', format: formatPercent },
+  { key: 'breakEvenUnits', label: 'Break-even Units', format: formatCount, lowerIsBetter: true },
+  { key: 'annualRevenue', label: 'Annual Revenue', format: formatCurrency },
+  { key: 'annualProfit', label: 'Annual Profit', format: formatCurrency },
+];
 
 // --- Reusable comparison UI helpers ---
 
@@ -109,35 +127,14 @@ function ComparisonSection({
   );
 }
 
-// --- Evaluation helper ---
+// --- Input variable row builder ---
 
-function evaluateScenario(
-  scenario: DynamicScenario,
-  definitions: Record<string, VariableDefinition>
-): Record<string, number> {
-  const merged: Record<string, VariableDefinition> = {};
-  for (const [id, def] of Object.entries(definitions)) {
-    if (def.type === 'input') {
-      merged[id] = { ...def, value: scenario.values[id] ?? def.value };
-    } else {
-      merged[id] = def;
-    }
-  }
-  try {
-    return evaluateVariables(merged);
-  } catch {
-    const fallback: Record<string, number> = {};
-    for (const [id, def] of Object.entries(merged)) {
-      fallback[id] = def.value;
-    }
-    return fallback;
-  }
-}
-
-// --- Row config builders ---
-
-function isCostCategory(category: string): boolean {
-  return category === 'costs';
+function getInputRows(scenarioA: DynamicScenario, scenarioB: DynamicScenario): { id: string; label: string }[] {
+  const allKeys = new Set([...Object.keys(scenarioA.values), ...Object.keys(scenarioB.values)]);
+  return Array.from(allKeys).map((id) => ({
+    id,
+    label: LEVER_MAP.get(id)?.label ?? id,
+  }));
 }
 
 // --- Status helpers ---
@@ -150,7 +147,8 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 
 export function ScenarioComparison() {
   const businessId = useAtomValue(activeBusinessIdAtom);
-  const definitions = useAtomValue(businessVariablesAtom);
+  const sectionScope = useAtomValue(sectionDerivedScopeAtom);
+  const seasonCoefficients = useAtomValue(seasonCoefficientsAtom);
   const [scenarioAId, setScenarioAId] = useState<string>('');
   const [scenarioBId, setScenarioBId] = useState<string>('');
   const [scenarios, setScenarios] = useState<DynamicScenario[]>([]);
@@ -188,68 +186,37 @@ export function ScenarioComparison() {
   const scenarioA = scenarios.find((s) => s.metadata.id === scenarioAId);
   const scenarioB = scenarios.find((s) => s.metadata.id === scenarioBId);
 
-  // Evaluate each scenario using the formula engine
-  const evaluatedA = useMemo(
-    () => (scenarioA && definitions ? evaluateScenario(scenarioA, definitions) : null),
-    [scenarioA, definitions]
+  // Evaluate each scenario using compute.ts
+  const metricsA = useMemo(
+    () => (scenarioA ? evaluateScenarioFromFirestore(scenarioA, sectionScope, seasonCoefficients) : null),
+    [scenarioA, sectionScope, seasonCoefficients]
   );
-  const evaluatedB = useMemo(
-    () => (scenarioB && definitions ? evaluateScenario(scenarioB, definitions) : null),
-    [scenarioB, definitions]
+  const metricsB = useMemo(
+    () => (scenarioB ? evaluateScenarioFromFirestore(scenarioB, sectionScope, seasonCoefficients) : null),
+    [scenarioB, sectionScope, seasonCoefficients]
   );
 
-  // Build input variable rows dynamically
+  // Input variable rows
   const inputRows = useMemo(() => {
-    if (!definitions) return [];
-    return Object.values(definitions)
-      .filter((v) => v.type === 'input')
-      .map((v) => ({
-        id: v.id,
-        label: v.label,
-        unit: v.unit,
-        lowerIsBetter: isCostCategory(v.category),
-      }));
-  }, [definitions]);
+    if (!scenarioA || !scenarioB) return [];
+    return getInputRows(scenarioA, scenarioB);
+  }, [scenarioA, scenarioB]);
 
-  // Build computed variable rows dynamically
-  const computedRows = useMemo(() => {
-    if (!definitions) return [];
-    return Object.values(definitions)
-      .filter((v) => v.type === 'computed')
-      .map((v) => ({
-        id: v.id,
-        label: v.label,
-        unit: v.unit,
-        lowerIsBetter: isCostCategory(v.category),
-      }));
-  }, [definitions]);
-
-  // Bar chart data - build from computed variables with recognizable labels
+  // Bar chart data from fixed metric keys
   const chartData = useMemo(() => {
-    if (!evaluatedA || !evaluatedB || !definitions) return [];
-    const chartVars = Object.values(definitions).filter((v) => {
-      if (v.type !== 'computed') return false;
-      const lower = v.label.toLowerCase();
-      return lower.includes('revenue') || lower.includes('cost') || lower.includes('profit') || lower.includes('spend');
-    });
-    if (chartVars.length === 0) return [];
-    return chartVars.map((v) => ({
-      category: v.label,
-      A: evaluatedA[v.id] ?? 0,
-      B: evaluatedB[v.id] ?? 0,
-    }));
-  }, [evaluatedA, evaluatedB, definitions]);
+    if (!metricsA || !metricsB) return [];
+    return [
+      { category: 'Revenue', A: metricsA.monthlyRevenue, B: metricsB.monthlyRevenue },
+      { category: 'Costs', A: metricsA.monthlyTotalCosts, B: metricsB.monthlyTotalCosts },
+      { category: 'Profit', A: metricsA.monthlyProfit, B: metricsB.monthlyProfit },
+    ];
+  }, [metricsA, metricsB]);
 
   // Build assumptions comparison data
   const assumptionsComparison = useMemo(() => {
     if (!scenarioA || !scenarioB) return null;
     const aAssumptions = scenarioA.assumptions ?? [];
     const bAssumptions = scenarioB.assumptions ?? [];
-
-    // Group assumptions by category
-    const allCategories = new Set<string>();
-    for (const a of aAssumptions) allCategories.add(a.category ?? 'General');
-    for (const a of bAssumptions) allCategories.add(a.category ?? 'General');
 
     const aLabelSet = new Set(aAssumptions.map((a) => a.label.toLowerCase()));
 
@@ -263,7 +230,6 @@ export function ScenarioComparison() {
 
     const rows: AssumptionRow[] = [];
 
-    // Add all A assumptions
     for (const a of aAssumptions) {
       const matching = bAssumptions.find((b) => b.label.toLowerCase() === a.label.toLowerCase());
       rows.push({
@@ -275,7 +241,6 @@ export function ScenarioComparison() {
       });
     }
 
-    // Add B-only assumptions
     for (const b of bAssumptions) {
       if (!aLabelSet.has(b.label.toLowerCase())) {
         rows.push({
@@ -288,7 +253,7 @@ export function ScenarioComparison() {
       }
     }
 
-    return { rows, categories: Array.from(allCategories).sort() };
+    return { rows };
   }, [scenarioA, scenarioB]);
 
   if (!businessId) {
@@ -366,7 +331,7 @@ export function ScenarioComparison() {
         </div>
       </div>
 
-      {scenarioA && scenarioB && evaluatedA && evaluatedB && (
+      {scenarioA && scenarioB && metricsA && metricsB && (
         <>
           {/* Financial Metrics - expanded by default */}
           <ComparisonSection title="Financial Metrics" defaultOpen>
@@ -386,9 +351,9 @@ export function ScenarioComparison() {
                   </tr>
                 </thead>
                 <tbody>
-                  {computedRows.map((row, i) => {
-                    const valA = evaluatedA[row.id] ?? 0;
-                    const valB = evaluatedB[row.id] ?? 0;
+                  {FINANCIAL_METRIC_ROWS.map((row, i) => {
+                    const valA = metricsA[row.key] as number;
+                    const valB = metricsB[row.key] as number;
                     const diff = valB - valA;
                     const significant = isSignificantDiff(valA, valB);
                     const aWins = row.lowerIsBetter ? valA < valB : valA > valB;
@@ -400,14 +365,14 @@ export function ScenarioComparison() {
                         ? 'bg-muted/20'
                         : '';
                     return (
-                      <tr key={row.id} className={`border-b last:border-0 ${rowBg}`}>
+                      <tr key={row.key} className={`border-b last:border-0 ${rowBg}`}>
                         <td className="py-2 px-4 font-medium">{row.label}</td>
-                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valA, row.unit)}</td>
-                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valB, row.unit)}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{row.format(valA)}</td>
+                        <td className="text-right py-2 px-4 tabular-nums">{row.format(valB)}</td>
                         <td className="text-right py-2 px-4">
                           <DiffCell
                             diff={diff}
-                            formatted={formatValue(Math.abs(diff), row.unit)}
+                            formatted={row.format(Math.abs(diff))}
                             lowerIsBetter={row.lowerIsBetter}
                           />
                         </td>
@@ -422,75 +387,75 @@ export function ScenarioComparison() {
             </div>
 
             {/* Visual comparison chart */}
-            {chartData.length > 0 && (
-              <div className="p-4 border-t">
-                <div className="h-[280px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" tick={{ fontSize: 12 }} />
-                      <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                      <Legend />
-                      <Bar
-                        dataKey="A"
-                        name={scenarioA.metadata.name}
-                        fill="#3b82f6"
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="B"
-                        name={scenarioB.metadata.name}
-                        fill="#10b981"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            <div className="p-4 border-t">
+              <div className="h-[280px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Legend />
+                    <Bar
+                      dataKey="A"
+                      name={scenarioA.metadata.name}
+                      fill="#3b82f6"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="B"
+                      name={scenarioB.metadata.name}
+                      fill="#10b981"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            )}
+            </div>
           </ComparisonSection>
 
           {/* Input Variables - collapsed by default */}
-          <ComparisonSection title="Input Variables">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Variable</th>
-                    <th className="text-right py-2.5 px-4 font-medium text-blue-700">
-                      {scenarioA.metadata.name}
-                    </th>
-                    <th className="text-right py-2.5 px-4 font-medium text-emerald-700">
-                      {scenarioB.metadata.name}
-                    </th>
-                    <th className="text-right py-2.5 px-4 font-medium text-muted-foreground">Diff</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inputRows.map((row, i) => {
-                    const valA = scenarioA.values[row.id] ?? 0;
-                    const valB = scenarioB.values[row.id] ?? 0;
-                    const diff = valB - valA;
-                    return (
-                      <tr key={row.id} className={`border-b last:border-0 ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
-                        <td className="py-2 px-4">{row.label}</td>
-                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valA, row.unit)}</td>
-                        <td className="text-right py-2 px-4 tabular-nums">{formatValue(valB, row.unit)}</td>
-                        <td className="text-right py-2 px-4">
-                          <DiffCell
-                            diff={diff}
-                            formatted={formatValue(Math.abs(diff), row.unit)}
-                            lowerIsBetter={row.lowerIsBetter}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </ComparisonSection>
+          {inputRows.length > 0 && (
+            <ComparisonSection title="Input Variables">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="text-left py-2.5 px-4 font-medium text-muted-foreground">Variable</th>
+                      <th className="text-right py-2.5 px-4 font-medium text-blue-700">
+                        {scenarioA.metadata.name}
+                      </th>
+                      <th className="text-right py-2.5 px-4 font-medium text-emerald-700">
+                        {scenarioB.metadata.name}
+                      </th>
+                      <th className="text-right py-2.5 px-4 font-medium text-muted-foreground">Diff</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inputRows.map((row, i) => {
+                      const valA = scenarioA.values[row.id] ?? sectionScope[row.id] ?? 0;
+                      const valB = scenarioB.values[row.id] ?? sectionScope[row.id] ?? 0;
+                      const diff = valB - valA;
+                      const lever = LEVER_MAP.get(row.id);
+                      const fmt = lever?.unit === 'currency' ? formatCurrency
+                        : lever?.unit === 'percent' ? formatPercent
+                        : formatCount;
+                      return (
+                        <tr key={row.id} className={`border-b last:border-0 ${i % 2 === 1 ? 'bg-muted/20' : ''}`}>
+                          <td className="py-2 px-4">{row.label}</td>
+                          <td className="text-right py-2 px-4 tabular-nums">{fmt(valA)}</td>
+                          <td className="text-right py-2 px-4 tabular-nums">{fmt(valB)}</td>
+                          <td className="text-right py-2 px-4">
+                            <DiffCell diff={diff} formatted={fmt(Math.abs(diff))} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </ComparisonSection>
+          )}
 
           {/* Assumptions - collapsed by default */}
           <ComparisonSection title="Assumptions">

@@ -9,13 +9,19 @@ import {
   businessVariablesAtom,
   businessVariablesLoadedAtom,
   businessVariablesLoadFailedAtom,
+  sectionDerivedScopeAtom,
+  sectionScopeVersionAtom,
+  seasonCoefficientsAtom,
 } from '@/store/business-atoms';
 import {
   scenarioListAtom,
   loadDynamicScenarioAtom,
   scenarioSyncReadyAtom,
 } from '@/store/scenario-atoms';
-import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables } from '@/lib/business-firestore';
+import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables, getSectionData } from '@/lib/business-firestore';
+import { normalizeOperations } from '@/features/sections/operations/normalize';
+import { computeOperationsCosts } from '@/features/sections/operations/compute';
+import type { Operations, FinancialProjections, MarketingStrategy, KpisMetrics, MonthlyCosts } from '@/types';
 import { useScenarioSync } from '@/hooks/use-scenario-sync';
 import { useBusinesses } from '@/hooks/use-businesses';
 import { createLogger } from '@/lib/logger';
@@ -134,14 +140,8 @@ function ScenarioSync() {
         const scenarios = await listScenarioData(businessId!);
 
         if (scenarios.length === 0 && variables && !variableLoadFailed) {
-          // No scenarios exist and variables loaded successfully — create baseline from variable definitions
-          const defaultValues: Record<string, number> = {};
-          for (const [id, def] of Object.entries(variables)) {
-            if (def.type === 'input') {
-              defaultValues[id] = def.defaultValue;
-            }
-          }
-
+          // No scenarios exist — create baseline with empty values.
+          // All inputs derive from section scope (current reality) at evaluation time.
           const baseline: DynamicScenario = {
             metadata: {
               id: 'baseline',
@@ -150,7 +150,7 @@ function ScenarioSync() {
               createdAt: new Date().toISOString(),
               isBaseline: true,
             },
-            values: defaultValues,
+            values: {},
           };
           await saveScenarioData(businessId!, baseline);
           await saveScenarioPreferences(businessId!, { activeScenarioId: 'baseline' });
@@ -191,12 +191,152 @@ function ScenarioSync() {
   return null;
 }
 
+function sumMonthlyCosts(costs: MonthlyCosts): number {
+  return costs.marketing + costs.labor + costs.supplies + costs.museum + costs.transport + (costs.fixed ?? 0);
+}
+
+/**
+ * Loads key section data and derives scope variables for the formula engine.
+ * This bridges the gap between section data (Operations, Financial Projections, etc.)
+ * and the variable library so formulas always use up-to-date numbers.
+ */
+function SectionScopeLoader() {
+  const authStatus = useAtomValue(authStatusAtom);
+  const businessId = useAtomValue(activeBusinessIdAtom);
+  const scopeVersion = useAtomValue(sectionScopeVersionAtom);
+  const setSectionScope = useSetAtom(sectionDerivedScopeAtom);
+  const setSeasonCoefficients = useSetAtom(seasonCoefficientsAtom);
+  const prevBusinessIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Reset on business change
+    if (prevBusinessIdRef.current !== businessId) {
+      if (prevBusinessIdRef.current !== null) {
+        setSectionScope({});
+      }
+      prevBusinessIdRef.current = businessId;
+    }
+
+    if (authStatus !== 'authenticated' || !businessId) return;
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [ops, financials, marketing, kpis] = await Promise.all([
+          getSectionData<Operations>(businessId!, 'operations'),
+          getSectionData<FinancialProjections>(businessId!, 'financial-projections'),
+          getSectionData<MarketingStrategy>(businessId!, 'marketing-strategy'),
+          getSectionData<KpisMetrics>(businessId!, 'kpis-metrics'),
+        ]);
+
+        if (cancelled) return;
+
+        const scope: Record<string, number> = {};
+
+        // Operations-derived
+        if (ops) {
+          try {
+            const normalized = normalizeOperations(ops);
+            const summary = computeOperationsCosts(normalized);
+            scope.monthlyLaborCost = summary.workforceMonthlyTotal;
+            scope.workforceMonthlyTotal = summary.workforceMonthlyTotal;
+            scope.monthlyFixedCosts = summary.fixedMonthlyTotal;
+            scope.fixedMonthlyTotal = summary.fixedMonthlyTotal;
+            scope.monthlyVariableCosts = summary.variableMonthlyTotal;
+            scope.variableMonthlyTotal = summary.variableMonthlyTotal;
+            scope.monthlyOperationsCost = summary.monthlyOperationsTotal;
+            scope.variableCostPerUnit = summary.variableCostPerOutput;
+            scope.variableCostPerOutput = summary.variableCostPerOutput;
+            scope.plannedOutputPerMonth = summary.totalPlannedOutputPerMonth;
+            scope.totalPlannedOutputPerMonth = summary.totalPlannedOutputPerMonth;
+          } catch {
+            // Silently skip if operations data is malformed
+          }
+        }
+
+        // Financial Projections-derived
+        if (financials?.months?.length) {
+          const n = financials.months.length;
+          const totalRev = financials.months.reduce((s, m) => s + m.revenue, 0);
+          const totalCost = financials.months.reduce((s, m) => s + sumMonthlyCosts(m.costs), 0);
+          scope.monthlyRevenue = totalRev / n;
+          scope.annualRevenue = totalRev;
+          scope.monthlyCosts = totalCost / n;
+          scope.monthlyTotalCosts = totalCost / n;
+          scope.annualCosts = totalCost;
+          scope.monthlyProfit = (totalRev - totalCost) / n;
+          scope.annualProfit = totalRev - totalCost;
+          scope.grossProfit = (totalRev - (scope.monthlyVariableCosts ?? 0) * n) / n;
+          scope.costOfGoodsSold = scope.monthlyVariableCosts ?? 0;
+          // Unit economics from section if present
+          if (financials.unitEconomics) {
+            if (financials.unitEconomics.pricePerUnit > 0) {
+              scope.pricePerUnit = financials.unitEconomics.pricePerUnit;
+            }
+            if (financials.unitEconomics.variableCostPerUnit > 0) {
+              scope.variableCostPerUnit = financials.unitEconomics.variableCostPerUnit;
+            }
+            scope.profitPerUnit = financials.unitEconomics.profitPerUnit ?? 0;
+            scope.breakEvenUnits = financials.unitEconomics.breakEvenUnits ?? 0;
+            scope.monthlyBreakEvenUnits = financials.unitEconomics.breakEvenUnits ?? 0;
+          }
+        }
+
+        // Marketing-derived
+        if (marketing?.channels?.length) {
+          scope.monthlyMarketingBudget = marketing.channels.reduce(
+            (s, c) => s + (c.budget ?? 0), 0,
+          );
+          scope.monthlyMarketingLeads = marketing.channels.reduce(
+            (s, c) => s + (c.expectedLeads ?? 0), 0,
+          );
+        }
+
+        // KPIs-derived
+        if (kpis?.targets) {
+          if (kpis.targets.pricePerUnit > 0) scope.pricePerUnit = kpis.targets.pricePerUnit;
+          scope.monthlyBookings = kpis.targets.monthlyBookings;
+          scope.monthlyTransactions = kpis.targets.monthlyBookings;
+          // Normalize conversionRate: should be 0-1 decimal, not whole number percent
+          scope.conversionRate = kpis.targets.conversionRate > 1
+            ? kpis.targets.conversionRate / 100
+            : kpis.targets.conversionRate;
+          scope.cacPerLead = kpis.targets.cacPerLead;
+          scope.cacPerBooking = kpis.targets.cacPerBooking;
+          scope.monthlyLeads = kpis.targets.monthlyLeads;
+        }
+
+        setSectionScope(scope);
+
+        // Extract season coefficients from financial projections
+        if (financials?.seasonCoefficients?.length === 12) {
+          setSeasonCoefficients(financials.seasonCoefficients);
+        }
+      } catch (err) {
+        log.warn('section-scope.load.failed', {
+          businessId: businessId!,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  // scopeVersion triggers reload after section saves
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus, businessId, scopeVersion, setSectionScope]);
+
+  return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <JotaiProvider>
       <AuthListener>
         <BusinessLoader />
         <VariableLoader />
+        <SectionScopeLoader />
         <ScenarioSync />
         <BrowserRouter>
           {children}

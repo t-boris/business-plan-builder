@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { listScenarioData } from '@/lib/business-firestore.ts';
-import { activeBusinessIdAtom, businessVariablesAtom } from '@/store/business-atoms.ts';
-import { evaluateVariables } from '@/lib/formula-engine.ts';
-import type { DynamicScenario, VariableDefinition } from '@/types';
+import { activeBusinessIdAtom, sectionDerivedScopeAtom, seasonCoefficientsAtom } from '@/store/business-atoms.ts';
+import { evaluateScenarioFromFirestore, type ScenarioMetrics } from './compute.ts';
+import type { DynamicScenario } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trophy, Plus, X, Scale } from 'lucide-react';
@@ -16,41 +16,14 @@ interface DecisionCriterion {
   weight: number; // 1-10, default 5
   type: 'higher-is-better' | 'lower-is-better';
   source: 'auto' | 'manual';
-  // auto: linked to a computed variable by ID
-  variableId?: string;
+  // auto: linked to a ScenarioMetrics key
+  metricKey?: keyof ScenarioMetrics;
   // manual: user provides score per scenario
   manualScores?: Record<string, number>; // scenarioId -> score (1-10)
 }
 
 // --- Helpers ---
 
-function evaluateScenario(
-  scenario: DynamicScenario,
-  definitions: Record<string, VariableDefinition>
-): Record<string, number> {
-  const merged: Record<string, VariableDefinition> = {};
-  for (const [id, def] of Object.entries(definitions)) {
-    if (def.type === 'input') {
-      merged[id] = { ...def, value: scenario.values[id] ?? def.value };
-    } else {
-      merged[id] = def;
-    }
-  }
-  try {
-    return evaluateVariables(merged);
-  } catch {
-    const fallback: Record<string, number> = {};
-    for (const [id, def] of Object.entries(merged)) {
-      fallback[id] = def.value;
-    }
-    return fallback;
-  }
-}
-
-/**
- * Normalize raw values to a 0-100 scale across all scenarios.
- * For lower-is-better criteria, the score is inverted.
- */
 function normalizeScore(
   value: number,
   min: number,
@@ -66,62 +39,43 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
-// --- Default criteria from variable definitions ---
+// --- Default criteria from fixed metric keys ---
 
-function buildDefaultCriteria(
-  definitions: Record<string, VariableDefinition> | null
-): DecisionCriterion[] {
-  if (!definitions) return [];
-  const criteria: DecisionCriterion[] = [];
-  const computed = Object.values(definitions).filter((v) => v.type === 'computed');
-
-  // Revenue
-  const revenueVar = computed.find((v) => v.label.toLowerCase().includes('revenue'));
-  if (revenueVar) {
-    criteria.push({
+function buildDefaultCriteria(): DecisionCriterion[] {
+  return [
+    {
       id: generateId(),
       label: 'Revenue',
       weight: 5,
       type: 'higher-is-better',
       source: 'auto',
-      variableId: revenueVar.id,
-    });
-  }
-
-  // Costs
-  const costVar = computed.find((v) => v.label.toLowerCase().includes('cost'));
-  if (costVar) {
-    criteria.push({
+      metricKey: 'monthlyRevenue',
+    },
+    {
       id: generateId(),
       label: 'Costs',
       weight: 5,
       type: 'lower-is-better',
       source: 'auto',
-      variableId: costVar.id,
-    });
-  }
-
-  // Profit
-  const profitVar = computed.find((v) => v.label.toLowerCase().includes('profit'));
-  if (profitVar) {
-    criteria.push({
+      metricKey: 'monthlyTotalCosts',
+    },
+    {
       id: generateId(),
       label: 'Profit',
       weight: 5,
       type: 'higher-is-better',
       source: 'auto',
-      variableId: profitVar.id,
-    });
-  }
-
-  return criteria;
+      metricKey: 'monthlyProfit',
+    },
+  ];
 }
 
 // --- Component ---
 
 export function DecisionMatrix({ canEdit }: { canEdit: boolean }) {
   const businessId = useAtomValue(activeBusinessIdAtom);
-  const definitions = useAtomValue(businessVariablesAtom);
+  const sectionScope = useAtomValue(sectionDerivedScopeAtom);
+  const seasonCoefficients = useAtomValue(seasonCoefficientsAtom);
 
   const [scenarios, setScenarios] = useState<DynamicScenario[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,7 +92,6 @@ export function DecisionMatrix({ canEdit }: { canEdit: boolean }) {
     listScenarioData(businessId)
       .then((list) => {
         if (!mounted) return;
-        // Filter out archived scenarios
         setScenarios(list.filter((s) => s.status !== 'archived'));
       })
       .catch(() => {
@@ -152,41 +105,37 @@ export function DecisionMatrix({ canEdit }: { canEdit: boolean }) {
     return () => { mounted = false; };
   }, [businessId]);
 
-  // Initialize default criteria once definitions are loaded
+  // Initialize default criteria once
   useEffect(() => {
-    if (initializedRef.current || !definitions) return;
+    if (initializedRef.current) return;
     initializedRef.current = true;
-    const defaults = buildDefaultCriteria(definitions);
-    if (defaults.length > 0) {
-      setCriteria(defaults);
-    }
-  }, [definitions]);
+    setCriteria(buildDefaultCriteria());
+  }, []);
 
   // Evaluate all scenarios
   const evaluated = useMemo(() => {
-    if (!definitions || scenarios.length === 0) return {};
-    const results: Record<string, Record<string, number>> = {};
+    if (scenarios.length === 0) return {};
+    const results: Record<string, ScenarioMetrics> = {};
     for (const scenario of scenarios) {
-      results[scenario.metadata.id] = evaluateScenario(scenario, definitions);
+      results[scenario.metadata.id] = evaluateScenarioFromFirestore(scenario, sectionScope, seasonCoefficients);
     }
     return results;
-  }, [scenarios, definitions]);
+  }, [scenarios, sectionScope, seasonCoefficients]);
 
   // Calculate normalized scores for each criterion x scenario
   const scoringMatrix = useMemo(() => {
     if (scenarios.length === 0 || criteria.length === 0) return null;
 
-    const matrix: Record<string, Record<string, number>> = {}; // criterionId -> scenarioId -> score
+    const matrix: Record<string, Record<string, number>> = {};
 
     for (const criterion of criteria) {
       matrix[criterion.id] = {};
 
-      if (criterion.source === 'auto' && criterion.variableId) {
-        // Get raw values for this variable across all scenarios
+      if (criterion.source === 'auto' && criterion.metricKey) {
         const rawValues: Record<string, number> = {};
         for (const scenario of scenarios) {
-          const evalResult = evaluated[scenario.metadata.id];
-          rawValues[scenario.metadata.id] = evalResult?.[criterion.variableId] ?? 0;
+          const metrics = evaluated[scenario.metadata.id];
+          rawValues[scenario.metadata.id] = (metrics?.[criterion.metricKey] as number) ?? 0;
         }
 
         const values = Object.values(rawValues);
@@ -203,7 +152,6 @@ export function DecisionMatrix({ canEdit }: { canEdit: boolean }) {
           );
         }
       } else if (criterion.source === 'manual') {
-        // Manual scores: convert 1-10 to 0-100 scale
         for (const scenario of scenarios) {
           const manualScore = criterion.manualScores?.[scenario.metadata.id] ?? 5;
           matrix[criterion.id][scenario.metadata.id] = ((manualScore - 1) / 9) * 100;
@@ -248,7 +196,7 @@ export function DecisionMatrix({ canEdit }: { canEdit: boolean }) {
       const [runnerId, runnerScore] = entries[1];
       const runner = scenarios.find((s) => s.metadata.id === runnerId);
       const diff = Math.abs(winnerScore - runnerScore);
-      const isClose = diff <= 5; // within 5 points
+      const isClose = diff <= 5;
 
       if (isClose && runner) {
         return {

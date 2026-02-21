@@ -31,3 +31,14 @@ export const businessVariablesLoadedAtom = atom<boolean>(false);
 
 // Whether the most recent variable load attempt failed (Firestore error)
 export const businessVariablesLoadFailedAtom = atom<boolean>(false);
+
+// Section-derived scope: computed metrics from actual section data (Operations, Financial Projections, etc.)
+// Updated by SectionScopeLoader in providers.tsx. Used by evaluatedValuesAtom to inject
+// real data into the formula engine so variables stay in sync with section data.
+export const sectionDerivedScopeAtom = atom<Record<string, number>>({});
+
+// Bump this to trigger a section scope reload (e.g., after a section save)
+export const sectionScopeVersionAtom = atom<number>(0);
+
+// Season coefficients from Financial Projections (12 values, 1.0 = average month)
+export const seasonCoefficientsAtom = atom<number[]>(Array(12).fill(1));

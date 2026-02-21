@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { useAtomValue } from 'jotai';
-import { businessVariablesAtom } from '@/store/business-atoms.ts';
-import { evaluatedValuesAtom } from '@/store/derived-atoms.ts';
-import type { VariableUnit } from '@/types';
+import { sectionDerivedScopeAtom, seasonCoefficientsAtom } from '@/store/business-atoms.ts';
+import { scenarioValuesAtom } from '@/store/scenario-atoms.ts';
+import { computeScenarioMetrics } from './compute.ts';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import {
   AreaChart,
@@ -11,6 +12,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 // --- Formatting helpers ---
@@ -27,10 +29,7 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function formatValue(value: number, unit: VariableUnit): string {
-  if (unit === 'currency') return formatCurrency(value);
-  if (unit === 'percent') return formatPercent(value);
-  if (unit === 'ratio') return value.toFixed(2);
+function formatCount(value: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 }
 
@@ -63,115 +62,123 @@ function getProfitColor(profit: number): string {
   return profit >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-function getSemanticColor(label: string, value: number): string | undefined {
-  const lower = label.toLowerCase();
-  if (lower.includes('profit')) return getProfitColor(value);
-  if (lower.includes('margin')) return getMarginColor(value);
-  if (lower.includes('cost') || lower.includes('spend')) return 'text-amber-600';
-  if (lower.includes('revenue')) return 'text-green-600';
-  return undefined;
-}
-
-// --- Main Dynamic Component ---
+// --- Main Component ---
 
 export function ScenarioDashboard() {
-  const definitions = useAtomValue(businessVariablesAtom);
-  const evaluated = useAtomValue(evaluatedValuesAtom);
+  const sectionScope = useAtomValue(sectionDerivedScopeAtom);
+  const overrides = useAtomValue(scenarioValuesAtom);
+  const seasonCoefficients = useAtomValue(seasonCoefficientsAtom);
 
-  if (!definitions) {
+  const metrics = useMemo(
+    () => computeScenarioMetrics(sectionScope, overrides, seasonCoefficients),
+    [sectionScope, overrides, seasonCoefficients],
+  );
+
+  const hasData = metrics.monthlyRevenue > 0 || metrics.monthlyTotalCosts > 0;
+
+  if (!hasData) {
     return (
       <div className="text-center text-muted-foreground py-8">
-        <p>Loading...</p>
+        <p>No data yet. Fill in your section data to see scenario metrics.</p>
       </div>
     );
   }
 
-  // Get all computed variables for KPI cards
-  const computedVariables = Object.values(definitions).filter((v) => v.type === 'computed');
-
-  // Find monthly revenue and monthly costs for chart
-  const allVariables = Object.values(definitions);
-  const revenueVar = allVariables.find(
-    (v) => v.id === 'monthly_revenue' || v.label.toLowerCase() === 'monthly revenue'
-  );
-  const costsVar = allVariables.find(
-    (v) => v.id === 'monthly_costs' || v.label.toLowerCase() === 'monthly costs'
-  );
-
-  const monthlyRevenue = revenueVar ? (evaluated[revenueVar.id] ?? 0) : null;
-  const monthlyCosts = costsVar ? (evaluated[costsVar.id] ?? 0) : null;
-
-  // 12-month flat projection data
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const showChart = monthlyRevenue !== null || monthlyCosts !== null;
-  const projectionData = showChart
-    ? monthNames.map((month) => ({
-        month,
-        Revenue: monthlyRevenue !== null ? Math.round(monthlyRevenue) : undefined,
-        Costs: monthlyCosts !== null ? Math.round(monthlyCosts) : undefined,
-      }))
-    : [];
-
   return (
     <div className="space-y-4">
-      {/* Stat cards grid */}
-      {computedVariables.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {computedVariables.map((variable) => {
-            const value = evaluated[variable.id] ?? 0;
-            const colorClass = getSemanticColor(variable.label, value);
-            return (
-              <StatCard
-                key={variable.id}
-                label={variable.label}
-                value={formatValue(value, variable.unit)}
-                colorClass={colorClass}
-              />
-            );
-          })}
-        </div>
-      )}
+      {/* Primary stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          label="Monthly Revenue"
+          value={formatCurrency(metrics.monthlyRevenue)}
+          colorClass="text-green-600"
+        />
+        <StatCard
+          label="Monthly Costs"
+          value={formatCurrency(metrics.monthlyTotalCosts)}
+          colorClass="text-amber-600"
+        />
+        <StatCard
+          label="Monthly Profit"
+          value={formatCurrency(metrics.monthlyProfit)}
+          colorClass={getProfitColor(metrics.monthlyProfit)}
+        />
+        <StatCard
+          label="Profit Margin"
+          value={formatPercent(metrics.profitMargin)}
+          colorClass={getMarginColor(metrics.profitMargin)}
+        />
+      </div>
+
+      {/* Secondary stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          label="Gross Margin"
+          value={formatPercent(metrics.grossMargin)}
+          colorClass={getMarginColor(metrics.grossMargin)}
+        />
+        <StatCard
+          label="Break-even Units"
+          value={formatCount(metrics.breakEvenUnits)}
+        />
+        <StatCard
+          label="Annual Revenue"
+          value={formatCurrency(metrics.annualRevenue)}
+          colorClass="text-green-600"
+        />
+        <StatCard
+          label="Annual Profit"
+          value={formatCurrency(metrics.annualProfit)}
+          colorClass={getProfitColor(metrics.annualProfit)}
+        />
+      </div>
 
       {/* 12-month projection chart */}
-      {showChart && (
-        <Card>
-          <CardHeader className="pb-3">
-            <h3 className="text-sm font-semibold">12-Month Revenue Projection</h3>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={projectionData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  {monthlyRevenue !== null && (
-                    <Area
-                      type="monotone"
-                      dataKey="Revenue"
-                      stroke="#22c55e"
-                      fill="#22c55e"
-                      fillOpacity={0.15}
-                      strokeWidth={2}
-                    />
-                  )}
-                  {monthlyCosts !== null && (
-                    <Area
-                      type="monotone"
-                      dataKey="Costs"
-                      stroke="#f97316"
-                      fill="#f97316"
-                      fillOpacity={0.1}
-                      strokeWidth={2}
-                    />
-                  )}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="pb-3">
+          <h3 className="text-sm font-semibold">12-Month Projection</h3>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={metrics.monthlyProjections} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Revenue"
+                  stroke="#22c55e"
+                  fill="#22c55e"
+                  fillOpacity={0.15}
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="costs"
+                  name="Costs"
+                  stroke="#f97316"
+                  fill="#f97316"
+                  fillOpacity={0.1}
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="profit"
+                  name="Profit"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  fillOpacity={0.1}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { atom } from 'jotai';
 import type { ScenarioMetadata, DynamicScenario, ScenarioAssumption, ScenarioStatus } from '@/types';
-import { businessVariablesAtom } from '@/store/business-atoms.ts';
 
 // Scenario name
 export const scenarioNameAtom = atom<string>('Baseline');
@@ -38,18 +37,11 @@ export const scenarioVariantRefsAtom = atom<Record<string, string>>({});
 // Maps section slug to partial section data overrides for the active scenario
 export const scenarioSectionOverridesAtom = atom<Record<string, Record<string, unknown>>>({});
 
-// Read-only atom that filters scenarioValuesAtom to only input variable values
+// Read-only atom that returns all explicit overrides from the current scenario.
+// Includes both lever keys and custom variable keys.
+// Only non-empty values are saved (empty = use base from section scope).
 export const snapshotInputValuesAtom = atom<Record<string, number>>((get) => {
-  const definitions = get(businessVariablesAtom);
-  if (!definitions) return {};
-  const values = get(scenarioValuesAtom);
-  const result: Record<string, number> = {};
-  for (const [id, def] of Object.entries(definitions)) {
-    if (def.type === 'input') {
-      result[id] = values[id] ?? def.value;
-    }
-  }
-  return result;
+  return get(scenarioValuesAtom);
 });
 
 // Writable atom that loads a DynamicScenario into the dynamic atoms
@@ -68,22 +60,15 @@ export const loadDynamicScenarioAtom = atom<null, [DynamicScenario], void>(
   }
 );
 
-// Writable atom that resets dynamic atoms to defaults from businessVariablesAtom
+// Writable atom that resets dynamic atoms for a new scenario.
+// Starts with EMPTY values so all inputs derive from section scope (current reality).
+// Only explicit user overrides get stored.
 export const resetDynamicToDefaultsAtom = atom<null, [], void>(
   null,
-  (get, set) => {
-    const definitions = get(businessVariablesAtom);
-    const defaults: Record<string, number> = {};
-    if (definitions) {
-      for (const [id, def] of Object.entries(definitions)) {
-        if (def.type === 'input') {
-          defaults[id] = def.defaultValue;
-        }
-      }
-    }
+  (_get, set) => {
     set(scenarioNameAtom, 'New Scenario');
     set(currentScenarioIdAtom, crypto.randomUUID());
-    set(scenarioValuesAtom, defaults);
+    set(scenarioValuesAtom, {});
     // v2 fields
     set(scenarioAssumptionsAtom, []);
     set(scenarioVariantRefsAtom, {});
