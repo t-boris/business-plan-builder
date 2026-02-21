@@ -7,8 +7,10 @@ import { SECTION_SLUGS } from '@/lib/constants';
 import { useSection } from '@/hooks/use-section';
 import { listScenarioData } from '@/lib/business-firestore';
 import { evaluateVariables } from '@/lib/formula-engine';
+import { translateTexts } from '@/lib/ai/translate-client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { PageHeader } from '@/components/page-header';
 import { FileText, Download, Loader2 } from 'lucide-react';
 import { BusinessPlanView } from './business-plan-view';
@@ -30,6 +32,23 @@ import type {
   ScenarioAssumption,
 } from '@/types';
 import { defaultGrowthTimeline } from '@/features/sections/growth-timeline/defaults';
+
+// --- Supported export languages ---
+const EXPORT_LANGUAGES = [
+  { code: 'en', label: 'English (Original)' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'fr', label: 'French' },
+  { code: 'de', label: 'German' },
+  { code: 'pt', label: 'Portuguese' },
+  { code: 'it', label: 'Italian' },
+  { code: 'ru', label: 'Russian' },
+  { code: 'zh', label: 'Chinese' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'ar', label: 'Arabic' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'uk', label: 'Ukrainian' },
+] as const;
 
 // --- ScenarioPack interface for export ---
 export interface ScenarioPack {
@@ -149,6 +168,321 @@ const defaultKpis: KpisMetrics = { targets: { monthlyLeads: 0, conversionRate: 0
 
 const defaultLaunchPlan: LaunchPlan = { stages: [] };
 
+// --- Section title / subsection labels used in the PDF ---
+const SECTION_LABELS_FOR_PDF: Record<string, string> = {
+  'label.executive-summary': 'Executive Summary',
+  'label.summary': 'Summary',
+  'label.mission': 'Mission',
+  'label.vision': 'Vision',
+  'label.key-highlights': 'Key Highlights',
+  'label.market-analysis': 'Market Analysis',
+  'label.market-sizing': 'Market Sizing',
+  'label.competitors': 'Competitors',
+  'label.demographics': 'Demographics',
+  'label.acquisition-funnel': 'Acquisition Funnel',
+  'label.adoption-model': 'Adoption Model',
+  'label.custom-metrics': 'Custom Metrics',
+  'label.product-service': 'Product & Service',
+  'label.offerings': 'Offerings',
+  'label.add-ons': 'Add-Ons',
+  'label.marketing-strategy': 'Marketing Strategy',
+  'label.channels': 'Channels',
+  'label.promotional-offers': 'Promotional Offers',
+  'label.landing-page': 'Landing Page',
+  'label.operations': 'Operations',
+  'label.workforce': 'Workforce',
+  'label.capacity-mix': 'Capacity Mix',
+  'label.cost-summary': 'Cost Summary',
+  'label.variable-components': 'Variable Components (Per Product/Service)',
+  'label.fixed-costs': 'Fixed Costs',
+  'label.operational-metrics': 'Operational Metrics',
+  'label.equipment': 'Equipment',
+  'label.safety-protocols': 'Safety Protocols',
+  'label.financial-projections': 'Financial Projections',
+  'label.unit-economics': 'Unit Economics',
+  'label.monthly-pl': 'Monthly P&L',
+  'label.growth-timeline': 'Growth Timeline',
+  'label.events': 'Events',
+  'label.projected-impact': 'Projected Impact',
+  'label.monthly-projection': 'Monthly Projection',
+  'label.risks-due-diligence': 'Risks & Due Diligence',
+  'label.risk-assessment': 'Risk Assessment',
+  'label.due-diligence-checklist': 'Due Diligence Checklist',
+  'label.compliance-checklist': 'Compliance Checklist',
+  'label.kpis-metrics': 'KPIs & Metrics',
+  'label.target-metrics': 'Target Metrics',
+  'label.launch-plan': 'Launch Plan',
+  'label.scenario-analysis': 'Scenario Analysis',
+  'label.active-scenario': 'Active Scenario',
+  'label.scenario-comparison': 'Scenario Comparison',
+  'label.scenario-metrics': 'Scenario Metrics',
+};
+
+// --- Translation helper ---
+
+/**
+ * Extract all translatable text from sections into a flat Record<string, string>,
+ * translate in batches, then merge back into cloned section objects.
+ */
+async function translateAllSections(
+  sections: {
+    execSummary: ExecutiveSummary;
+    marketAnalysis: MarketAnalysis;
+    productService: ProductService;
+    marketingStrategy: MarketingStrategy;
+    operations: Operations;
+    risks: RisksDueDiligence;
+    launchPlan: LaunchPlan;
+    growthTimeline: GrowthTimeline;
+  },
+  targetLanguage: string,
+): Promise<{
+  execSummary: ExecutiveSummary;
+  marketAnalysis: MarketAnalysis;
+  productService: ProductService;
+  marketingStrategy: MarketingStrategy;
+  operations: Operations;
+  risks: RisksDueDiligence;
+  launchPlan: LaunchPlan;
+  growthTimeline: GrowthTimeline;
+  translatedLabels: Record<string, string>;
+}> {
+  // 1. Extract translatable texts into a flat map
+  const texts: Record<string, string> = {};
+
+  function add(key: string, value: string | undefined | null) {
+    if (value && value.trim()) texts[key] = value;
+  }
+
+  // Executive Summary
+  add('exec.summary', sections.execSummary.summary);
+  add('exec.mission', sections.execSummary.mission);
+  add('exec.vision', sections.execSummary.vision);
+  sections.execSummary.keyHighlights.forEach((h, i) => add(`exec.highlight.${i}`, h));
+
+  // Market Analysis
+  add('market.narrative', sections.marketAnalysis.marketNarrative);
+  sections.marketAnalysis.competitors.forEach((c, i) => {
+    add(`market.comp.${i}.name`, c.name);
+    add(`market.comp.${i}.strengths`, c.strengths);
+    add(`market.comp.${i}.weaknesses`, c.weaknesses);
+  });
+  sections.marketAnalysis.acquisitionFunnel.forEach((s, i) => {
+    add(`market.funnel.${i}.label`, s.label);
+    add(`market.funnel.${i}.desc`, s.description);
+  });
+  sections.marketAnalysis.customMetrics?.forEach((m, i) => {
+    add(`market.cm.${i}.label`, m.label);
+  });
+
+  // Product & Service
+  add('ps.overview', sections.productService.overview);
+  sections.productService.offerings.forEach((o, i) => {
+    add(`ps.off.${i}.name`, o.name);
+    add(`ps.off.${i}.desc`, o.description);
+  });
+  sections.productService.addOns.forEach((a, i) => {
+    add(`ps.addon.${i}.name`, a.name);
+    add(`ps.addon.${i}.desc`, a.description);
+  });
+
+  // Marketing Strategy
+  sections.marketingStrategy.channels.forEach((ch, i) => {
+    add(`mkt.ch.${i}.name`, ch.name);
+    add(`mkt.ch.${i}.desc`, ch.description);
+  });
+  add('mkt.lp.desc', sections.marketingStrategy.landingPage.description);
+
+  // Operations
+  sections.operations.workforce.forEach((w, i) => add(`ops.wf.${i}.role`, w.role));
+  sections.operations.costItems.forEach((c, i) => add(`ops.ci.${i}.cat`, c.category));
+  sections.operations.equipment.forEach((e, i) => add(`ops.eq.${i}`, e));
+  sections.operations.safetyProtocols.forEach((p, i) => add(`ops.sp.${i}`, p));
+  sections.operations.operationalMetrics.forEach((m, i) => add(`ops.om.${i}.name`, m.name));
+
+  // Risks
+  sections.risks.risks.forEach((r, i) => {
+    add(`risk.r.${i}.title`, r.title);
+    add(`risk.r.${i}.desc`, r.description);
+    add(`risk.r.${i}.mitigation`, r.mitigation);
+  });
+  sections.risks.complianceChecklist.forEach((c, i) => add(`risk.cc.${i}.item`, c.item));
+  if (sections.risks.investmentVerdict) {
+    sections.risks.investmentVerdict.conditions.forEach((c, i) => add(`risk.iv.cond.${i}`, c));
+  }
+  sections.risks.dueDiligenceChecklist?.forEach((d, i) => {
+    add(`risk.dd.${i}.item`, d.item);
+    add(`risk.dd.${i}.detail`, d.detail);
+  });
+
+  // Launch Plan
+  sections.launchPlan.stages.forEach((s, i) => {
+    add(`lp.stage.${i}.name`, s.name);
+    s.tasks.forEach((t, j) => add(`lp.stage.${i}.task.${j}`, t.task));
+  });
+
+  // Growth Timeline
+  sections.growthTimeline.events.forEach((e, i) => {
+    add(`gt.ev.${i}.label`, e.label);
+  });
+
+  // Section/subsection labels for PDF
+  for (const [key, val] of Object.entries(SECTION_LABELS_FOR_PDF)) {
+    texts[key] = val;
+  }
+
+  // 2. Split into chunks of ~20 and translate
+  const entries = Object.entries(texts);
+  const translated: Record<string, string> = {};
+  const CHUNK_SIZE = 20;
+
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    const chunk = Object.fromEntries(entries.slice(i, i + CHUNK_SIZE));
+    const result = await translateTexts(chunk, targetLanguage);
+    Object.assign(translated, result);
+  }
+
+  // Helper to get translated value or fall back to original
+  function t(key: string, original: string): string {
+    return translated[key] ?? original;
+  }
+
+  // 3. Clone and merge translated values back into section objects
+  const tExecSummary: ExecutiveSummary = {
+    summary: t('exec.summary', sections.execSummary.summary),
+    mission: t('exec.mission', sections.execSummary.mission),
+    vision: t('exec.vision', sections.execSummary.vision),
+    keyHighlights: sections.execSummary.keyHighlights.map((h, i) => t(`exec.highlight.${i}`, h)),
+  };
+
+  const tMarketAnalysis: MarketAnalysis = {
+    ...sections.marketAnalysis,
+    marketNarrative: t('market.narrative', sections.marketAnalysis.marketNarrative),
+    competitors: sections.marketAnalysis.competitors.map((c, i) => ({
+      ...c,
+      name: t(`market.comp.${i}.name`, c.name),
+      strengths: t(`market.comp.${i}.strengths`, c.strengths),
+      weaknesses: t(`market.comp.${i}.weaknesses`, c.weaknesses),
+    })),
+    acquisitionFunnel: sections.marketAnalysis.acquisitionFunnel.map((s, i) => ({
+      ...s,
+      label: t(`market.funnel.${i}.label`, s.label),
+      description: t(`market.funnel.${i}.desc`, s.description),
+    })),
+    customMetrics: (sections.marketAnalysis.customMetrics ?? []).map((m, i) => ({
+      ...m,
+      label: t(`market.cm.${i}.label`, m.label),
+    })),
+  };
+
+  const tProductService: ProductService = {
+    overview: t('ps.overview', sections.productService.overview ?? ''),
+    offerings: sections.productService.offerings.map((o, i) => ({
+      ...o,
+      name: t(`ps.off.${i}.name`, o.name),
+      description: t(`ps.off.${i}.desc`, o.description),
+    })),
+    addOns: sections.productService.addOns.map((a, i) => ({
+      ...a,
+      name: t(`ps.addon.${i}.name`, a.name),
+      description: t(`ps.addon.${i}.desc`, a.description ?? ''),
+    })),
+  };
+
+  const tMarketingStrategy: MarketingStrategy = {
+    ...sections.marketingStrategy,
+    channels: sections.marketingStrategy.channels.map((ch, i) => ({
+      ...ch,
+      name: t(`mkt.ch.${i}.name`, ch.name),
+      description: t(`mkt.ch.${i}.desc`, ch.description),
+    })),
+    landingPage: {
+      ...sections.marketingStrategy.landingPage,
+      description: t('mkt.lp.desc', sections.marketingStrategy.landingPage.description),
+    },
+  };
+
+  const tOperations: Operations = {
+    ...sections.operations,
+    workforce: sections.operations.workforce.map((w, i) => ({
+      ...w,
+      role: t(`ops.wf.${i}.role`, w.role),
+    })),
+    costItems: sections.operations.costItems.map((c, i) => ({
+      ...c,
+      category: t(`ops.ci.${i}.cat`, c.category),
+    })),
+    equipment: sections.operations.equipment.map((e, i) => t(`ops.eq.${i}`, e)),
+    safetyProtocols: sections.operations.safetyProtocols.map((p, i) => t(`ops.sp.${i}`, p)),
+    operationalMetrics: sections.operations.operationalMetrics.map((m, i) => ({
+      ...m,
+      name: t(`ops.om.${i}.name`, m.name),
+    })),
+  };
+
+  const tRisks: RisksDueDiligence = {
+    ...sections.risks,
+    risks: sections.risks.risks.map((r, i) => ({
+      ...r,
+      title: t(`risk.r.${i}.title`, r.title),
+      description: t(`risk.r.${i}.desc`, r.description),
+      mitigation: t(`risk.r.${i}.mitigation`, r.mitigation),
+    })),
+    complianceChecklist: sections.risks.complianceChecklist.map((c, i) => ({
+      ...c,
+      item: t(`risk.cc.${i}.item`, c.item),
+    })),
+    investmentVerdict: sections.risks.investmentVerdict
+      ? {
+          ...sections.risks.investmentVerdict,
+          conditions: sections.risks.investmentVerdict.conditions.map((c, i) => t(`risk.iv.cond.${i}`, c)),
+        }
+      : undefined,
+    dueDiligenceChecklist: sections.risks.dueDiligenceChecklist?.map((d, i) => ({
+      ...d,
+      item: t(`risk.dd.${i}.item`, d.item),
+      detail: t(`risk.dd.${i}.detail`, d.detail),
+    })),
+  };
+
+  const tLaunchPlan: LaunchPlan = {
+    stages: sections.launchPlan.stages.map((s, i) => ({
+      ...s,
+      name: t(`lp.stage.${i}.name`, s.name),
+      tasks: s.tasks.map((task, j) => ({
+        ...task,
+        task: t(`lp.stage.${i}.task.${j}`, task.task),
+      })),
+    })),
+  };
+
+  const tGrowthTimeline: GrowthTimeline = {
+    ...sections.growthTimeline,
+    events: sections.growthTimeline.events.map((e, i) => ({
+      ...e,
+      label: t(`gt.ev.${i}.label`, e.label),
+    })),
+  };
+
+  // Extract translated labels
+  const translatedLabels: Record<string, string> = {};
+  for (const key of Object.keys(SECTION_LABELS_FOR_PDF)) {
+    translatedLabels[key] = translated[key] ?? SECTION_LABELS_FOR_PDF[key];
+  }
+
+  return {
+    execSummary: tExecSummary,
+    marketAnalysis: tMarketAnalysis,
+    productService: tProductService,
+    marketingStrategy: tMarketingStrategy,
+    operations: tOperations,
+    risks: tRisks,
+    launchPlan: tLaunchPlan,
+    growthTimeline: tGrowthTimeline,
+    translatedLabels,
+  };
+}
+
 export function Export() {
   const scenarioName = useAtomValue(scenarioNameAtom);
   const evaluated = useAtomValue(evaluatedValuesAtom);
@@ -259,7 +593,9 @@ export function Export() {
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportLanguage, setExportLanguage] = useState('en');
 
   // Chart capture for PDF
   const { ref: chartRef, captureChart } = useChartCapture();
@@ -278,32 +614,67 @@ export function Export() {
 
   async function handleDownloadPdf() {
     setIsGenerating(true);
+    setIsTranslating(false);
     setError(null);
 
     try {
       // 1. Capture chart image
       const chartImage = await captureChart();
 
-      // 2. Dynamically import PDF generator and file-saver
+      // 2. Translate sections if non-English language selected
+      let finalSections = {
+        execSummary,
+        marketAnalysis,
+        productService,
+        marketingStrategy,
+        operations,
+        financials,
+        growthTimeline,
+        risks,
+        kpis,
+        launchPlan,
+      };
+      let translatedLabels: Record<string, string> | undefined;
+
+      if (exportLanguage !== 'en') {
+        setIsTranslating(true);
+        const result = await translateAllSections(
+          {
+            execSummary,
+            marketAnalysis,
+            productService,
+            marketingStrategy,
+            operations,
+            risks,
+            launchPlan,
+            growthTimeline,
+          },
+          EXPORT_LANGUAGES.find((l) => l.code === exportLanguage)?.label.replace(/ \(.*\)$/, '') ?? exportLanguage,
+        );
+        finalSections = {
+          ...finalSections,
+          execSummary: result.execSummary,
+          marketAnalysis: result.marketAnalysis,
+          productService: result.productService,
+          marketingStrategy: result.marketingStrategy,
+          operations: result.operations,
+          risks: result.risks,
+          launchPlan: result.launchPlan,
+          growthTimeline: result.growthTimeline,
+        };
+        translatedLabels = result.translatedLabels;
+        setIsTranslating(false);
+      }
+
+      // 3. Dynamically import PDF generator and file-saver
       const [{ generateBusinessPlanPdf }, { saveAs }] = await Promise.all([
         import('./pdf/generatePdf'),
         import('file-saver'),
       ]);
 
-      // 3. Generate PDF blob
+      // 4. Generate PDF blob
       const blob = await generateBusinessPlanPdf({
-        sections: {
-          execSummary,
-          marketAnalysis,
-          productService,
-          marketingStrategy,
-          operations,
-          financials,
-          growthTimeline,
-          risks,
-          kpis,
-          launchPlan,
-        },
+        sections: finalSections,
         enabledSections,
         scenarioMetrics,
         scenarioName,
@@ -311,16 +682,20 @@ export function Export() {
         businessName,
         currencyCode,
         scenarioPack,
+        language: exportLanguage !== 'en' ? exportLanguage : undefined,
+        translatedLabels,
       });
 
-      // 4. Trigger download with business name in filename
+      // 5. Trigger download with business name in filename
       const sanitizedName = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      saveAs(blob, `${sanitizedName}-business-plan.pdf`);
+      const langSuffix = exportLanguage !== 'en' ? `-${exportLanguage}` : '';
+      saveAs(blob, `${sanitizedName}-business-plan${langSuffix}.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate PDF. Please try again.');
     } finally {
       setIsGenerating(false);
+      setIsTranslating(false);
     }
   }
 
@@ -473,6 +848,25 @@ export function Export() {
                 </div>
               </div>
 
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Export language</p>
+                  <p className="text-xs text-muted-foreground">Translate content before generating PDF</p>
+                </div>
+                <Select value={exportLanguage} onValueChange={setExportLanguage}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPORT_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button
                 className="w-full"
                 onClick={handleDownloadPdf}
@@ -481,7 +875,7 @@ export function Export() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="size-4 mr-2 animate-spin" />
-                    Generating PDF...
+                    {isTranslating ? 'Translating & generating PDF...' : 'Generating PDF...'}
                   </>
                 ) : (
                   <>

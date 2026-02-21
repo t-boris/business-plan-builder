@@ -137,6 +137,8 @@ export interface BusinessPlanDocumentProps {
   businessName: string;
   currencyCode: string;
   scenarioPack: import('../index').ScenarioPack | null;
+  language?: string;
+  translatedLabels?: Record<string, string>;
 }
 
 export function BusinessPlanDocument({
@@ -157,12 +159,28 @@ export function BusinessPlanDocument({
   businessName,
   currencyCode,
   scenarioPack,
+  language,
+  translatedLabels,
 }: BusinessPlanDocumentProps) {
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+
+  // Label lookup: use translated label if available, fallback to default
+  const L = (key: string, fallback: string): string => {
+    return translatedLabels?.[key] ?? fallback;
+  };
+
+  // Language display name for cover page subtitle
+  const LANGUAGE_NAMES: Record<string, string> = {
+    es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', it: 'Italian',
+    ru: 'Russian', zh: 'Chinese', ja: 'Japanese', ko: 'Korean', ar: 'Arabic',
+    hi: 'Hindi', uk: 'Ukrainian',
+  };
+  const isTranslated = language && language !== 'en';
+  const translatedLanguageName = isTranslated ? LANGUAGE_NAMES[language] ?? language : null;
 
   // Dynamic section filtering and numbering
   const enabledSlugs = SECTION_SLUGS.filter((s) => enabledSections.includes(s));
@@ -211,28 +229,29 @@ export function BusinessPlanDocument({
         businessName={businessName}
         currencyCode={currencyCode}
         topMetrics={topMetrics}
+        translatedLanguageName={translatedLanguageName}
       />
 
       {/* Section: Executive Summary */}
       {enabledSlugs.includes('executive-summary') && (
-        <SectionPage number={getSectionNumber('executive-summary')} title="Executive Summary">
+        <SectionPage number={getSectionNumber('executive-summary')} title={L('label.executive-summary', 'Executive Summary')}>
           {execSummary ? (
             <View>
-              <SubsectionTitle>Summary</SubsectionTitle>
+              <SubsectionTitle>{L('label.summary', 'Summary')}</SubsectionTitle>
               <PdfMd text={execSummary.summary} style={styles.bodyText} />
 
               <View style={styles.col2}>
                 <View style={styles.flex1}>
-                  <SubsectionTitle>Mission</SubsectionTitle>
+                  <SubsectionTitle>{L('label.mission', 'Mission')}</SubsectionTitle>
                   <PdfMd text={execSummary.mission} style={styles.bodyText} />
                 </View>
                 <View style={styles.flex1}>
-                  <SubsectionTitle>Vision</SubsectionTitle>
+                  <SubsectionTitle>{L('label.vision', 'Vision')}</SubsectionTitle>
                   <PdfMd text={execSummary.vision} style={styles.bodyText} />
                 </View>
               </View>
 
-              <SubsectionTitle>Key Highlights</SubsectionTitle>
+              <SubsectionTitle>{L('label.key-highlights', 'Key Highlights')}</SubsectionTitle>
               <BulletList items={execSummary.keyHighlights} />
             </View>
           ) : (
@@ -243,7 +262,7 @@ export function BusinessPlanDocument({
 
       {/* Section: Market Analysis */}
       {enabledSlugs.includes('market-analysis') && (
-        <SectionPage number={getSectionNumber('market-analysis')} title="Market Analysis">
+        <SectionPage number={getSectionNumber('market-analysis')} title={L('label.market-analysis', 'Market Analysis')}>
           {marketAnalysis ? (
             <View>
               {/* TAM / SAM / SOM */}
@@ -256,7 +275,7 @@ export function BusinessPlanDocument({
 
                 return (
                   <View>
-                    <SubsectionTitle>Market Sizing</SubsectionTitle>
+                    <SubsectionTitle>{L('label.market-sizing', 'Market Sizing')}</SubsectionTitle>
                     <View style={styles.statCardRow}>
                       {tamVal > 0 && <StatCard label={`TAM (${marketAnalysis.marketSizing.tam.approach})`} value={fmt(tamVal)} />}
                       {samVal > 0 && <StatCard label="SAM" value={fmt(samVal)} />}
@@ -309,7 +328,7 @@ export function BusinessPlanDocument({
               {/* Competitors */}
               {marketAnalysis.enabledBlocks?.competitors !== false && marketAnalysis.competitors.length > 0 && (
                 <View>
-                  <SubsectionTitle>Competitors</SubsectionTitle>
+                  <SubsectionTitle>{L('label.competitors', 'Competitors')}</SubsectionTitle>
                   <View style={styles.table}>
                     <View style={styles.tableHeaderRow}>
                       <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Name</Text>
@@ -332,7 +351,7 @@ export function BusinessPlanDocument({
               {/* Demographics */}
               {marketAnalysis.enabledBlocks?.demographics !== false && (
                 <View>
-                  <SubsectionTitle>Demographics</SubsectionTitle>
+                  <SubsectionTitle>{L('label.demographics', 'Demographics')}</SubsectionTitle>
                   <Text style={styles.bodyText}>Population: {marketAnalysis.demographics.population.toLocaleString()}</Text>
                   <Text style={styles.bodyText}>Income: {marketAnalysis.demographics.income}</Text>
                   {marketAnalysis.demographics.metrics?.map((m, i) => (
@@ -344,7 +363,7 @@ export function BusinessPlanDocument({
               {/* Acquisition Funnel */}
               {marketAnalysis.enabledBlocks?.acquisitionFunnel !== false && marketAnalysis.acquisitionFunnel?.length > 0 && (
                 <View>
-                  <SubsectionTitle>Acquisition Funnel</SubsectionTitle>
+                  <SubsectionTitle>{L('label.acquisition-funnel', 'Acquisition Funnel')}</SubsectionTitle>
                   <View style={styles.table}>
                     <View style={styles.tableHeaderRow}>
                       <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Stage</Text>
@@ -367,7 +386,7 @@ export function BusinessPlanDocument({
               {/* Adoption Model */}
               {marketAnalysis.enabledBlocks?.adoptionModel !== false && marketAnalysis.adoptionModel && (
                 <View>
-                  <SubsectionTitle>Adoption Model</SubsectionTitle>
+                  <SubsectionTitle>{L('label.adoption-model', 'Adoption Model')}</SubsectionTitle>
                   <Text style={styles.bodyText}>
                     {marketAnalysis.adoptionModel.type === 's-curve' ? 'S-Curve (Logistic)' : 'Linear'} | Market: {marketAnalysis.adoptionModel.totalMarket.toLocaleString()} | Initial: {marketAnalysis.adoptionModel.initialUsers} | Rate: {marketAnalysis.adoptionModel.growthRate} | {marketAnalysis.adoptionModel.projectionMonths}mo
                   </Text>
@@ -377,7 +396,7 @@ export function BusinessPlanDocument({
               {/* Custom Metrics */}
               {marketAnalysis.enabledBlocks?.customMetrics !== false && marketAnalysis.customMetrics?.length > 0 && (
                 <View>
-                  <SubsectionTitle>Custom Metrics</SubsectionTitle>
+                  <SubsectionTitle>{L('label.custom-metrics', 'Custom Metrics')}</SubsectionTitle>
                   {marketAnalysis.customMetrics.map((m, i) => (
                     <Text key={i} style={styles.bodyText}>{m.label}: {m.value}{m.source ? ` (${m.source})` : ''}</Text>
                   ))}
@@ -394,14 +413,14 @@ export function BusinessPlanDocument({
       {enabledSlugs.includes('product-service') && (() => {
         const normalizedPS = productService ? normalizeProductService(productService) : null;
         return (
-          <SectionPage number={getSectionNumber('product-service')} title="Product & Service">
+          <SectionPage number={getSectionNumber('product-service')} title={L('label.product-service', 'Product & Service')}>
             {normalizedPS ? (
               <View>
                 {normalizedPS.overview ? (
                   <PdfMd text={normalizedPS.overview} style={styles.bodyText} />
                 ) : null}
 
-                <SubsectionTitle>Offerings</SubsectionTitle>
+                <SubsectionTitle>{L('label.offerings', 'Offerings')}</SubsectionTitle>
                 {normalizedPS.offerings.map((offering) => (
                   <View key={offering.id} style={styles.infoCard}>
                     {offering.image?.url && (
@@ -438,7 +457,7 @@ export function BusinessPlanDocument({
 
                 {normalizedPS.addOns.length > 0 && (
                   <View>
-                    <SubsectionTitle>Add-Ons</SubsectionTitle>
+                    <SubsectionTitle>{L('label.add-ons', 'Add-Ons')}</SubsectionTitle>
                     {normalizedPS.addOns.map((a) => (
                       <Text key={a.id} style={styles.bodyText}>
                         {a.name}{a.description ? ` -- ${a.description}` : ''} -- {formatCurrency(a.price, currencyCode)}{a.priceLabel ? ` ${a.priceLabel}` : ''}
@@ -456,10 +475,10 @@ export function BusinessPlanDocument({
 
       {/* Section: Marketing Strategy */}
       {enabledSlugs.includes('marketing-strategy') && (
-        <SectionPage number={getSectionNumber('marketing-strategy')} title="Marketing Strategy">
+        <SectionPage number={getSectionNumber('marketing-strategy')} title={L('label.marketing-strategy', 'Marketing Strategy')}>
           {marketingStrategy ? (
             <View>
-              <SubsectionTitle>Channels</SubsectionTitle>
+              <SubsectionTitle>{L('label.channels', 'Channels')}</SubsectionTitle>
               {marketingStrategy.channels.map((ch, i) => (
                 <View key={i} style={styles.infoCard}>
                   <Text style={styles.infoCardTitle}>{ch.name}</Text>
@@ -474,14 +493,14 @@ export function BusinessPlanDocument({
 
               {marketingStrategy.offers.length > 0 && (
                 <View>
-                  <SubsectionTitle>Promotional Offers</SubsectionTitle>
+                  <SubsectionTitle>{L('label.promotional-offers', 'Promotional Offers')}</SubsectionTitle>
                   <BulletList items={marketingStrategy.offers} />
                 </View>
               )}
 
               {marketingStrategy.landingPage.description && (
                 <View>
-                  <SubsectionTitle>Landing Page</SubsectionTitle>
+                  <SubsectionTitle>{L('label.landing-page', 'Landing Page')}</SubsectionTitle>
                   {marketingStrategy.landingPage.url && (
                     <Text style={[styles.bodyText, { color: '#2563eb' }]}>{marketingStrategy.landingPage.url}</Text>
                   )}
@@ -501,12 +520,12 @@ export function BusinessPlanDocument({
         const costSummary = ops ? computeOperationsCosts(ops) : null;
         const normalizedProductServiceForOps = productService ? normalizeProductService(productService) : null;
         return (
-          <SectionPage number={getSectionNumber('operations')} title="Operations">
+          <SectionPage number={getSectionNumber('operations')} title={L('label.operations', 'Operations')}>
             {ops ? (
               <View>
                 {ops.workforce.length > 0 && (
                   <View>
-                    <SubsectionTitle>Workforce</SubsectionTitle>
+                    <SubsectionTitle>{L('label.workforce', 'Workforce')}</SubsectionTitle>
                     <View style={styles.table}>
                       <View style={styles.tableHeaderRow}>
                         <Text style={[styles.tableHeaderCell, { width: '40%' }]}>Role</Text>
@@ -535,7 +554,7 @@ export function BusinessPlanDocument({
                   }
                   return (
                   <View>
-                    <SubsectionTitle>Capacity Mix</SubsectionTitle>
+                    <SubsectionTitle>{L('label.capacity-mix', 'Capacity Mix')}</SubsectionTitle>
                     <View style={styles.table}>
                       <View style={styles.tableHeaderRow}>
                         <Text style={[styles.tableHeaderCell, { width: '28%' }]}>Item</Text>
@@ -576,7 +595,7 @@ export function BusinessPlanDocument({
 
                 {costSummary && costSummary.monthlyOperationsTotal > 0 && (
                   <View>
-                    <SubsectionTitle>Cost Summary</SubsectionTitle>
+                    <SubsectionTitle>{L('label.cost-summary', 'Cost Summary')}</SubsectionTitle>
                     <View style={styles.statCardRow}>
                       <StatCard label="Variable/mo" value={formatCurrency(costSummary.variableMonthlyTotal, currencyCode)} />
                       <StatCard label="Fixed/mo" value={formatCurrency(costSummary.fixedMonthlyTotal, currencyCode)} />
@@ -588,7 +607,7 @@ export function BusinessPlanDocument({
 
                 {costSummary && costSummary.variableComponentCosts.length > 0 && (
                   <View>
-                    <SubsectionTitle>Variable Components (Per Product/Service)</SubsectionTitle>
+                    <SubsectionTitle>{L('label.variable-components', 'Variable Components (Per Product/Service)')}</SubsectionTitle>
                     <View style={styles.table}>
                       <View style={styles.tableHeaderRow}>
                         <Text style={[styles.tableHeaderCell, { width: '24%' }]}>Component</Text>
@@ -619,7 +638,7 @@ export function BusinessPlanDocument({
 
                 {ops.costItems.length > 0 && (
                   <View>
-                    <SubsectionTitle>Fixed Costs</SubsectionTitle>
+                    <SubsectionTitle>{L('label.fixed-costs', 'Fixed Costs')}</SubsectionTitle>
                     <View style={styles.table}>
                       <View style={styles.tableHeaderRow}>
                         <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Category</Text>
@@ -649,7 +668,7 @@ export function BusinessPlanDocument({
 
                 {ops.operationalMetrics.length > 0 && (
                   <View>
-                    <SubsectionTitle>Operational Metrics</SubsectionTitle>
+                    <SubsectionTitle>{L('label.operational-metrics', 'Operational Metrics')}</SubsectionTitle>
                     <View style={styles.statCardRow}>
                       {ops.operationalMetrics.map((m, i) => (
                         <StatCard
@@ -664,14 +683,14 @@ export function BusinessPlanDocument({
 
                 {ops.equipment.length > 0 && (
                   <View>
-                    <SubsectionTitle>Equipment</SubsectionTitle>
+                    <SubsectionTitle>{L('label.equipment', 'Equipment')}</SubsectionTitle>
                     <BulletList items={ops.equipment} />
                   </View>
                 )}
 
                 {ops.safetyProtocols.length > 0 && (
                   <View>
-                    <SubsectionTitle>Safety Protocols</SubsectionTitle>
+                    <SubsectionTitle>{L('label.safety-protocols', 'Safety Protocols')}</SubsectionTitle>
                     {ops.safetyProtocols.map((p, i) => (
                       <View key={i} style={styles.listItem}>
                         <Text style={styles.listBullet}>{i + 1}.</Text>
@@ -690,7 +709,7 @@ export function BusinessPlanDocument({
 
       {/* Section: Financial Projections */}
       {enabledSlugs.includes('financial-projections') && (
-        <SectionPage number={getSectionNumber('financial-projections')} title="Financial Projections">
+        <SectionPage number={getSectionNumber('financial-projections')} title={L('label.financial-projections', 'Financial Projections')}>
           {financials ? (
             <View>
               <SubsectionTitle>{`Key Metrics (${scenarioName})`}</SubsectionTitle>
@@ -702,7 +721,7 @@ export function BusinessPlanDocument({
 
               {(financials.unitEconomics.pricePerUnit > 0 || financials.unitEconomics.variableCostPerUnit > 0) && (
                 <View>
-                  <SubsectionTitle>Unit Economics</SubsectionTitle>
+                  <SubsectionTitle>{L('label.unit-economics', 'Unit Economics')}</SubsectionTitle>
                   <View style={styles.statCardRow}>
                     <StatCard label="Price/Unit" value={formatCurrency(financials.unitEconomics.pricePerUnit, currencyCode)} />
                     <StatCard label="Variable Cost/Unit" value={formatCurrency(financials.unitEconomics.variableCostPerUnit, currencyCode)} />
@@ -723,7 +742,7 @@ export function BusinessPlanDocument({
               {/* Monthly P&L Table */}
               {financials.months.length > 0 && (
                 <View>
-                  <SubsectionTitle>Monthly P&L</SubsectionTitle>
+                  <SubsectionTitle>{L('label.monthly-pl', 'Monthly P&L')}</SubsectionTitle>
                   <View style={styles.table}>
                     <View style={styles.tableHeaderRow}>
                       <Text style={[styles.tableHeaderCell, { width: '30%' }]}>Month</Text>
@@ -759,7 +778,7 @@ export function BusinessPlanDocument({
       {enabledSlugs.includes('growth-timeline') && (() => {
         if (!growthTimeline || !operations || !financials || !kpis || !marketingStrategy || !productService) {
           return (
-            <SectionPage number={getSectionNumber('growth-timeline')} title="Growth Timeline">
+            <SectionPage number={getSectionNumber('growth-timeline')} title={L('label.growth-timeline', 'Growth Timeline')}>
               <EmptyState section="Growth Timeline" />
             </SectionPage>
           );
@@ -838,12 +857,12 @@ export function BusinessPlanDocument({
         }
 
         return (
-          <SectionPage number={getSectionNumber('growth-timeline')} title="Growth Timeline">
+          <SectionPage number={getSectionNumber('growth-timeline')} title={L('label.growth-timeline', 'Growth Timeline')}>
             <View>
               {/* Events */}
               {enabledEvents.length > 0 && (
                 <View>
-                  <SubsectionTitle>Events</SubsectionTitle>
+                  <SubsectionTitle>{L('label.events', 'Events')}</SubsectionTitle>
                   <View style={styles.table}>
                     <View style={styles.tableHeaderRow}>
                       <Text style={[styles.tableHeaderCell, { width: '12%' }]}>Month</Text>
@@ -866,7 +885,7 @@ export function BusinessPlanDocument({
               {/* Summary Stats */}
               {gtMonths.length > 0 && (
                 <View>
-                  <SubsectionTitle>Projected Impact</SubsectionTitle>
+                  <SubsectionTitle>{L('label.projected-impact', 'Projected Impact')}</SubsectionTitle>
                   <View style={styles.statCardRow}>
                     <StatCard label="Total Revenue" value={formatCurrency(summary.totalRevenue, currencyCode)} />
                     <StatCard label="Total Costs" value={formatCurrency(summary.totalCosts, currencyCode)} />
@@ -879,7 +898,7 @@ export function BusinessPlanDocument({
               {/* Monthly Projection Table */}
               {gtMonths.length > 0 && (
                 <View>
-                  <SubsectionTitle>Monthly Projection</SubsectionTitle>
+                  <SubsectionTitle>{L('label.monthly-projection', 'Monthly Projection')}</SubsectionTitle>
                   <View style={styles.table}>
                     <View style={styles.tableHeaderRow}>
                       <Text style={[styles.tableHeaderCell, { width: '14%' }]}>Month</Text>
@@ -932,7 +951,7 @@ export function BusinessPlanDocument({
 
       {/* Section: Risks & Due Diligence */}
       {enabledSlugs.includes('risks-due-diligence') && (
-        <SectionPage number={getSectionNumber('risks-due-diligence')} title="Risks & Due Diligence">
+        <SectionPage number={getSectionNumber('risks-due-diligence')} title={L('label.risks-due-diligence', 'Risks & Due Diligence')}>
           {risks ? (
             <View>
               {/* Investment Verdict */}
@@ -961,7 +980,7 @@ export function BusinessPlanDocument({
               {/* Risk Assessment */}
               {risks.risks.length > 0 ? (
                 <View>
-                  <SubsectionTitle>Risk Assessment</SubsectionTitle>
+                  <SubsectionTitle>{L('label.risk-assessment', 'Risk Assessment')}</SubsectionTitle>
                   {risks.risks.map((risk, i) => (
                     <View key={i} style={[styles.infoCard, risk.severity === 'critical' ? { borderLeftWidth: 3, borderLeftColor: '#ef4444' } : {}]}>
                       <View style={[styles.row, { marginBottom: 4, alignItems: 'center' }]}>
@@ -983,7 +1002,7 @@ export function BusinessPlanDocument({
               {/* Due Diligence Checklist */}
               {risks.dueDiligenceChecklist && risks.dueDiligenceChecklist.length > 0 && (
                 <View>
-                  <SubsectionTitle>Due Diligence Checklist</SubsectionTitle>
+                  <SubsectionTitle>{L('label.due-diligence-checklist', 'Due Diligence Checklist')}</SubsectionTitle>
                   {risks.dueDiligenceChecklist.map((item, i) => (
                     <View key={i} style={styles.infoCard}>
                       <View style={[styles.row, { marginBottom: 3, alignItems: 'center' }]}>
@@ -1000,7 +1019,7 @@ export function BusinessPlanDocument({
               {/* Compliance Checklist */}
               {risks.complianceChecklist.length > 0 && (
                 <View>
-                  <SubsectionTitle>Compliance Checklist</SubsectionTitle>
+                  <SubsectionTitle>{L('label.compliance-checklist', 'Compliance Checklist')}</SubsectionTitle>
                   {risks.complianceChecklist.map((item, i) => (
                     <View key={i} style={[styles.listItem, { marginBottom: 3 }]}>
                       <Text style={[styles.badge, styles.badgeBlue, { marginRight: 6 }]}>{complianceLabels[item.status]}</Text>
@@ -1018,10 +1037,10 @@ export function BusinessPlanDocument({
 
       {/* Section: KPIs & Metrics */}
       {enabledSlugs.includes('kpis-metrics') && (
-        <SectionPage number={getSectionNumber('kpis-metrics')} title="KPIs & Metrics">
+        <SectionPage number={getSectionNumber('kpis-metrics')} title={L('label.kpis-metrics', 'KPIs & Metrics')}>
           {kpis ? (
             <View>
-              <SubsectionTitle>Target Metrics</SubsectionTitle>
+              <SubsectionTitle>{L('label.target-metrics', 'Target Metrics')}</SubsectionTitle>
               <View style={styles.statCardRow}>
                 <StatCard label="Monthly Leads" value={String(kpis.targets.monthlyLeads)} />
                 <StatCard label="Conversion Rate" value={`${(kpis.targets.conversionRate * 100).toFixed(0)}%`} />
@@ -1041,7 +1060,7 @@ export function BusinessPlanDocument({
 
       {/* Section: Launch Plan */}
       {enabledSlugs.includes('launch-plan') && (
-        <SectionPage number={getSectionNumber('launch-plan')} title="Launch Plan">
+        <SectionPage number={getSectionNumber('launch-plan')} title={L('label.launch-plan', 'Launch Plan')}>
           {launchPlan ? (
             <View>
               {launchPlan.stages.length > 0 ? (
@@ -1113,10 +1132,10 @@ export function BusinessPlanDocument({
         };
 
         return (
-          <SectionPage number={enabledSlugs.length + 1} title="Scenario Analysis">
+          <SectionPage number={enabledSlugs.length + 1} title={L('label.scenario-analysis', 'Scenario Analysis')}>
             <View>
               {/* Active Scenario Summary */}
-              <SubsectionTitle>Active Scenario</SubsectionTitle>
+              <SubsectionTitle>{L('label.active-scenario', 'Active Scenario')}</SubsectionTitle>
               <View style={styles.infoCard}>
                 <View style={[styles.row, { alignItems: 'center', marginBottom: 4 }]}>
                   <Text style={styles.infoCardTitle}>{active.name}</Text>
@@ -1143,7 +1162,7 @@ export function BusinessPlanDocument({
               {/* Comparison Table */}
               {hasMultiple && metricKeys.length > 0 && (
                 <View>
-                  <SubsectionTitle>Scenario Comparison</SubsectionTitle>
+                  <SubsectionTitle>{L('label.scenario-comparison', 'Scenario Comparison')}</SubsectionTitle>
                   <View style={styles.table}>
                     {/* Header Row */}
                     <View style={styles.tableHeaderRow}>
@@ -1188,7 +1207,7 @@ export function BusinessPlanDocument({
               {/* Single scenario - just show summary without table */}
               {!hasMultiple && scenarios.length === 1 && (
                 <View>
-                  <SubsectionTitle>Scenario Metrics</SubsectionTitle>
+                  <SubsectionTitle>{L('label.scenario-metrics', 'Scenario Metrics')}</SubsectionTitle>
                   <View style={styles.statCardRow}>
                     {metricKeys.slice(0, 4).map((varId) => {
                       const m = scenarios[0].metrics[varId];

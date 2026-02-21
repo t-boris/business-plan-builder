@@ -32,6 +32,8 @@ export interface GeneratePdfParams {
   businessName: string;
   currencyCode: string;
   scenarioPack?: ScenarioPack | null;
+  language?: string;
+  translatedLabels?: Record<string, string>;
 }
 
 /**
@@ -62,6 +64,8 @@ export async function generateBusinessPlanPdf(params: GeneratePdfParams): Promis
     businessName: params.businessName,
     currencyCode: params.currencyCode,
     scenarioPack: params.scenarioPack ?? null,
+    language: params.language,
+    translatedLabels: params.translatedLabels,
   });
 
   const blob = await pdf(doc).toBlob();
