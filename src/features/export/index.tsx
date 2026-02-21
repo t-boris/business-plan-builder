@@ -236,6 +236,7 @@ async function translateAllSections(
     growthTimeline: GrowthTimeline;
   },
   targetLanguage: string,
+  onProgress?: (done: number, total: number) => void,
 ): Promise<{
   execSummary: ExecutiveSummary;
   marketAnalysis: MarketAnalysis;
@@ -342,6 +343,8 @@ async function translateAllSections(
     chunks.push(Object.fromEntries(entries.slice(i, i + CHUNK_SIZE)));
   }
 
+  let done = 0;
+  onProgress?.(0, chunks.length);
   for (let i = 0; i < chunks.length; i += CONCURRENCY) {
     const wave = chunks.slice(i, i + CONCURRENCY);
     const results = await Promise.all(
@@ -350,6 +353,8 @@ async function translateAllSections(
     for (const result of results) {
       Object.assign(translated, result);
     }
+    done += wave.length;
+    onProgress?.(done, chunks.length);
   }
 
   // Helper to get translated value or fall back to original
@@ -604,6 +609,7 @@ export function Export() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [translationProgress, setTranslationProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [exportLanguage, setExportLanguage] = useState('en');
 
@@ -648,6 +654,7 @@ export function Export() {
 
       if (exportLanguage !== 'en') {
         setIsTranslating(true);
+        setTranslationProgress({ done: 0, total: 0 });
         const result = await translateAllSections(
           {
             execSummary,
@@ -660,6 +667,7 @@ export function Export() {
             growthTimeline,
           },
           EXPORT_LANGUAGES.find((l) => l.code === exportLanguage)?.label.replace(/ \(.*\)$/, '') ?? exportLanguage,
+          (done, total) => setTranslationProgress({ done, total }),
         );
         finalSections = {
           ...finalSections,
@@ -885,7 +893,9 @@ export function Export() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="size-4 mr-2 animate-spin" />
-                    {isTranslating ? 'Translating & generating PDF...' : 'Generating PDF...'}
+                    {isTranslating
+                      ? `Translating${translationProgress.total > 0 ? ` ${translationProgress.done}/${translationProgress.total}` : ''}...`
+                      : 'Generating PDF...'}
                   </>
                 ) : (
                   <>
