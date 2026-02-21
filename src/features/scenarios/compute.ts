@@ -28,7 +28,18 @@ export function computeScenarioMetrics(
   const coeffs = seasonCoefficients?.length === 12 ? seasonCoefficients : DEFAULT_SEASON_COEFFICIENTS;
 
   // Extract base values
-  const bookings = s.monthlyBookings ?? 0;
+  const leads = s.monthlyLeads ?? 0;
+  const conversionRate = s.conversionRate ?? 0;
+  const plannedOutput = s.totalPlannedOutputPerMonth ?? 0;
+  const directBookings = s.monthlyBookings ?? 0;
+
+  // Derive bookings: explicit override wins, then leads*conversion, then capacity, then direct
+  const bookings = ('monthlyBookings' in overrides)
+    ? overrides.monthlyBookings
+    : (leads > 0 && conversionRate > 0)
+      ? leads * conversionRate
+      : (plannedOutput > 0 ? plannedOutput : directBookings);
+
   const price = s.pricePerUnit ?? 0;
   const variableCostPerUnit = s.variableCostPerOutput ?? s.variableCostPerUnit ?? 0;
   const fixedCosts = s.fixedMonthlyTotal ?? s.monthlyFixedCosts ?? 0;
