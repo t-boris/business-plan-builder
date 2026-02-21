@@ -354,12 +354,26 @@ Plans:
 **Details:**
 BusinessExportBundle format (version 1.0): profile, enabledSections, sections (raw Firestore data), variables, scenarios. Export Data downloads complete snapshot, Export Schema downloads JSON Schema (draft-07), Import validates and overwrites. Owner-only access in business switcher dropdown.
 
+#### Phase 23: PDF Export Language Translation
+**Goal**: Add a target language selector to the PDF export flow. When the selected language differs from the source language, use AI to translate each section's text content before generating the PDF. Translations happen on-the-fly during PDF generation, not stored permanently. Supports all major business plan languages (English, Spanish, French, German, Russian, Chinese, Japanese, etc.).
+**Depends on**: Phase 22
+**Research**: Likely (AI translation prompt design, section text extraction for PDF pipeline, batch translation before render)
+**Research topics**: Per-section translation prompt structure, preserving markdown/formatting during translation, PDF generation pipeline integration points, translation caching strategy
+**Plans**: 2 plans
+
+Plans:
+- [ ] 23-01: Translation Cloud Function endpoint + client utility (Wave 1)
+- [ ] 23-02: Language selector UI + PDF translation integration (Wave 2)
+
+**Details:**
+[To be added during planning]
+
 ## Progress
 
 **Execution Order:**
 - v1.0: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 - v2.0: 13 → 14 → 15 → 16
-- v3.0: 17 → 18 → 19 → 20 → 21 → 22
+- v3.0: 17 → 18 → 19 → 20 → 21 → 22 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
@@ -385,3 +399,4 @@ BusinessExportBundle format (version 1.0): profile, enabledSections, sections (r
 | 20. Generic Industry-Agnostic Operations | v3.0 | 4/4 | Complete | 2026-02-19 |
 | 21. Rich Growth Events | v3.0 | 2/2 | Complete | 2026-02-19 |
 | 22. JSON Import/Export | v3.0 | 1/1 | Complete | 2026-02-19 |
+| 23. PDF Export Language Translation | v3.0 | 0/2 | Planned | — |

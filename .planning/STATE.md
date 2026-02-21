@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Financial scenario modeling across multiple businesses with real-time derived metrics
-**Current focus:** Milestone v3.0 Section Enhancements — Phase 22 complete
+**Current focus:** Milestone v3.0 Section Enhancements — Phase 23 next
 
 ## Current Position
 
-Phase: 22 of 22 (JSON Import/Export)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-02-19 — Completed 22-01-PLAN.md
+Phase: 22 of 23 (JSON Import/Export complete)
+Next phase: 23 (PDF Export Language Translation)
+Status: Phase 23 planned (2 plans in 2 waves)
+Last activity: 2026-02-21 — Added Phase 23
 
 Progress: ████████████████████████████████ 71/71
 
@@ -63,6 +63,7 @@ Progress: ███████████████████████�
 | 20-generic-industry-agnostic-operations | 4/4 | Complete |
 | 21-rich-growth-events | 2/2 | Complete |
 | 22-json-import-export | 1/1 | Complete |
+| 23-pdf-export-language-translation | 0/2 | Planned |
 
 ## Accumulated Context
 
@@ -82,6 +83,7 @@ Progress: ███████████████████████�
 - Phase 21 added: Rich Growth Events — compound event templates, funding rounds, facility builds, hiring campaigns, revenue events, duration-based events
 - Phase 22 added: JSON Import/Export for Business Plans
 - Phase 22 complete: 1 plan shipped (2026-02-19)
+- Phase 23 added: PDF Export Language Translation — AI-powered translation of business plan content during PDF export
 
 ### Decisions
 
