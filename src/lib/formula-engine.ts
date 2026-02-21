@@ -66,15 +66,24 @@ export function getEvaluationOrder(
  * Evaluate all variables, returning a scope with all variable values.
  * Input variables use their .value field; computed variables are evaluated
  * in topological order using expr-eval.
+ *
+ * @param extraScope — optional additional scope values (e.g., section-derived metrics).
+ *   These are injected as a base layer: input variables override them, and formulas
+ *   can reference them even if no matching variable definition exists.
+ *
  * On formula error, logs a warning and sets value to 0 (graceful degradation).
  */
 export function evaluateVariables(
-  variables: Record<string, VariableDefinition>
+  variables: Record<string, VariableDefinition>,
+  extraScope?: Record<string, number>,
 ): Record<string, number> {
   const order = getEvaluationOrder(variables);
 
-  // Build initial scope from input variables
+  // Build initial scope: extra scope as base layer, input variables override
   const scope: Record<string, number> = {};
+  if (extraScope) {
+    Object.assign(scope, extraScope);
+  }
   for (const v of Object.values(variables)) {
     if (v.type === "input") {
       scope[v.id] = v.value;

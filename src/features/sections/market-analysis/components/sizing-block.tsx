@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
 import type { MarketSizing, CalcStep, SizingApproach } from '@/types';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, Plus, Trash2 } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
-import { MdPreview } from '@/components/md';
+import { RichTextField } from '@/components/rich-text-field';
 import { formatTam } from '../lib/format-helpers';
 import { computeTam, computeSam, computeSom, isCurrencyResult, isPureFilter } from '../lib/sizing-math';
 import { TOP_DOWN_TAM_STEPS, BOTTOM_UP_TAM_STEPS } from '../defaults';
@@ -436,14 +435,12 @@ export function SizingBlock({ sizing, narrative, onChange, onNarrativeChange, re
             />
           )}
         </label>
-        <Textarea
+        <RichTextField
           value={narrative}
-          onChange={(e) => onNarrativeChange(e.target.value)}
-          rows={3}
-          readOnly={readOnly}
+          onChange={onNarrativeChange}
+          canEdit={!readOnly}
           placeholder="Describe the market opportunity, trends, and your positioning..."
         />
-        <MdPreview text={narrative} />
       </div>
     </div>
   );

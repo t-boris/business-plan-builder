@@ -1,19 +1,6 @@
 import { parseMarkdown, hasMarkdown } from '@/lib/parse-markdown';
 
 /**
- * Shows a rendered markdown preview below a textarea.
- * Returns null when text has no markdown (no extra DOM).
- */
-export function MdPreview({ text }: { text: string }) {
-  if (!text || !hasMarkdown(text)) return null;
-  return (
-    <div className="text-sm leading-relaxed mt-1.5 p-3 rounded-md bg-muted/50 border text-muted-foreground">
-      <Md text={text} />
-    </div>
-  );
-}
-
-/**
  * Renders inline markdown as HTML.
  * Returns a plain string when no markdown is detected (zero extra DOM nodes).
  */

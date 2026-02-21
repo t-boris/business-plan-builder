@@ -5,6 +5,7 @@ import type {
   MarketingStrategy,
   Operations,
   FinancialProjections,
+  GrowthTimeline,
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
@@ -19,6 +20,7 @@ export interface GeneratePdfParams {
     marketingStrategy: MarketingStrategy;
     operations: Operations;
     financials: FinancialProjections;
+    growthTimeline: GrowthTimeline;
     risks: RisksDueDiligence;
     kpis: KpisMetrics;
     launchPlan: LaunchPlan;
@@ -49,6 +51,7 @@ export async function generateBusinessPlanPdf(params: GeneratePdfParams): Promis
     marketingStrategy: params.sections.marketingStrategy,
     operations: params.sections.operations,
     financials: params.sections.financials,
+    growthTimeline: params.sections.growthTimeline,
     risks: params.sections.risks,
     kpis: params.sections.kpis,
     launchPlan: params.sections.launchPlan,

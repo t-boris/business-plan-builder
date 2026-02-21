@@ -1,9 +1,8 @@
 import type { FunnelStage } from '@/types';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
-import { MdPreview } from '@/components/md';
+import { RichTextField } from '@/components/rich-text-field';
 
 interface FunnelBlockProps {
   stages: FunnelStage[];
@@ -107,8 +106,13 @@ export function FunnelBlock({ stages, onChange, readOnly }: FunnelBlockProps) {
                   <Input value={stage.label} onChange={(e) => updateStage(i, 'label', e.target.value)} placeholder="Stage name" readOnly={readOnly} className="h-8 text-sm" />
                 </td>
                 <td className="px-4 py-2 align-top">
-                  <Textarea value={stage.description ?? ''} onChange={(e) => updateStage(i, 'description', e.target.value)} placeholder="How this stage works..." readOnly={readOnly} className="min-h-8 text-sm py-1.5" />
-                  <MdPreview text={stage.description ?? ''} />
+                  <RichTextField
+                    value={stage.description ?? ''}
+                    onChange={(val) => updateStage(i, 'description', val)}
+                    canEdit={!readOnly}
+                    placeholder="How this stage works..."
+                    compact
+                  />
                 </td>
                 <td className="px-4 py-2 align-top">
                   <Input type="number" value={stage.volume} onChange={(e) => updateStage(i, 'volume', Number(e.target.value))} readOnly={readOnly} className="h-8 text-sm" />

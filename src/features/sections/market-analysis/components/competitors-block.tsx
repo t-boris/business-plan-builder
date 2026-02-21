@@ -3,7 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { parsePriceRange } from '../lib/format-helpers';
-import { MdPreview } from '@/components/md';
+import { RichTextField } from '@/components/rich-text-field';
 import {
   BarChart,
   Bar,
@@ -66,12 +66,22 @@ export function CompetitorsBlock({ competitors, onUpdate, onAdd, onRemove, readO
                   <Textarea value={competitor.pricing} onChange={(e) => onUpdate(index, 'pricing', e.target.value)} placeholder="$XXX-$XXX" readOnly={readOnly} className="min-h-8 text-sm py-1.5" />
                 </td>
                 <td className="px-4 py-2 hidden sm:table-cell align-top">
-                  <Textarea value={competitor.strengths} onChange={(e) => onUpdate(index, 'strengths', e.target.value)} placeholder="Key strengths" readOnly={readOnly} className="min-h-8 text-sm py-1.5" />
-                  <MdPreview text={competitor.strengths} />
+                  <RichTextField
+                    value={competitor.strengths}
+                    onChange={(val) => onUpdate(index, 'strengths', val)}
+                    canEdit={!readOnly}
+                    placeholder="Key strengths"
+                    compact
+                  />
                 </td>
                 <td className="px-4 py-2 hidden sm:table-cell align-top">
-                  <Textarea value={competitor.weaknesses} onChange={(e) => onUpdate(index, 'weaknesses', e.target.value)} placeholder="Key weaknesses" readOnly={readOnly} className="min-h-8 text-sm py-1.5" />
-                  <MdPreview text={competitor.weaknesses} />
+                  <RichTextField
+                    value={competitor.weaknesses}
+                    onChange={(val) => onUpdate(index, 'weaknesses', val)}
+                    canEdit={!readOnly}
+                    placeholder="Key weaknesses"
+                    compact
+                  />
                 </td>
                 {!readOnly && (
                   <td className="px-2 py-2">

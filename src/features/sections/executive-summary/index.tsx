@@ -2,11 +2,10 @@ import { useSection } from '@/hooks/use-section';
 import { PageHeader } from '@/components/page-header';
 import type { ExecutiveSummary as ExecutiveSummaryType } from '@/types';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
-import { MdPreview } from '@/components/md';
+import { RichTextField } from '@/components/rich-text-field';
 
 const defaultSummary: ExecutiveSummaryType = {
   summary: '',
@@ -72,14 +71,12 @@ export function ExecutiveSummary() {
               />
             )}
           </h2>
-          <Textarea
+          <RichTextField
             value={data.summary}
-            onChange={(e) => updateField('summary', e.target.value)}
-            rows={5}
+            onChange={(val) => updateField('summary', val)}
+            canEdit={canEdit}
             placeholder="Executive summary of the business..."
-            readOnly={!canEdit}
           />
-          <MdPreview text={data.summary} />
         </div>
 
         {/* Mission & Vision */}
@@ -98,14 +95,12 @@ export function ExecutiveSummary() {
                 />
               )}
             </h2>
-            <Textarea
+            <RichTextField
               value={data.mission}
-              onChange={(e) => updateField('mission', e.target.value)}
-              rows={4}
+              onChange={(val) => updateField('mission', val)}
+              canEdit={canEdit}
               placeholder="Company mission statement..."
-              readOnly={!canEdit}
             />
-            <MdPreview text={data.mission} />
           </div>
           <div className="card-elevated rounded-lg p-5 space-y-2">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
@@ -121,14 +116,12 @@ export function ExecutiveSummary() {
                 />
               )}
             </h2>
-            <Textarea
+            <RichTextField
               value={data.vision}
-              onChange={(e) => updateField('vision', e.target.value)}
-              rows={4}
+              onChange={(val) => updateField('vision', val)}
+              canEdit={canEdit}
               placeholder="Company vision statement..."
-              readOnly={!canEdit}
             />
-            <MdPreview text={data.vision} />
           </div>
         </div>
 

@@ -22,6 +22,13 @@ export interface VariableCostByOffering {
   monthlyVariableTotal: number;
 }
 
+export interface CapacityUnitGroup {
+  unitLabel: string;
+  totalPlanned: number;
+  totalMax: number;
+  weightedUtilization: number;
+}
+
 export interface OperationsCostSummary {
   variableMonthlyTotal: number;
   fixedMonthlyTotal: number;
@@ -36,6 +43,7 @@ export interface OperationsCostSummary {
   totalMaxOutputPerMonth: number;
   weightedUtilizationRate: number;
   primaryOutputUnitLabel: string;
+  capacityByUnit: CapacityUnitGroup[];
 }
 
 const WEEKS_PER_MONTH = 52 / 12;
@@ -193,9 +201,41 @@ export function computeOperationsCosts(ops: Operations): OperationsCostSummary {
   const primaryOutputUnitLabel =
     ops.capacityItems.find((item) => item.outputUnitLabel.trim().length > 0)?.outputUnitLabel ?? 'unit';
 
+  // Build per-unit-group capacity breakdown
+  const unitGroupMap = new Map<string, { planned: number; maxNums: number[]; utilNum: number; utilDenom: number }>();
+  for (const item of ops.capacityItems) {
+    const unit = (item.outputUnitLabel || 'unit').toLowerCase();
+    const existing = unitGroupMap.get(unit);
+    const planned = Math.max(0, item.plannedOutputPerMonth);
+    const maxMonth = deriveMonthlyCapacityLimit(item);
+    if (existing) {
+      existing.planned += planned;
+      existing.maxNums.push(maxMonth);
+      existing.utilNum += Math.max(0, item.utilizationRate) * planned;
+      existing.utilDenom += planned;
+    } else {
+      unitGroupMap.set(unit, {
+        planned,
+        maxNums: [maxMonth],
+        utilNum: Math.max(0, item.utilizationRate) * planned,
+        utilDenom: planned,
+      });
+    }
+  }
+  const capacityByUnit: CapacityUnitGroup[] = Array.from(unitGroupMap.entries()).map(([unit, g]) => ({
+    unitLabel: unit,
+    totalPlanned: g.planned,
+    totalMax: g.maxNums.reduce((s, v) => s + v, 0),
+    weightedUtilization: g.utilDenom > 0 ? g.utilNum / g.utilDenom : 0,
+  }));
+
+  // variableCostPerOutput uses only the primary unit group
+  const primaryUnit = primaryOutputUnitLabel.toLowerCase();
+  const primaryGroup = capacityByUnit.find((g) => g.unitLabel === primaryUnit);
+  const primaryPlanned = primaryGroup?.totalPlanned ?? totalPlannedOutputPerMonth;
   const variableCostPerOutput =
-    totalPlannedOutputPerMonth > 0
-      ? variableMonthlyTotal / totalPlannedOutputPerMonth
+    primaryPlanned > 0
+      ? variableMonthlyTotal / primaryPlanned
       : 0;
 
   return {
@@ -212,5 +252,6 @@ export function computeOperationsCosts(ops: Operations): OperationsCostSummary {
     totalMaxOutputPerMonth,
     weightedUtilizationRate,
     primaryOutputUnitLabel,
+    capacityByUnit,
   };
 }

@@ -419,13 +419,23 @@ export function Operations() {
     (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth),
     0,
   );
-  const capacityItemsWithMix = capacityItems.map((item) => ({
-    ...item,
-    mixPercent:
-      totalPlannedOutput > 0
-        ? (Math.max(0, item.plannedOutputPerMonth) / totalPlannedOutput) * 100
-        : 0,
-  }));
+  // Compute mix within same-unit groups only
+  const unitTotals = new Map<string, number>();
+  for (const item of capacityItems) {
+    const unit = (item.outputUnitLabel || 'unit').toLowerCase();
+    unitTotals.set(unit, (unitTotals.get(unit) ?? 0) + Math.max(0, item.plannedOutputPerMonth));
+  }
+  const capacityItemsWithMix = capacityItems.map((item) => {
+    const unit = (item.outputUnitLabel || 'unit').toLowerCase();
+    const groupTotal = unitTotals.get(unit) ?? 0;
+    return {
+      ...item,
+      mixPercent:
+        groupTotal > 0
+          ? (Math.max(0, item.plannedOutputPerMonth) / groupTotal) * 100
+          : 0,
+    };
+  });
 
   const variableComponentsWithCosts = displayData.variableComponents.map((component, index) => ({
     component,
@@ -824,20 +834,24 @@ export function Operations() {
             </div>
           )}
 
-          {summary.totalPlannedOutputPerMonth > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-md border bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Total Planned/Month</p>
-                <p className="text-sm font-semibold tabular-nums">{summary.totalPlannedOutputPerMonth.toLocaleString()}</p>
-              </div>
-              <div className="rounded-md border bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Total Max/Month</p>
-                <p className="text-sm font-semibold tabular-nums">{summary.totalMaxOutputPerMonth.toLocaleString()}</p>
-              </div>
-              <div className="rounded-md border bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Weighted Utilization</p>
-                <p className="text-sm font-semibold tabular-nums">{summary.weightedUtilizationRate.toFixed(1)}%</p>
-              </div>
+          {summary.capacityByUnit.length > 0 && (
+            <div className="space-y-2">
+              {summary.capacityByUnit.map((group) => (
+                <div key={group.unitLabel} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-md border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">Planned/Month ({group.unitLabel})</p>
+                    <p className="text-sm font-semibold tabular-nums">{group.totalPlanned.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-md border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">Max/Month ({group.unitLabel})</p>
+                    <p className="text-sm font-semibold tabular-nums">{group.totalMax.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-md border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">Utilization ({group.unitLabel})</p>
+                    <p className="text-sm font-semibold tabular-nums">{group.weightedUtilization.toFixed(1)}%</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

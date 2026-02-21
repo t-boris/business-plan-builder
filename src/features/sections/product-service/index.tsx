@@ -8,11 +8,10 @@ import { normalizeProductService } from './normalize';
 import { activeBusinessAtom } from '@/store/business-atoms';
 import type { ProductService as ProductServiceType, Offering, AddOn, OfferingImage } from '@/types';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Package as PackageIcon, Gift, Link, ImagePlus, X, RefreshCw } from 'lucide-react';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
-import { MdPreview } from '@/components/md';
+import { RichTextField } from '@/components/rich-text-field';
 
 const defaultProductService: ProductServiceType = { offerings: [], addOns: [], overview: '' };
 
@@ -224,14 +223,12 @@ export function ProductService() {
             />
           )}
         </label>
-        <Textarea
+        <RichTextField
           value={rawData.overview ?? ''}
-          onChange={(e) => updateData((prev) => ({ ...prev, overview: e.target.value }))}
+          onChange={(val) => updateData((prev) => ({ ...prev, overview: val }))}
+          canEdit={canEdit}
           placeholder="Describe your product or service line..."
-          rows={4}
-          readOnly={!canEdit}
         />
-        <MdPreview text={rawData.overview ?? ''} />
       </div>
 
       {/* Offerings Section */}
@@ -404,14 +401,12 @@ export function ProductService() {
                         />
                       )}
                     </label>
-                    <Textarea
+                    <RichTextField
                       value={offering.description}
-                      onChange={(e) => updateOffering(offeringIndex, 'description', e.target.value)}
+                      onChange={(val) => updateOffering(offeringIndex, 'description', val)}
+                      canEdit={canEdit}
                       placeholder="Describe this offering..."
-                      rows={4}
-                      readOnly={!canEdit}
                     />
-                    <MdPreview text={offering.description} />
                   </div>
 
                   {/* Linked Add-ons */}

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAtomValue } from 'jotai';
 import { useSection } from '@/hooks/use-section';
 import { SECTION_SLUGS, SECTION_LABELS } from '@/lib/constants';
-import { scenarioNameAtom } from '@/store/scenario-atoms';
+import { scenarioNameAtom, scenarioHorizonAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
 import { StatCard } from '@/components/stat-card';
@@ -10,6 +10,9 @@ import { Md } from '@/components/md';
 import { normalizeProductService } from '@/features/sections/product-service/normalize';
 import { normalizeOperations } from '@/features/sections/operations/normalize';
 import { computeOperationsCosts } from '@/features/sections/operations/compute';
+import { computeGrowthTimeline } from '@/features/sections/growth-timeline/compute';
+import type { GrowthComputeInput } from '@/features/sections/growth-timeline/compute';
+import { defaultGrowthTimeline } from '@/features/sections/growth-timeline/defaults';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -22,6 +25,8 @@ import type {
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
+  GrowthTimeline,
+  GrowthEvent,
   RiskSeverity,
   ComplianceStatus,
   TaskStatus,
@@ -286,18 +291,21 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
   const definitions = useAtomValue(businessVariablesAtom);
   const evaluated = useAtomValue(evaluatedValuesAtom);
 
-  // Load all 9 sections
+  // Load all 10 sections
   const { data: execSummary, isLoading: l1 } = useSection<ExecutiveSummary>('executive-summary', defaultExecutiveSummary);
   const { data: marketAnalysis, isLoading: l2 } = useSection<MarketAnalysis>('market-analysis', defaultMarketAnalysis);
   const { data: productService, isLoading: l3 } = useSection<ProductService>('product-service', defaultProductService);
   const { data: marketingStrategy, isLoading: l4 } = useSection<MarketingStrategy>('marketing-strategy', defaultMarketing);
   const { data: operations, isLoading: l5 } = useSection<Operations>('operations', defaultOperations);
   const { data: financials, isLoading: l6 } = useSection<FinancialProjectionsType>('financial-projections', defaultFinancials);
-  const { data: risks, isLoading: l7 } = useSection<RisksDueDiligence>('risks-due-diligence', defaultRisks);
-  const { data: kpis, isLoading: l8 } = useSection<KpisMetrics>('kpis-metrics', defaultKpis);
-  const { data: launchPlan, isLoading: l9 } = useSection<LaunchPlan>('launch-plan', defaultLaunchPlan);
+  const { data: growthTimeline, isLoading: l7 } = useSection<GrowthTimeline>('growth-timeline', defaultGrowthTimeline);
+  const { data: risks, isLoading: l8 } = useSection<RisksDueDiligence>('risks-due-diligence', defaultRisks);
+  const { data: kpis, isLoading: l9 } = useSection<KpisMetrics>('kpis-metrics', defaultKpis);
+  const { data: launchPlan, isLoading: l10 } = useSection<LaunchPlan>('launch-plan', defaultLaunchPlan);
 
-  const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
+  const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10;
+
+  const horizonMonths = useAtomValue(scenarioHorizonAtom);
 
   // Dynamic KPI cards from evaluated variables (sorted by unit priority)
   const computedVariables = useMemo(() => {
@@ -330,6 +338,39 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
       return point;
     });
   }, [chartVariables, evaluated]);
+
+  // Compute growth timeline result
+  const growthResult = useMemo(() => {
+    const normalizedPS = normalizeProductService(productService);
+    const priceFromOfferings = (() => {
+      const prices = normalizedPS.offerings
+        .map((o) => o.price)
+        .filter((p): p is number => p !== null && p > 0);
+      return prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+    })();
+
+    const baseBookingsFromOps = operations.capacityItems.reduce(
+      (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth), 0,
+    );
+    const baseMarketingBudget = marketingStrategy.channels.reduce(
+      (sum, ch) => sum + (ch.budget || 0), 0,
+    );
+
+    const input: GrowthComputeInput = {
+      operations,
+      basePricePerUnit:
+        financials.unitEconomics.pricePerUnit ||
+        kpis.targets.pricePerUnit ||
+        priceFromOfferings ||
+        0,
+      baseBookings: baseBookingsFromOps > 0 ? baseBookingsFromOps : (kpis.targets.monthlyBookings || 0),
+      baseMarketingBudget,
+      seasonCoefficients: financials.seasonCoefficients ?? [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      horizonMonths,
+      events: growthTimeline.events,
+    };
+    return computeGrowthTimeline(input);
+  }, [operations, financials, kpis, marketingStrategy, productService, horizonMonths, growthTimeline.events]);
 
   const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -961,7 +1002,167 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
         </>
       )}
 
-      {/* Section 7: Risks & Due Diligence */}
+      {/* Section 7: Growth Timeline */}
+      {enabledSections.includes('growth-timeline') && (() => {
+        const enabledEvents = growthTimeline.events.filter((e) => e.enabled);
+        const { summary, months: gtMonths } = growthResult;
+
+        function eventTypeName(type: string): string {
+          const labels: Record<string, string> = {
+            hire: 'Hire',
+            'cost-change': 'Cost Change',
+            'capacity-change': 'Capacity Change',
+            'marketing-change': 'Marketing Change',
+            custom: 'Custom',
+            'funding-round': 'Funding Round',
+            'facility-build': 'Facility Build',
+            'hiring-campaign': 'Hiring Campaign',
+            'price-change': 'Price Change',
+            'equipment-purchase': 'Equipment Purchase',
+            'seasonal-campaign': 'Seasonal Campaign',
+          };
+          return labels[type] ?? type;
+        }
+
+        function eventSummary(event: GrowthEvent): string {
+          const { delta } = event;
+          switch (delta.type) {
+            case 'hire':
+              return `${delta.data.count > 0 ? '+' : ''}${delta.data.count}x ${delta.data.role} @ ${formatCurrency(delta.data.ratePerHour, currencyCode)}/hr`;
+            case 'cost-change':
+              return `${delta.data.category}: ${formatCurrency(delta.data.rate, currencyCode)} (${delta.data.costType})`;
+            case 'capacity-change':
+              return `${delta.data.outputDelta > 0 ? '+' : ''}${delta.data.outputDelta} output/mo`;
+            case 'marketing-change':
+              return `${formatCurrency(delta.data.monthlyBudget, currencyCode)}/mo`;
+            case 'custom':
+              return `${delta.data.label}: ${delta.data.value > 0 ? '+' : ''}${formatCurrency(delta.data.value, currencyCode)} (${delta.data.target})`;
+            case 'funding-round':
+              return `${formatCurrency(delta.data.amount, currencyCode)} (${delta.data.investmentType})`;
+            case 'facility-build':
+              return `${formatCurrency(delta.data.constructionCost, currencyCode)} build, +${delta.data.capacityAdded} capacity`;
+            case 'hiring-campaign':
+              return `${delta.data.totalHires}x ${delta.data.role}${event.durationMonths ? ` over ${event.durationMonths}mo` : ''}`;
+            case 'price-change':
+              return `Price → ${formatCurrency(delta.data.newPricePerUnit ?? delta.data.newAvgCheck ?? 0, currencyCode)}`;
+            case 'equipment-purchase':
+              return `${formatCurrency(delta.data.purchaseCost, currencyCode)} + ${formatCurrency(delta.data.maintenanceCostMonthly, currencyCode)}/mo`;
+            case 'seasonal-campaign':
+              return `+${formatCurrency(delta.data.budgetIncrease, currencyCode)}/mo${event.durationMonths ? ` for ${event.durationMonths}mo` : ''}`;
+          }
+        }
+
+        const totalRevenue = gtMonths.reduce((s, m) => s + m.revenue, 0);
+        const totalCosts = gtMonths.reduce((s, m) => s + m.totalCost, 0);
+        const totalProfit = totalRevenue - totalCosts;
+
+        return (
+          <>
+            <SectionHeader number={getSectionNumber('growth-timeline')} title="Growth Timeline" id={`section-${getSectionNumber('growth-timeline')}`} />
+            <div className="space-y-6 py-4">
+              {/* Events Table */}
+              {enabledEvents.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Events</h3>
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left py-2 px-3 font-medium border-b">Month</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Event</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Type</th>
+                        <th className="text-left py-2 px-3 font-medium border-b">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enabledEvents
+                        .sort((a, b) => a.month - b.month)
+                        .map((event, i) => (
+                        <tr key={event.id} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                          <td className="py-2 px-3 border-b font-medium">M{event.month}</td>
+                          <td className="py-2 px-3 border-b">{event.label}</td>
+                          <td className="py-2 px-3 border-b">{eventTypeName(event.delta.type)}</td>
+                          <td className="py-2 px-3 border-b text-muted-foreground">{eventSummary(event)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Summary Stats */}
+              {gtMonths.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Projected Impact</h3>
+                  <div className="stat-grid">
+                    <StatCard label="Total Revenue" value={formatCurrency(summary.totalRevenue, currencyCode)} />
+                    <StatCard label="Total Costs" value={formatCurrency(summary.totalCosts, currencyCode)} />
+                    <StatCard label="Total Profit" value={formatCurrency(summary.totalProfit, currencyCode)} />
+                    <StatCard label="Break-Even Month" value={summary.breakEvenMonth ? `Month ${summary.breakEvenMonth}` : 'N/A'} />
+                  </div>
+                </div>
+              )}
+
+              {/* Monthly Projection Table */}
+              {gtMonths.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Monthly Projection</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="text-left py-2 px-2 font-medium border-b">Month</th>
+                          <th className="text-right py-2 px-2 font-medium border-b">Team</th>
+                          <th className="text-right py-2 px-2 font-medium border-b">Output</th>
+                          <th className="text-right py-2 px-2 font-medium border-b">Bookings</th>
+                          <th className="text-right py-2 px-2 font-medium border-b">Revenue</th>
+                          <th className="text-right py-2 px-2 font-medium border-b">Costs</th>
+                          <th className="text-right py-2 px-2 font-medium border-b">Profit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gtMonths.map((m, i) => {
+                          const teamSize = m.workforce.reduce((s, w) => s + w.count, 0);
+                          return (
+                            <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
+                              <td className="py-1.5 px-2 border-b font-medium">{m.label}</td>
+                              <td className="py-1.5 px-2 border-b text-right tabular-nums">{teamSize}</td>
+                              <td className="py-1.5 px-2 border-b text-right tabular-nums">{Math.round(m.plannedOutput)}</td>
+                              <td className="py-1.5 px-2 border-b text-right tabular-nums">{Math.round(m.bookings)}</td>
+                              <td className="py-1.5 px-2 border-b text-right tabular-nums">{formatCurrency(m.revenue, currencyCode)}</td>
+                              <td className="py-1.5 px-2 border-b text-right tabular-nums">{formatCurrency(m.totalCost, currencyCode)}</td>
+                              <td className={`py-1.5 px-2 border-b text-right font-semibold tabular-nums ${m.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {formatCurrency(m.profit, currencyCode)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Totals row */}
+                        <tr className="bg-muted/50 font-semibold">
+                          <td className="py-1.5 px-2 border-b">Total</td>
+                          <td className="py-1.5 px-2 border-b text-right"></td>
+                          <td className="py-1.5 px-2 border-b text-right"></td>
+                          <td className="py-1.5 px-2 border-b text-right"></td>
+                          <td className="py-1.5 px-2 border-b text-right tabular-nums">{formatCurrency(totalRevenue, currencyCode)}</td>
+                          <td className="py-1.5 px-2 border-b text-right tabular-nums">{formatCurrency(totalCosts, currencyCode)}</td>
+                          <td className={`py-1.5 px-2 border-b text-right tabular-nums ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {formatCurrency(totalProfit, currencyCode)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {enabledEvents.length === 0 && gtMonths.length === 0 && (
+                <EmptyPlaceholder section="Growth Timeline" />
+              )}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* Section 8: Risks & Due Diligence */}
       {enabledSections.includes('risks-due-diligence') && (
         <>
           <SectionHeader number={getSectionNumber('risks-due-diligence')} title="Risks & Due Diligence" id={`section-${getSectionNumber('risks-due-diligence')}`} />

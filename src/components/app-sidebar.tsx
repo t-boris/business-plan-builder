@@ -23,6 +23,7 @@ import {
   Plus,
   LayoutList,
   Share2,
+  Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -36,6 +37,7 @@ import {
   generateExportSchema,
   importBusinessData,
   validateExportBundle,
+  cleanBusinessPlan,
 } from "@/lib/business-json";
 import type { BusinessType } from "@/types";
 import { cn } from "@/lib/utils";
@@ -122,6 +124,7 @@ export function AppSidebar() {
   // JSON import/export state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
 
   async function handleExportData() {
     if (!businessId || !activeBusiness) return;
@@ -167,6 +170,31 @@ export function AppSidebar() {
       alert('Failed to import business data. Please check the file format.');
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleCleanPlan() {
+    if (!businessId) return;
+    const confirmed = window.confirm(
+      'This will remove all computed variables, keeping only input assumptions. Scenario values referencing removed variables will also be cleaned.\n\nContinue?'
+    );
+    if (!confirmed) return;
+
+    try {
+      setCleaning(true);
+      const result = await cleanBusinessPlan(businessId);
+      if (result.removedVariables === 0) {
+        alert('Plan is already clean. No computed variables found.');
+      } else {
+        alert(
+          `Cleaned: ${result.removedVariables} computed variable(s) removed, ${result.cleanedScenarios} scenario(s) updated.`
+        );
+        window.location.reload();
+      }
+    } catch {
+      alert('Failed to clean plan.');
+    } finally {
+      setCleaning(false);
     }
   }
 
@@ -260,6 +288,14 @@ export function AppSidebar() {
                     >
                       <Upload className="size-4" />
                       <span>{importing ? "Importing..." : "Import Data"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleCleanPlan}
+                      disabled={cleaning}
+                    >
+                      <Sparkles className="size-4" />
+                      <span>{cleaning ? "Cleaning..." : "Clean Plan"}</span>
                     </DropdownMenuItem>
                   </>
                 )}

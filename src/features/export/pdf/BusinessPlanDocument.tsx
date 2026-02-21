@@ -7,6 +7,8 @@ import { SECTION_SLUGS } from '@/lib/constants';
 import { normalizeProductService } from '@/features/sections/product-service/normalize';
 import { normalizeOperations } from '@/features/sections/operations/normalize';
 import { computeOperationsCosts } from '@/features/sections/operations/compute';
+import { computeGrowthTimeline } from '@/features/sections/growth-timeline/compute';
+import type { GrowthComputeInput } from '@/features/sections/growth-timeline/compute';
 import type {
   ExecutiveSummary,
   MarketAnalysis,
@@ -14,6 +16,8 @@ import type {
   MarketingStrategy,
   Operations,
   FinancialProjections,
+  GrowthTimeline,
+  GrowthEvent,
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
@@ -122,6 +126,7 @@ export interface BusinessPlanDocumentProps {
   marketingStrategy: MarketingStrategy | null;
   operations: Operations | null;
   financials: FinancialProjections | null;
+  growthTimeline: GrowthTimeline | null;
   risks: RisksDueDiligence | null;
   kpis: KpisMetrics | null;
   launchPlan: LaunchPlan | null;
@@ -141,6 +146,7 @@ export function BusinessPlanDocument({
   marketingStrategy,
   operations,
   financials,
+  growthTimeline,
   risks,
   kpis,
   launchPlan,
@@ -748,6 +754,181 @@ export function BusinessPlanDocument({
           )}
         </SectionPage>
       )}
+
+      {/* Section: Growth Timeline */}
+      {enabledSlugs.includes('growth-timeline') && (() => {
+        if (!growthTimeline || !operations || !financials || !kpis || !marketingStrategy || !productService) {
+          return (
+            <SectionPage number={getSectionNumber('growth-timeline')} title="Growth Timeline">
+              <EmptyState section="Growth Timeline" />
+            </SectionPage>
+          );
+        }
+
+        const normalizedPS = normalizeProductService(productService);
+        const priceFromOfferings = (() => {
+          const prices = normalizedPS.offerings
+            .map((o) => o.price)
+            .filter((p): p is number => p !== null && p > 0);
+          return prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+        })();
+
+        const baseBookingsFromOps = operations.capacityItems.reduce(
+          (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth), 0,
+        );
+        const baseMarketingBudget = marketingStrategy.channels.reduce(
+          (sum, ch) => sum + (ch.budget || 0), 0,
+        );
+
+        const gtInput: GrowthComputeInput = {
+          operations,
+          basePricePerUnit:
+            financials.unitEconomics.pricePerUnit ||
+            kpis.targets.pricePerUnit ||
+            priceFromOfferings ||
+            0,
+          baseBookings: baseBookingsFromOps > 0 ? baseBookingsFromOps : (kpis.targets.monthlyBookings || 0),
+          baseMarketingBudget,
+          seasonCoefficients: financials.seasonCoefficients ?? [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          horizonMonths: 12,
+          events: growthTimeline.events,
+        };
+        const gtResult = computeGrowthTimeline(gtInput);
+
+        const enabledEvents = growthTimeline.events.filter((e) => e.enabled).sort((a, b) => a.month - b.month);
+        const { months: gtMonths, summary } = gtResult;
+
+        function eventTypeName(type: string): string {
+          const labels: Record<string, string> = {
+            hire: 'Hire', 'cost-change': 'Cost Change', 'capacity-change': 'Capacity Change',
+            'marketing-change': 'Marketing Change', custom: 'Custom', 'funding-round': 'Funding Round',
+            'facility-build': 'Facility Build', 'hiring-campaign': 'Hiring Campaign',
+            'price-change': 'Price Change', 'equipment-purchase': 'Equipment Purchase',
+            'seasonal-campaign': 'Seasonal Campaign',
+          };
+          return labels[type] ?? type;
+        }
+
+        function eventSummary(event: GrowthEvent): string {
+          const { delta } = event;
+          switch (delta.type) {
+            case 'hire':
+              return `+${delta.data.count}x ${delta.data.role}`;
+            case 'cost-change':
+              return `${delta.data.category}: ${formatCurrency(delta.data.rate, currencyCode)}`;
+            case 'capacity-change':
+              return `${delta.data.outputDelta > 0 ? '+' : ''}${delta.data.outputDelta} output/mo`;
+            case 'marketing-change':
+              return `${formatCurrency(delta.data.monthlyBudget, currencyCode)}/mo`;
+            case 'custom':
+              return `${delta.data.label}: ${formatCurrency(delta.data.value, currencyCode)}`;
+            case 'funding-round':
+              return `${formatCurrency(delta.data.amount, currencyCode)}`;
+            case 'facility-build':
+              return `+${delta.data.capacityAdded} capacity`;
+            case 'hiring-campaign':
+              return `${delta.data.totalHires}x ${delta.data.role}`;
+            case 'price-change':
+              return `→ ${formatCurrency(delta.data.newPricePerUnit ?? delta.data.newAvgCheck ?? 0, currencyCode)}`;
+            case 'equipment-purchase':
+              return `${formatCurrency(delta.data.purchaseCost, currencyCode)}`;
+            case 'seasonal-campaign':
+              return `+${formatCurrency(delta.data.budgetIncrease, currencyCode)}/mo`;
+          }
+        }
+
+        return (
+          <SectionPage number={getSectionNumber('growth-timeline')} title="Growth Timeline">
+            <View>
+              {/* Events */}
+              {enabledEvents.length > 0 && (
+                <View>
+                  <SubsectionTitle>Events</SubsectionTitle>
+                  <View style={styles.table}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: '12%' }]}>Month</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '28%' }]}>Event</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '22%' }]}>Type</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '38%' }]}>Details</Text>
+                    </View>
+                    {enabledEvents.map((event, i) => (
+                      <View key={event.id} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                        <Text style={[styles.tableCellBold, { width: '12%' }]}>M{event.month}</Text>
+                        <Text style={[styles.tableCell, { width: '28%' }]}>{event.label}</Text>
+                        <Text style={[styles.tableCell, { width: '22%' }]}>{eventTypeName(event.delta.type)}</Text>
+                        <Text style={[styles.tableCell, { width: '38%' }]}>{eventSummary(event)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Summary Stats */}
+              {gtMonths.length > 0 && (
+                <View>
+                  <SubsectionTitle>Projected Impact</SubsectionTitle>
+                  <View style={styles.statCardRow}>
+                    <StatCard label="Total Revenue" value={formatCurrency(summary.totalRevenue, currencyCode)} />
+                    <StatCard label="Total Costs" value={formatCurrency(summary.totalCosts, currencyCode)} />
+                    <StatCard label="Total Profit" value={formatCurrency(summary.totalProfit, currencyCode)} color={summary.totalProfit >= 0 ? '#16a34a' : '#dc2626'} />
+                    <StatCard label="Break-Even" value={summary.breakEvenMonth ? `Month ${summary.breakEvenMonth}` : 'N/A'} />
+                  </View>
+                </View>
+              )}
+
+              {/* Monthly Projection Table */}
+              {gtMonths.length > 0 && (
+                <View>
+                  <SubsectionTitle>Monthly Projection</SubsectionTitle>
+                  <View style={styles.table}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableHeaderCell, { width: '14%' }]}>Month</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '10%', textAlign: 'right' }]}>Team</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Output</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>Bookings</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>Revenue</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>Costs</Text>
+                      <Text style={[styles.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>Profit</Text>
+                    </View>
+                    {gtMonths.map((m, i) => {
+                      const teamSize = m.workforce.reduce((s, w) => s + w.count, 0);
+                      return (
+                        <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
+                          <Text style={[styles.tableCellBold, { width: '14%' }]}>{m.label}</Text>
+                          <Text style={[styles.tableCellRight, { width: '10%' }]}>{teamSize}</Text>
+                          <Text style={[styles.tableCellRight, { width: '14%' }]}>{Math.round(m.plannedOutput)}</Text>
+                          <Text style={[styles.tableCellRight, { width: '14%' }]}>{Math.round(m.bookings)}</Text>
+                          <Text style={[styles.tableCellRight, { width: '16%' }]}>{formatCurrency(m.revenue, currencyCode)}</Text>
+                          <Text style={[styles.tableCellRight, { width: '16%' }]}>{formatCurrency(m.totalCost, currencyCode)}</Text>
+                          <Text style={[styles.tableCellRight, { width: '16%', color: m.profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                            {formatCurrency(m.profit, currencyCode)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                    {/* Totals row */}
+                    <View style={[styles.tableRow, { backgroundColor: '#f5f5f5' }]}>
+                      <Text style={[styles.tableCellBold, { width: '14%' }]}>Total</Text>
+                      <Text style={[styles.tableCellRight, { width: '10%' }]}></Text>
+                      <Text style={[styles.tableCellRight, { width: '14%' }]}></Text>
+                      <Text style={[styles.tableCellRight, { width: '14%' }]}></Text>
+                      <Text style={[styles.tableCellRight, { width: '16%', fontFamily: 'Helvetica-Bold' }]}>{formatCurrency(summary.totalRevenue, currencyCode)}</Text>
+                      <Text style={[styles.tableCellRight, { width: '16%', fontFamily: 'Helvetica-Bold' }]}>{formatCurrency(summary.totalCosts, currencyCode)}</Text>
+                      <Text style={[styles.tableCellRight, { width: '16%', color: summary.totalProfit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                        {formatCurrency(summary.totalProfit, currencyCode)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {enabledEvents.length === 0 && gtMonths.length === 0 && (
+                <EmptyState section="Growth Timeline" />
+              )}
+            </View>
+          </SectionPage>
+        );
+      })()}
 
       {/* Section: Risks & Due Diligence */}
       {enabledSlugs.includes('risks-due-diligence') && (

@@ -40,8 +40,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import type { DynamicScenario } from '@/types';
+import { scenarioValuesAtom } from '@/store/scenario-atoms.ts';
 
 export function ScenarioManager() {
   const businessId = useAtomValue(activeBusinessIdAtom);
@@ -57,6 +58,8 @@ export function ScenarioManager() {
   const scenarioAssumptions = useAtomValue(scenarioAssumptionsAtom);
   const scenarioVariantRefs = useAtomValue(scenarioVariantRefsAtom);
   const scenarioSectionOverrides = useAtomValue(scenarioSectionOverridesAtom);
+
+  const setScenarioValues = useSetAtom(scenarioValuesAtom);
 
   const canEdit = useCanEdit();
   const [isLoading, setIsLoading] = useState(false);
@@ -163,6 +166,33 @@ export function ScenarioManager() {
     }
   }, [businessId, currentId, scenarioList, setScenarioList, switchScenario]);
 
+  // Regenerate: clear all stored overrides so values derive from section data
+  const handleRegenerate = useCallback(async () => {
+    if (!canEdit || !businessId) return;
+    setIsLoading(true);
+    try {
+      setScenarioValues({});
+      // Save immediately with empty values
+      const existingMeta = scenarioList.find((m) => m.id === currentId);
+      if (existingMeta) {
+        const scenario: DynamicScenario = {
+          metadata: { ...existingMeta, name: scenarioName },
+          values: {},
+          assumptions: scenarioAssumptions,
+          variantRefs: scenarioVariantRefs,
+          sectionOverrides: scenarioSectionOverrides,
+          status: scenarioStatus,
+          horizonMonths: scenarioHorizon,
+        };
+        await saveScenarioData(businessId, scenario);
+      }
+    } catch {
+      setIsOffline(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [canEdit, businessId, currentId, scenarioList, scenarioName, scenarioAssumptions, scenarioVariantRefs, scenarioSectionOverrides, scenarioStatus, scenarioHorizon, setScenarioValues]);
+
   const currentMeta = scenarioList.find((m) => m.id === currentId);
 
   return (
@@ -200,6 +230,37 @@ export function ScenarioManager() {
         <Plus className="size-3.5" />
         New
       </Button>
+
+      {canEdit && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              className="h-7 text-xs"
+              title="Regenerate from current section data"
+            >
+              <RefreshCw className="size-3.5" />
+              Regenerate
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Regenerate scenario?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear all manual overrides in "{currentMeta?.name}" and re-derive all values from your current section data (Operations, Financial Projections, KPIs, Marketing).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRegenerate}>
+                Regenerate
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {canEdit && (
         <AlertDialog>

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAtomValue } from 'jotai';
 import { scenarioNameAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
-import { activeBusinessAtom, activeBusinessIdAtom, businessVariablesAtom } from '@/store/business-atoms';
+import { activeBusinessAtom, activeBusinessIdAtom, businessVariablesAtom, sectionDerivedScopeAtom } from '@/store/business-atoms';
 import { SECTION_SLUGS } from '@/lib/constants';
 import { useSection } from '@/hooks/use-section';
 import { listScenarioData } from '@/lib/business-firestore';
@@ -23,11 +23,13 @@ import type {
   RisksDueDiligence,
   KpisMetrics,
   LaunchPlan,
+  GrowthTimeline,
   DynamicScenario,
   VariableDefinition,
   VariableUnit,
   ScenarioAssumption,
 } from '@/types';
+import { defaultGrowthTimeline } from '@/features/sections/growth-timeline/defaults';
 
 // --- ScenarioPack interface for export ---
 export interface ScenarioPack {
@@ -43,17 +45,26 @@ export interface ScenarioPack {
 function evaluateScenario(
   scenario: DynamicScenario,
   definitions: Record<string, VariableDefinition>,
+  sectionScope?: Record<string, number>,
 ): Record<string, number> {
   const merged: Record<string, VariableDefinition> = {};
   for (const [id, def] of Object.entries(definitions)) {
     if (def.type === 'input') {
-      merged[id] = { ...def, value: scenario.values[id] ?? def.value };
+      const scenarioValue = scenario.values[id];
+      let effectiveValue = scenarioValue !== undefined
+        ? scenarioValue
+        : (sectionScope?.[id] ?? def.value);
+      // Normalize percent values stored as whole numbers (e.g., 8 → 0.08)
+      if (def.unit === 'percent' && effectiveValue > 1) {
+        effectiveValue = effectiveValue / 100;
+      }
+      merged[id] = { ...def, value: effectiveValue };
     } else {
       merged[id] = def;
     }
   }
   try {
-    return evaluateVariables(merged);
+    return evaluateVariables(merged, sectionScope);
   } catch {
     const fallback: Record<string, number> = {};
     for (const [id, def] of Object.entries(merged)) {
@@ -144,6 +155,7 @@ export function Export() {
   const business = useAtomValue(activeBusinessAtom);
   const businessId = useAtomValue(activeBusinessIdAtom);
   const definitions = useAtomValue(businessVariablesAtom);
+  const sectionScope = useAtomValue(sectionDerivedScopeAtom);
 
   // Derive business identity
   const businessName = business?.profile.name ?? 'Business Plan';
@@ -189,7 +201,7 @@ export function Export() {
       .map(([id]) => id);
 
     const scenarioEntries = nonArchived.map((s) => {
-      const evaluated = evaluateScenario(s, definitions);
+      const evaluated = evaluateScenario(s, definitions, sectionScope);
       const metrics: Record<string, { label: string; value: number; unit: string }> = {};
       for (const varId of keyVarIds) {
         const def = definitions[varId];
@@ -211,7 +223,7 @@ export function Export() {
       },
       scenarios: scenarioEntries,
     };
-  }, [definitions, allScenarios]);
+  }, [definitions, allScenarios, sectionScope]);
 
   // Determine recommendation (highest profit-related metric)
   const recommendation = useMemo<string | null>(() => {
@@ -262,6 +274,7 @@ export function Export() {
   const { data: risks } = useSection<RisksDueDiligence>('risks-due-diligence', defaultRisks);
   const { data: kpis } = useSection<KpisMetrics>('kpis-metrics', defaultKpis);
   const { data: launchPlan } = useSection<LaunchPlan>('launch-plan', defaultLaunchPlan);
+  const { data: growthTimeline } = useSection<GrowthTimeline>('growth-timeline', defaultGrowthTimeline);
 
   async function handleDownloadPdf() {
     setIsGenerating(true);
@@ -286,6 +299,7 @@ export function Export() {
           marketingStrategy,
           operations,
           financials,
+          growthTimeline,
           risks,
           kpis,
           launchPlan,

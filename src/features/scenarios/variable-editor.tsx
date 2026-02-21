@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useAtomValue } from 'jotai';
 import { Calculator, X, Plus, ChevronDown } from 'lucide-react';
 import { useBusinessVariables } from '@/hooks/use-business-variables';
 import { evaluateVariables } from '@/lib/formula-engine';
+import { sectionDerivedScopeAtom } from '@/store/business-atoms';
 import { VARIABLE_CATEGORIES, type VariableCategory } from '@/lib/variable-templates/types';
 import type { VariableDefinition, VariableUnit } from '@/types';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -225,13 +227,14 @@ function AddVariableForm({
 export function VariableEditor() {
   const { variables, updateVariableValue, addVariable, removeVariable } =
     useBusinessVariables();
+  const sectionScope = useAtomValue(sectionDerivedScopeAtom);
 
-  // Evaluate all variables
+  // Evaluate all variables with section-derived scope
   const { evaluatedValues, evaluationError } = useMemo(() => {
     if (!variables || Object.keys(variables).length === 0)
       return { evaluatedValues: {} as Record<string, number>, evaluationError: null };
     try {
-      const result = evaluateVariables(variables);
+      const result = evaluateVariables(variables, sectionScope);
       return { evaluatedValues: result, evaluationError: null };
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
@@ -244,7 +247,7 @@ export function VariableEditor() {
       }
       return { evaluatedValues: inputValues, evaluationError: error };
     }
-  }, [variables]);
+  }, [variables, sectionScope]);
 
   // Group variables by category
   const categorized = useMemo(() => {
@@ -302,10 +305,14 @@ export function VariableEditor() {
           <CardContent className="space-y-3">
             {group.variables.map((variable) => {
               if (variable.type === 'input') {
+                // Normalize percent values stored as whole numbers (e.g., 8 → 0.08)
+                const normalizedValue = variable.unit === 'percent' && variable.value > 1
+                  ? variable.value / 100
+                  : variable.value;
                 const displayValue =
                   variable.unit === 'percent'
-                    ? (variable.value * 100).toFixed(1)
-                    : String(variable.value);
+                    ? (normalizedValue * 100).toFixed(1)
+                    : String(normalizedValue);
 
                 return (
                   <div key={variable.id} className="group flex items-center gap-2">

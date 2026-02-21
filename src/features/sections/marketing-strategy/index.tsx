@@ -7,7 +7,6 @@ import type {
 } from '@/types';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -56,7 +55,7 @@ import {
   Legend,
 } from 'recharts';
 import { AiFieldTrigger } from '@/components/ai-field-trigger';
-import { MdPreview } from '@/components/md';
+import { RichTextField } from '@/components/rich-text-field';
 
 const PREDEFINED_CHANNELS = [
   'Google Ads',
@@ -437,8 +436,12 @@ export function MarketingStrategy() {
                             />
                           )}
                         </label>
-                        <Textarea value={channel.description} onChange={(e) => updateChannel(chIndex, 'description', e.target.value)} rows={2} readOnly={!canEdit} />
-                        <MdPreview text={channel.description} />
+                        <RichTextField
+                          value={channel.description}
+                          onChange={(val) => updateChannel(chIndex, 'description', val)}
+                          canEdit={canEdit}
+                          placeholder="Describe this channel..."
+                        />
                       </div>
 
                       {/* Campaign/Tracking URL */}
@@ -569,8 +572,12 @@ export function MarketingStrategy() {
                   />
                 )}
               </label>
-              <Textarea value={data.landingPage.description} onChange={(e) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: e.target.value } }))} rows={4} readOnly={!canEdit} />
-              <MdPreview text={data.landingPage.description} />
+              <RichTextField
+                value={data.landingPage.description}
+                onChange={(val) => updateData((prev) => ({ ...prev, landingPage: { ...prev.landingPage, description: val } }))}
+                canEdit={canEdit}
+                placeholder="Describe your landing page..."
+              />
             </div>
           </div>
         </div>

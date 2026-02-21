@@ -11,6 +11,7 @@ import { useCanEdit } from '@/hooks/use-business-role';
 import { createLogger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
 import { updateSyncAtom } from '@/store/sync-atoms';
+import { sectionScopeVersionAtom } from '@/store/business-atoms';
 import {
   scenarioVariantRefsAtom,
   scenarioSectionOverridesAtom,
@@ -62,6 +63,7 @@ export function useSection<T extends BusinessPlanSection>(
     currentScenarioId !== 'baseline' || Boolean(selectedVariantId);
   const canEdit = useCanEdit();
   const setSync = useSetAtom(updateSyncAtom);
+  const bumpScopeVersion = useSetAtom(sectionScopeVersionAtom);
   const [baseData, setBaseData] = useState<T>(defaultData);
   const [variantData, setVariantData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -197,6 +199,8 @@ export function useSection<T extends BusinessPlanSection>(
           const now = Date.now();
           setLastSaved(now);
           setSync({ domain: 'section', state: 'saved', lastSaved: now });
+          // Trigger section scope reload so variable formulas pick up changes
+          bumpScopeVersion((v) => v + 1);
           log.info('saved', { businessId, section: sectionSlug });
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Save failed';
