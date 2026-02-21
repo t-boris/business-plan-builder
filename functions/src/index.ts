@@ -358,13 +358,24 @@ export const aiTranslateSection = onRequest(
         config: {
           systemInstruction,
           temperature: 0.3,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 32768,
           responseMimeType: 'application/json',
           responseSchema,
         },
       });
 
-      const translated: Record<string, string> = JSON.parse(response.text ?? '{}');
+      const raw = response.text ?? '{}';
+      let translated: Record<string, string>;
+      try {
+        translated = JSON.parse(raw);
+      } catch {
+        console.error('[aiTranslateSection] Truncated or malformed JSON response', {
+          length: raw.length,
+          tail: raw.slice(-100),
+        });
+        res.status(502).json({ error: 'Translation response was truncated. Try again or reduce content.' });
+        return;
+      }
       res.status(200).json({ translated });
     } catch (error: unknown) {
       handleError(res, error, 'aiTranslateSection');
