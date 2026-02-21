@@ -331,21 +331,25 @@ async function translateAllSections(
     texts[key] = val;
   }
 
-  // 2. Split into small chunks and translate in parallel
+  // 2. Split into small chunks and translate in waves of 3
   const entries = Object.entries(texts);
   const translated: Record<string, string> = {};
   const CHUNK_SIZE = 8;
+  const CONCURRENCY = 3;
 
   const chunks: Record<string, string>[] = [];
   for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
     chunks.push(Object.fromEntries(entries.slice(i, i + CHUNK_SIZE)));
   }
 
-  const results = await Promise.all(
-    chunks.map((chunk) => translateTexts(chunk, targetLanguage)),
-  );
-  for (const result of results) {
-    Object.assign(translated, result);
+  for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+    const wave = chunks.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      wave.map((chunk) => translateTexts(chunk, targetLanguage)),
+    );
+    for (const result of results) {
+      Object.assign(translated, result);
+    }
   }
 
   // Helper to get translated value or fall back to original
