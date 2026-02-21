@@ -293,6 +293,86 @@ export const aiPerplexitySearch = onRequest(
 );
 
 // ---------------------------------------------------------------------------
+// Endpoint: POST /aiTranslateSection
+// Body: { texts: Record<string, string>, targetLanguage: string }
+// Returns: { translated: Record<string, string> }
+// ---------------------------------------------------------------------------
+export const aiTranslateSection = onRequest(
+  {
+    timeoutSeconds: 180,
+    cors: ALLOWED_ORIGINS,
+    secrets: [geminiApiKey],
+  },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const { uid } = await verifyAuth(req.headers.authorization);
+
+      if (!checkRateLimit(uid)) {
+        res.status(429).json({ error: 'Rate limit exceeded. Please wait a moment.' });
+        return;
+      }
+
+      const { texts, targetLanguage } = req.body as {
+        texts?: Record<string, string>;
+        targetLanguage?: string;
+      };
+
+      if (
+        !texts ||
+        typeof texts !== 'object' ||
+        Array.isArray(texts) ||
+        Object.keys(texts).length === 0
+      ) {
+        res.status(400).json({ error: 'Missing or invalid field: texts (must be a non-empty object)' });
+        return;
+      }
+
+      if (!targetLanguage || typeof targetLanguage !== 'string' || targetLanguage.trim() === '') {
+        res.status(400).json({ error: 'Missing or invalid field: targetLanguage (must be a non-empty string)' });
+        return;
+      }
+
+      // Build dynamic response schema from the input keys
+      const keys = Object.keys(texts);
+      const properties: Record<string, { type: string }> = {};
+      for (const key of keys) {
+        properties[key] = { type: 'string' };
+      }
+      const responseSchema = {
+        type: 'object',
+        properties,
+        required: keys,
+      };
+
+      const systemInstruction = `You are a professional business plan translator. Translate the provided text fields into ${targetLanguage}. Preserve all markdown formatting (bold, italic, links, lists). Preserve numbers, proper nouns, brand names, and technical terms. Return ONLY the translated text for each field.`;
+
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: JSON.stringify(texts),
+        config: {
+          systemInstruction,
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+          responseSchema,
+        },
+      });
+
+      const translated: Record<string, string> = JSON.parse(response.text ?? '{}');
+      res.status(200).json({ translated });
+    } catch (error: unknown) {
+      handleError(res, error, 'aiTranslateSection');
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Shared error handler
 // ---------------------------------------------------------------------------
 function handleError(
