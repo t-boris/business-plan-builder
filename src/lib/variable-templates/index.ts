@@ -40,3 +40,60 @@ export function getDefaultVariables(
     return acc;
   }, {});
 }
+
+/**
+ * Mapping from scope keys to variable IDs, per business type.
+ * Used to seed realistic variable defaults from actual section data.
+ */
+const SCOPE_TO_VARIABLE_MAP: Partial<Record<BusinessType, Record<string, string>>> = {
+  manufacturing: {
+    pricePerUnit: "sellingPricePerUnit",
+    totalPlannedOutputPerMonth: "monthlyProductionCapacity",
+    fixedMonthlyTotal: "monthlyFixedCosts",
+    variableCostPerOutput: "rawMaterialCostPerUnit",
+  },
+  saas: {
+    pricePerUnit: "monthlyPrice",
+    monthlyBookings: "numberOfCustomers",
+    fixedMonthlyTotal: "monthlyFixedCosts",
+  },
+  service: {
+    monthlyMarketingBudget: "monthlyMarketingBudget",
+    fixedMonthlyTotal: "monthlyOverhead",
+  },
+  retail: {
+    monthlyLeads: "monthlyFootTraffic",
+    conversionRate: "conversionRate",
+    pricePerUnit: "averageTransactionValue",
+    fixedMonthlyTotal: "monthlyRent",
+  },
+  event: {
+    monthlyMarketingBudget: "monthlyMarketingBudget",
+    fixedMonthlyTotal: "monthlyFixedCosts",
+  },
+};
+
+/**
+ * Override input variable values using real section-derived scope data.
+ * For each mapping entry: if scope has a non-zero value for the scope key
+ * AND the corresponding variable exists as an input type, set variable.value
+ * to the scope value. Mutates `vars` in place.
+ */
+export function seedVariablesFromScope(
+  vars: Record<string, VariableDefinition>,
+  scope: Record<string, number>,
+  type: BusinessType,
+): void {
+  const mapping = SCOPE_TO_VARIABLE_MAP[type];
+  if (!mapping) return;
+
+  for (const [scopeKey, variableId] of Object.entries(mapping)) {
+    const scopeValue = scope[scopeKey];
+    if (scopeValue && scopeValue !== 0) {
+      const variable = vars[variableId];
+      if (variable && variable.type === "input") {
+        variable.value = scopeValue;
+      }
+    }
+  }
+}

@@ -20,7 +20,7 @@ import {
   scenarioSyncReadyAtom,
 } from '@/store/scenario-atoms';
 import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables, saveBusinessVariables, getSectionData } from '@/lib/business-firestore';
-import { getDefaultVariables } from '@/lib/variable-templates';
+import { getDefaultVariables, seedVariablesFromScope } from '@/lib/variable-templates';
 import { normalizeOperations } from '@/features/sections/operations/normalize';
 import { computeOperationsCosts } from '@/features/sections/operations/compute';
 import type { Operations, FinancialProjections, MarketingStrategy, KpisMetrics, MonthlyCosts } from '@/types';
@@ -96,7 +96,18 @@ function VariableLoader() {
         // Backfill: generate default variables for pre-existing businesses that have none
         if (!vars) {
           log.info('variables.backfill', { businessId: businessId!, type: business!.profile.type });
+
+          // Build scope from section data to seed realistic defaults
+          const [ops, financials, marketing, kpis] = await Promise.all([
+            getSectionData<Operations>(businessId!, 'operations'),
+            getSectionData<FinancialProjections>(businessId!, 'financial-projections'),
+            getSectionData<MarketingStrategy>(businessId!, 'marketing-strategy'),
+            getSectionData<KpisMetrics>(businessId!, 'kpis-metrics'),
+          ]);
+          const scope = buildScopeFromSections(ops, financials, marketing, kpis);
+
           vars = getDefaultVariables(business!.profile.type);
+          seedVariablesFromScope(vars, scope, business!.profile.type);
           await saveBusinessVariables(businessId!, vars);
         }
 
@@ -207,6 +218,94 @@ function sumMonthlyCosts(costs: MonthlyCosts): number {
 }
 
 /**
+ * Build a scope record from section data. Used by both the VariableLoader backfill
+ * path and SectionScopeLoader to avoid duplicating the derivation logic.
+ */
+function buildScopeFromSections(
+  ops: Operations | null,
+  financials: FinancialProjections | null,
+  marketing: MarketingStrategy | null,
+  kpis: KpisMetrics | null,
+): Record<string, number> {
+  const scope: Record<string, number> = {};
+
+  // Operations-derived
+  if (ops) {
+    try {
+      const normalized = normalizeOperations(ops);
+      const summary = computeOperationsCosts(normalized);
+      scope.monthlyLaborCost = summary.workforceMonthlyTotal;
+      scope.workforceMonthlyTotal = summary.workforceMonthlyTotal;
+      scope.monthlyFixedCosts = summary.fixedMonthlyTotal;
+      scope.fixedMonthlyTotal = summary.fixedMonthlyTotal;
+      scope.monthlyVariableCosts = summary.variableMonthlyTotal;
+      scope.variableMonthlyTotal = summary.variableMonthlyTotal;
+      scope.monthlyOperationsCost = summary.monthlyOperationsTotal;
+      scope.variableCostPerUnit = summary.variableCostPerOutput;
+      scope.variableCostPerOutput = summary.variableCostPerOutput;
+      scope.plannedOutputPerMonth = summary.totalPlannedOutputPerMonth;
+      scope.totalPlannedOutputPerMonth = summary.totalPlannedOutputPerMonth;
+    } catch {
+      // Silently skip if operations data is malformed
+    }
+  }
+
+  // Financial Projections-derived
+  if (financials?.months?.length) {
+    const n = financials.months.length;
+    const totalRev = financials.months.reduce((s, m) => s + m.revenue, 0);
+    const totalCost = financials.months.reduce((s, m) => s + sumMonthlyCosts(m.costs), 0);
+    scope.monthlyRevenue = totalRev / n;
+    scope.annualRevenue = totalRev;
+    scope.monthlyCosts = totalCost / n;
+    scope.monthlyTotalCosts = totalCost / n;
+    scope.annualCosts = totalCost;
+    scope.monthlyProfit = (totalRev - totalCost) / n;
+    scope.annualProfit = totalRev - totalCost;
+    scope.grossProfit = (totalRev - (scope.monthlyVariableCosts ?? 0) * n) / n;
+    scope.costOfGoodsSold = scope.monthlyVariableCosts ?? 0;
+    // Unit economics from section if present
+    if (financials.unitEconomics) {
+      if (financials.unitEconomics.pricePerUnit > 0) {
+        scope.pricePerUnit = financials.unitEconomics.pricePerUnit;
+      }
+      if (financials.unitEconomics.variableCostPerUnit > 0) {
+        scope.variableCostPerUnit = financials.unitEconomics.variableCostPerUnit;
+      }
+      scope.profitPerUnit = financials.unitEconomics.profitPerUnit ?? 0;
+      scope.breakEvenUnits = financials.unitEconomics.breakEvenUnits ?? 0;
+      scope.monthlyBreakEvenUnits = financials.unitEconomics.breakEvenUnits ?? 0;
+    }
+  }
+
+  // Marketing-derived
+  if (marketing?.channels?.length) {
+    scope.monthlyMarketingBudget = marketing.channels.reduce(
+      (s, c) => s + (c.budget ?? 0), 0,
+    );
+    scope.monthlyMarketingLeads = marketing.channels.reduce(
+      (s, c) => s + (c.expectedLeads ?? 0), 0,
+    );
+  }
+
+  // KPIs-derived
+  if (kpis?.targets) {
+    if (kpis.targets.pricePerUnit > 0) scope.pricePerUnit = kpis.targets.pricePerUnit;
+    scope.monthlyBookings = kpis.targets.monthlyBookings;
+    scope.monthlyTransactions = kpis.targets.monthlyBookings;
+    // Normalize conversionRate: should be 0-1 decimal, not whole number percent
+    scope.conversionRate = kpis.targets.conversionRate > 1
+      ? kpis.targets.conversionRate / 100
+      : kpis.targets.conversionRate;
+    scope.cacPerLead = kpis.targets.cacPerLead;
+    scope.cacPerBooking = kpis.targets.cacPerBooking;
+    scope.monthlyLeads = kpis.targets.monthlyLeads;
+  }
+
+  return scope;
+}
+
+/**
  * Loads key section data and derives scope variables for the formula engine.
  * This bridges the gap between section data (Operations, Financial Projections, etc.)
  * and the variable library so formulas always use up-to-date numbers.
@@ -243,81 +342,7 @@ function SectionScopeLoader() {
 
         if (cancelled) return;
 
-        const scope: Record<string, number> = {};
-
-        // Operations-derived
-        if (ops) {
-          try {
-            const normalized = normalizeOperations(ops);
-            const summary = computeOperationsCosts(normalized);
-            scope.monthlyLaborCost = summary.workforceMonthlyTotal;
-            scope.workforceMonthlyTotal = summary.workforceMonthlyTotal;
-            scope.monthlyFixedCosts = summary.fixedMonthlyTotal;
-            scope.fixedMonthlyTotal = summary.fixedMonthlyTotal;
-            scope.monthlyVariableCosts = summary.variableMonthlyTotal;
-            scope.variableMonthlyTotal = summary.variableMonthlyTotal;
-            scope.monthlyOperationsCost = summary.monthlyOperationsTotal;
-            scope.variableCostPerUnit = summary.variableCostPerOutput;
-            scope.variableCostPerOutput = summary.variableCostPerOutput;
-            scope.plannedOutputPerMonth = summary.totalPlannedOutputPerMonth;
-            scope.totalPlannedOutputPerMonth = summary.totalPlannedOutputPerMonth;
-          } catch {
-            // Silently skip if operations data is malformed
-          }
-        }
-
-        // Financial Projections-derived
-        if (financials?.months?.length) {
-          const n = financials.months.length;
-          const totalRev = financials.months.reduce((s, m) => s + m.revenue, 0);
-          const totalCost = financials.months.reduce((s, m) => s + sumMonthlyCosts(m.costs), 0);
-          scope.monthlyRevenue = totalRev / n;
-          scope.annualRevenue = totalRev;
-          scope.monthlyCosts = totalCost / n;
-          scope.monthlyTotalCosts = totalCost / n;
-          scope.annualCosts = totalCost;
-          scope.monthlyProfit = (totalRev - totalCost) / n;
-          scope.annualProfit = totalRev - totalCost;
-          scope.grossProfit = (totalRev - (scope.monthlyVariableCosts ?? 0) * n) / n;
-          scope.costOfGoodsSold = scope.monthlyVariableCosts ?? 0;
-          // Unit economics from section if present
-          if (financials.unitEconomics) {
-            if (financials.unitEconomics.pricePerUnit > 0) {
-              scope.pricePerUnit = financials.unitEconomics.pricePerUnit;
-            }
-            if (financials.unitEconomics.variableCostPerUnit > 0) {
-              scope.variableCostPerUnit = financials.unitEconomics.variableCostPerUnit;
-            }
-            scope.profitPerUnit = financials.unitEconomics.profitPerUnit ?? 0;
-            scope.breakEvenUnits = financials.unitEconomics.breakEvenUnits ?? 0;
-            scope.monthlyBreakEvenUnits = financials.unitEconomics.breakEvenUnits ?? 0;
-          }
-        }
-
-        // Marketing-derived
-        if (marketing?.channels?.length) {
-          scope.monthlyMarketingBudget = marketing.channels.reduce(
-            (s, c) => s + (c.budget ?? 0), 0,
-          );
-          scope.monthlyMarketingLeads = marketing.channels.reduce(
-            (s, c) => s + (c.expectedLeads ?? 0), 0,
-          );
-        }
-
-        // KPIs-derived
-        if (kpis?.targets) {
-          if (kpis.targets.pricePerUnit > 0) scope.pricePerUnit = kpis.targets.pricePerUnit;
-          scope.monthlyBookings = kpis.targets.monthlyBookings;
-          scope.monthlyTransactions = kpis.targets.monthlyBookings;
-          // Normalize conversionRate: should be 0-1 decimal, not whole number percent
-          scope.conversionRate = kpis.targets.conversionRate > 1
-            ? kpis.targets.conversionRate / 100
-            : kpis.targets.conversionRate;
-          scope.cacPerLead = kpis.targets.cacPerLead;
-          scope.cacPerBooking = kpis.targets.cacPerBooking;
-          scope.monthlyLeads = kpis.targets.monthlyLeads;
-        }
-
+        const scope = buildScopeFromSections(ops, financials, marketing, kpis);
         setSectionScope(scope);
 
         // Extract season coefficients from financial projections
