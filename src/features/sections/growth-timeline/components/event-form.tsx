@@ -310,6 +310,24 @@ export function EventForm({ horizonMonths, capacityItems = [], initial, onSave, 
               className="h-8 text-sm tabular-nums"
             />
           </div>
+          <div className="col-span-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Output per hire (units/month, 0 = no capacity effect)
+            </label>
+            <Input
+              type="number"
+              min={0}
+              value={delta.data.capacityPerHire ?? 0}
+              onChange={(e) =>
+                setDelta({
+                  ...delta,
+                  data: { ...delta.data, capacityPerHire: Number(e.target.value) || undefined },
+                })
+              }
+              placeholder="e.g. 10"
+              className="h-8 text-sm tabular-nums"
+            />
+          </div>
         </div>
       )}
 
@@ -641,7 +659,7 @@ export function EventForm({ horizonMonths, capacityItems = [], initial, onSave, 
               className="h-8 text-sm tabular-nums"
             />
           </div>
-          <div className="col-span-2">
+          <div>
             <label className="text-xs font-medium text-muted-foreground">Recruiting Cost per Hire ($)</label>
             <Input
               type="number"
@@ -649,6 +667,21 @@ export function EventForm({ horizonMonths, capacityItems = [], initial, onSave, 
               onChange={(e) =>
                 setDelta({ ...delta, data: { ...delta.data, recruitingCostPerHire: Number(e.target.value) } })
               }
+              className="h-8 text-sm tabular-nums"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Output per hire (units/month)
+            </label>
+            <Input
+              type="number"
+              min={0}
+              value={delta.data.capacityPerHire ?? 0}
+              onChange={(e) =>
+                setDelta({ ...delta, data: { ...delta.data, capacityPerHire: Number(e.target.value) || undefined } })
+              }
+              placeholder="e.g. 10"
               className="h-8 text-sm tabular-nums"
             />
           </div>

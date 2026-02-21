@@ -354,6 +354,7 @@ export interface HireDelta {
   count: number;
   ratePerHour: number;
   hoursPerWeek: number;
+  capacityPerHire?: number;  // how many units of output each hire enables
 }
 
 export interface CostChangeDelta {
@@ -399,6 +400,7 @@ export interface HiringCampaignDelta {
   ratePerHour: number;
   hoursPerWeek: number;
   recruitingCostPerHire: number;
+  capacityPerHire?: number;  // how many units of output each hire enables
 }
 
 export interface PriceChangeDelta {

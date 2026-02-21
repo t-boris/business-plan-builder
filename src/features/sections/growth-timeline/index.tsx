@@ -93,7 +93,8 @@ function deriveBaseBookingsFromOperations(operations: OperationsType): number {
     const planned = Math.max(0, item.plannedOutputPerMonth);
     const capLimit = deriveMonthlyCapacityLimit(item);
     const effective = capLimit > 0 ? Math.min(planned, capLimit) : planned;
-    return sum + effective;
+    const utilization = item.utilizationRate > 0 ? item.utilizationRate / 100 : 1;
+    return sum + effective * utilization;
   }, 0);
 }
 

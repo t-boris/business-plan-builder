@@ -757,6 +757,256 @@ describe('computeGrowthTimeline', () => {
     expect(result.months[5].plannedOutput).toBe(130);
   });
 
+  // --- Utilization rate + hire capacity tests ---
+
+  it('utilization rate reduces bookings below capacity', () => {
+    const input = makeInput({
+      operations: makeOps({
+        capacityItems: [
+          {
+            id: 'cap-1',
+            name: 'Tours',
+            outputUnitLabel: 'tours',
+            plannedOutputPerMonth: 100,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 70,
+          },
+        ],
+      }),
+      basePricePerUnit: 100,
+      baseBookings: 50,
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    // effectivePlannedOutput = 100, avgUtilization = 70/100 = 0.7
+    // effectiveBookings = 100 * 0.7 = 70
+    // revenue = 70 * 100 = 7000
+    expect(result.months[0].bookings).toBe(70);
+    expect(result.months[0].revenue).toBe(7000);
+  });
+
+  it('utilization rate = 0 on all items defaults to 100% (backward compat)', () => {
+    const input = makeInput({
+      operations: makeOps({
+        capacityItems: [
+          {
+            id: 'cap-1',
+            name: 'Widget',
+            outputUnitLabel: 'units',
+            plannedOutputPerMonth: 100,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 0,
+          },
+        ],
+      }),
+      basePricePerUnit: 100,
+      baseBookings: 50,
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    // utilizationRate = 0 → defaults to 100% → bookings = 100
+    expect(result.months[0].bookings).toBe(100);
+    expect(result.months[0].revenue).toBe(10000);
+  });
+
+  it('weighted utilization across multiple capacity items', () => {
+    const input = makeInput({
+      operations: makeOps({
+        capacityItems: [
+          {
+            id: 'cap-a',
+            name: 'Product A',
+            outputUnitLabel: 'units',
+            plannedOutputPerMonth: 100,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 80,
+          },
+          {
+            id: 'cap-b',
+            name: 'Product B',
+            outputUnitLabel: 'units',
+            plannedOutputPerMonth: 50,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 60,
+          },
+        ],
+      }),
+      basePricePerUnit: 10,
+      baseBookings: 0,
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    // Weighted util = (80*100 + 60*50) / (100+50) / 100 = (8000+3000)/150/100 = 11000/15000 ≈ 0.7333
+    // effectivePlannedOutput = 150, bookings = 150 * 0.7333 = 110
+    expect(result.months[0].bookings).toBeCloseTo(110, 0);
+    expect(result.months[0].revenue).toBeCloseTo(1100, 0);
+  });
+
+  it('hire with capacityPerHire increases planned output and bookings', () => {
+    const input = makeInput({
+      operations: makeOps({
+        capacityItems: [
+          {
+            id: 'cap-1',
+            name: 'Tours',
+            outputUnitLabel: 'tours',
+            plannedOutputPerMonth: 100,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 70,
+          },
+        ],
+      }),
+      basePricePerUnit: 100,
+      baseBookings: 50,
+      events: [
+        makeEvent({
+          month: 3,
+          label: 'Hire 5 tour guides',
+          delta: {
+            type: 'hire',
+            data: { role: 'Tour Guide', count: 5, ratePerHour: 20, hoursPerWeek: 30, capacityPerHire: 10 },
+          },
+        }),
+      ],
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    // Month 1-2: capacity = 100, util = 70% → bookings = 70
+    expect(result.months[0].bookings).toBe(70);
+    expect(result.months[0].plannedOutput).toBe(100);
+
+    // Month 3+: capacity = 100 + 5*10 = 150, util = 70% → bookings = 105
+    // Note: the new capacity inherits the same utilization rate via weighted average
+    // weightedUtil = (70 * 150) / 150 / 100 = 0.7 (since all output is on cap-1 which has util=70)
+    expect(result.months[2].plannedOutput).toBe(150);
+    expect(result.months[2].bookings).toBe(105);
+    expect(result.months[2].revenue).toBe(10500);
+  });
+
+  it('hire without capacityPerHire does not affect capacity (backward compat)', () => {
+    const input = makeInput({
+      operations: makeOps({
+        capacityItems: [
+          {
+            id: 'cap-1',
+            name: 'Main',
+            outputUnitLabel: 'units',
+            plannedOutputPerMonth: 100,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 0,
+          },
+        ],
+      }),
+      events: [
+        makeEvent({
+          month: 2,
+          label: 'Hire dev',
+          delta: {
+            type: 'hire',
+            data: { role: 'Dev', count: 1, ratePerHour: 50, hoursPerWeek: 40 },
+          },
+        }),
+      ],
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    // No capacityPerHire → capacity stays at 100
+    expect(result.months[0].plannedOutput).toBe(100);
+    expect(result.months[1].plannedOutput).toBe(100);
+  });
+
+  it('hiring-campaign with capacityPerHire staggers capacity increase', () => {
+    const input = makeInput({
+      operations: makeOps({
+        capacityItems: [
+          {
+            id: 'cap-1',
+            name: 'Service',
+            outputUnitLabel: 'jobs',
+            plannedOutputPerMonth: 100,
+            maxOutputPerDay: 0,
+            maxOutputPerWeek: 0,
+            maxOutputPerMonth: 0,
+            utilizationRate: 0,
+          },
+        ],
+      }),
+      basePricePerUnit: 50,
+      events: [
+        makeEvent({
+          month: 1,
+          label: 'Scale team',
+          durationMonths: 4,
+          delta: {
+            type: 'hiring-campaign',
+            data: {
+              totalHires: 4,
+              role: 'Technician',
+              ratePerHour: 30,
+              hoursPerWeek: 40,
+              recruitingCostPerHire: 1000,
+              capacityPerHire: 10,
+            },
+          },
+        }),
+      ],
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    // Month 1: 1 hire → capacity = 100 + 1*10 = 110, util=0 → default 100% → bookings=110
+    expect(result.months[0].plannedOutput).toBe(110);
+    expect(result.months[0].bookings).toBe(110);
+
+    // Month 2: 2 hires → capacity = 100 + 2*10 = 120
+    expect(result.months[1].plannedOutput).toBe(120);
+    expect(result.months[1].bookings).toBe(120);
+
+    // Month 3: 3 hires → capacity = 100 + 3*10 = 130
+    expect(result.months[2].plannedOutput).toBe(130);
+
+    // Month 4: 4 hires → capacity = 100 + 4*10 = 140
+    expect(result.months[3].plannedOutput).toBe(140);
+
+    // Month 5+: all 4 hires → capacity remains 140
+    expect(result.months[4].plannedOutput).toBe(140);
+    expect(result.months[4].bookings).toBe(140);
+
+    // Revenue at month 5: 140 * 50 = 7000
+    expect(result.months[4].revenue).toBe(7000);
+  });
+
+  it('utilization rate applied to baseBookings when no capacity items exist', () => {
+    // When no capacity items, effectivePlannedOutput = 0, so baseBookings * avgUtilization is used
+    // But avgUtilization defaults to 1 when no capacity items → baseBookings unchanged
+    const input = makeInput({
+      baseBookings: 80,
+      basePricePerUnit: 100,
+    });
+
+    const result = computeGrowthTimeline(input);
+
+    expect(result.months[0].bookings).toBe(80);
+    expect(result.months[0].revenue).toBe(8000);
+  });
+
   it('duration event without durationMonths defaults to 1', () => {
     const input = makeInput({
       operations: makeOps({

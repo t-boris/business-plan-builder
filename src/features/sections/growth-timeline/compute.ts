@@ -103,7 +103,7 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
     for (const event of applicableEvents) {
       const { delta } = event;
       switch (delta.type) {
-        case 'hire':
+        case 'hire': {
           effectiveWorkforce = [
             ...effectiveWorkforce,
             {
@@ -113,7 +113,21 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
               hoursPerWeek: delta.data.hoursPerWeek,
             },
           ];
+          // If hire specifies capacity contribution, increase output
+          const hireCapacity = (delta.data.capacityPerHire ?? 0) * delta.data.count;
+          if (hireCapacity > 0) {
+            if (effectiveCapacityItems.length > 0) {
+              effectiveCapacityItems = effectiveCapacityItems.map((item, i) =>
+                i === 0
+                  ? { ...item, plannedOutputPerMonth: item.plannedOutputPerMonth + hireCapacity }
+                  : item,
+              );
+            } else {
+              standaloneCapacityDelta += hireCapacity;
+            }
+          }
           break;
+        }
         case 'cost-change':
           effectiveCostItems = [
             ...effectiveCostItems,
@@ -272,6 +286,20 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
           if (newHiresThisMonth > 0) {
             oneTimeFixedCost += newHiresThisMonth * delta.data.recruitingCostPerHire;
           }
+
+          // If campaign specifies capacity contribution, increase output
+          const campaignCapacity = (delta.data.capacityPerHire ?? 0) * cumulativeHires;
+          if (campaignCapacity > 0) {
+            if (effectiveCapacityItems.length > 0) {
+              effectiveCapacityItems = effectiveCapacityItems.map((item, i) =>
+                i === 0
+                  ? { ...item, plannedOutputPerMonth: item.plannedOutputPerMonth + campaignCapacity }
+                  : item,
+              );
+            } else {
+              standaloneCapacityDelta += campaignCapacity;
+            }
+          }
           break;
         }
 
@@ -300,11 +328,21 @@ export function computeGrowthTimeline(input: GrowthComputeInput): GrowthComputeR
       0,
     ) + Math.max(0, standaloneCapacityDelta);
 
-    // Bookings track capacity: capacity changes drive revenue.
-    // Use the higher of base bookings and effective planned output.
+    // Compute weighted average utilization rate across capacity items
+    const weightedUtilNum = effectiveCapacityItems.reduce(
+      (sum, item) => sum + Math.max(0, item.utilizationRate) * Math.max(0, item.plannedOutputPerMonth), 0,
+    );
+    const weightedUtilDenom = effectiveCapacityItems.reduce(
+      (sum, item) => sum + Math.max(0, item.plannedOutputPerMonth), 0,
+    );
+    // Default to 100% if no utilization rates are set (backward compatible)
+    const avgUtilization = weightedUtilDenom > 0 && weightedUtilNum > 0
+      ? weightedUtilNum / weightedUtilDenom / 100  // stored as 0-100, convert to 0-1
+      : 1;
+
     const effectiveBookings = effectivePlannedOutput > 0
-      ? Math.max(baseBookings, effectivePlannedOutput)
-      : baseBookings;
+      ? effectivePlannedOutput * avgUtilization
+      : baseBookings * avgUtilization;
 
     // Apply seasonality (cycle for horizons > 12)
     const seasonCoeff = seasonCoefficients[(m - 1) % seasonCoefficients.length] ?? 1;

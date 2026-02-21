@@ -116,6 +116,7 @@ export function ProjectionPreview({ result, horizonMonths }: ProjectionPreviewPr
                 <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground uppercase">Month</th>
                 <th className="py-2 px-2 text-right text-xs font-medium text-muted-foreground uppercase">Team</th>
                 <th className="py-2 px-2 text-right text-xs font-medium text-muted-foreground uppercase">Output</th>
+                <th className="py-2 px-2 text-right text-xs font-medium text-muted-foreground uppercase">Bookings</th>
                 <th className="py-2 px-2 text-right text-xs font-medium text-muted-foreground uppercase">Revenue</th>
                 <th className="py-2 px-2 text-right text-xs font-medium text-muted-foreground uppercase">Labor</th>
                 <th className="py-2 px-2 text-right text-xs font-medium text-muted-foreground uppercase">Variable</th>
@@ -132,6 +133,7 @@ export function ProjectionPreview({ result, horizonMonths }: ProjectionPreviewPr
                     <td className="py-1.5 px-2 text-xs font-medium">{snap.label}</td>
                     <td className="py-1.5 px-2 text-right text-xs tabular-nums">{teamSize}</td>
                     <td className="py-1.5 px-2 text-right text-xs tabular-nums">{snap.plannedOutput}</td>
+                    <td className="py-1.5 px-2 text-right text-xs tabular-nums">{Math.round(snap.bookings)}</td>
                     <td className="py-1.5 px-2 text-right text-xs tabular-nums text-green-600">{formatCurrency(snap.revenue)}</td>
                     <td className="py-1.5 px-2 text-right text-xs tabular-nums">{formatCurrency(snap.workforceCost)}</td>
                     <td className="py-1.5 px-2 text-right text-xs tabular-nums">{formatCurrency(snap.variableCost)}</td>
@@ -146,6 +148,7 @@ export function ProjectionPreview({ result, horizonMonths }: ProjectionPreviewPr
               {/* Totals row */}
               <tr className="border-t-2 font-semibold">
                 <td className="py-2 px-2 text-xs uppercase">Total</td>
+                <td className="py-2 px-2" />
                 <td className="py-2 px-2" />
                 <td className="py-2 px-2" />
                 <td className="py-2 px-2 text-right text-xs text-green-600 tabular-nums">{formatCurrency(summary.totalRevenue)}</td>
