@@ -1,5 +1,6 @@
 import { Document, View, Text, Image } from '@react-pdf/renderer';
 import { styles } from './pdfStyles';
+import { PdfMd } from './PdfMd';
 import { CoverPage } from './CoverPage';
 import { SectionPage } from './SectionPage';
 import { SECTION_SLUGS } from '@/lib/constants';
@@ -164,22 +165,36 @@ export function BusinessPlanDocument({
     return enabledSlugs.indexOf(slug as typeof enabledSlugs[number]) + 1;
   }
 
-  // Build top metrics from scenarioMetrics (top 4, sorted by unit priority)
-  const unitPriority: Record<string, number> = {
-    currency: 0, percent: 1, ratio: 2, count: 3, months: 4, days: 5, hours: 6,
-  };
-
-  const topMetrics = Object.values(scenarioMetrics)
-    .sort((a, b) => (unitPriority[a.unit] ?? 99) - (unitPriority[b.unit] ?? 99))
-    .slice(0, 4)
-    .map((m) => ({
-      label: m.label,
-      value: m.unit === 'currency'
-        ? formatCurrency(m.value, currencyCode)
-        : m.unit === 'percent'
-          ? `${(m.value * 100).toFixed(1)}%`
-          : String(Math.round(m.value)),
-    }));
+  // Build top metrics from actual financial projections data
+  const topMetrics = (() => {
+    if (financials && financials.months.length > 0) {
+      const annualRevenue = financials.months.reduce((s, m) => s + m.revenue, 0);
+      const annualCosts = financials.months.reduce((s, m) => s + sumCosts(m.costs), 0);
+      const annualProfit = annualRevenue - annualCosts;
+      const profitMargin = annualRevenue > 0 ? annualProfit / annualRevenue : 0;
+      return [
+        { label: 'Annual Revenue', value: formatCurrency(annualRevenue, currencyCode) },
+        { label: 'Annual Costs', value: formatCurrency(annualCosts, currencyCode) },
+        { label: 'Annual Profit', value: formatCurrency(annualProfit, currencyCode) },
+        { label: 'Profit Margin', value: `${(profitMargin * 100).toFixed(1)}%` },
+      ];
+    }
+    // Fallback to scenario metrics if no financial projections data
+    const unitPriority: Record<string, number> = {
+      currency: 0, percent: 1, ratio: 2, count: 3, months: 4, days: 5, hours: 6,
+    };
+    return Object.values(scenarioMetrics)
+      .sort((a, b) => (unitPriority[a.unit] ?? 99) - (unitPriority[b.unit] ?? 99))
+      .slice(0, 4)
+      .map((m) => ({
+        label: m.label,
+        value: m.unit === 'currency'
+          ? formatCurrency(m.value, currencyCode)
+          : m.unit === 'percent'
+            ? `${(m.value * 100).toFixed(1)}%`
+            : String(Math.round(m.value)),
+      }));
+  })();
 
   return (
     <Document title={`${businessName || 'Business'} Plan`} author="" subject="Business Plan">
@@ -198,16 +213,16 @@ export function BusinessPlanDocument({
           {execSummary ? (
             <View>
               <SubsectionTitle>Summary</SubsectionTitle>
-              <Text style={styles.bodyText}>{execSummary.summary}</Text>
+              <PdfMd text={execSummary.summary} style={styles.bodyText} />
 
               <View style={styles.col2}>
                 <View style={styles.flex1}>
                   <SubsectionTitle>Mission</SubsectionTitle>
-                  <Text style={styles.bodyText}>{execSummary.mission}</Text>
+                  <PdfMd text={execSummary.mission} style={styles.bodyText} />
                 </View>
                 <View style={styles.flex1}>
                   <SubsectionTitle>Vision</SubsectionTitle>
-                  <Text style={styles.bodyText}>{execSummary.vision}</Text>
+                  <PdfMd text={execSummary.vision} style={styles.bodyText} />
                 </View>
               </View>
 
@@ -279,7 +294,7 @@ export function BusinessPlanDocument({
                     )}
 
                     {marketAnalysis.marketNarrative ? (
-                      <Text style={[styles.bodyText, { marginTop: 4 }]}>{marketAnalysis.marketNarrative}</Text>
+                      <PdfMd text={marketAnalysis.marketNarrative} style={[styles.bodyText, { marginTop: 4 }]} />
                     ) : null}
                   </View>
                 );
@@ -300,8 +315,8 @@ export function BusinessPlanDocument({
                       <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
                         <Text style={[styles.tableCellBold, { width: '25%' }]}>{c.name}</Text>
                         <Text style={[styles.tableCell, { width: '15%' }]}>{c.pricing}</Text>
-                        <Text style={[styles.tableCell, { width: '30%' }]}>{c.strengths}</Text>
-                        <Text style={[styles.tableCell, { width: '30%' }]}>{c.weaknesses}</Text>
+                        <PdfMd text={c.strengths} style={[styles.tableCell, { width: '30%' }]} />
+                        <PdfMd text={c.weaknesses} style={[styles.tableCell, { width: '30%' }]} />
                       </View>
                     ))}
                   </View>
@@ -334,7 +349,7 @@ export function BusinessPlanDocument({
                     {marketAnalysis.acquisitionFunnel.map((s, i) => (
                       <View key={i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
                         <Text style={[styles.tableCellBold, { width: '20%' }]}>{s.label}</Text>
-                        <Text style={[styles.tableCell, { width: '40%' }]}>{s.description}</Text>
+                        <PdfMd text={s.description} style={[styles.tableCell, { width: '40%' }]} />
                         <Text style={[styles.tableCellRight, { width: '20%' }]}>{s.volume.toLocaleString()}</Text>
                         <Text style={[styles.tableCellRight, { width: '20%' }]}>{s.conversionRate}%</Text>
                       </View>
@@ -377,7 +392,7 @@ export function BusinessPlanDocument({
             {normalizedPS ? (
               <View>
                 {normalizedPS.overview ? (
-                  <Text style={styles.bodyText}>{normalizedPS.overview}</Text>
+                  <PdfMd text={normalizedPS.overview} style={styles.bodyText} />
                 ) : null}
 
                 <SubsectionTitle>Offerings</SubsectionTitle>
@@ -400,7 +415,7 @@ export function BusinessPlanDocument({
                         ) : null}
                       </View>
                     </View>
-                    <Text style={[styles.bodyText, { marginTop: 4 }]}>{offering.description}</Text>
+                    <PdfMd text={offering.description} style={[styles.bodyText, { marginTop: 4 }]} />
                     {offering.addOnIds.length > 0 && (() => {
                       const linked = offering.addOnIds
                         .map((aid) => normalizedPS.addOns.find((a) => a.id === aid))
@@ -447,7 +462,7 @@ export function BusinessPlanDocument({
                     <Text style={styles.smallText}>  Leads: {ch.expectedLeads}</Text>
                     <Text style={styles.smallText}>  CAC: {formatCurrency(ch.expectedCAC, currencyCode)}</Text>
                   </View>
-                  <Text style={styles.bodyText}>{ch.description}</Text>
+                  <PdfMd text={ch.description} style={styles.bodyText} />
                 </View>
               ))}
 
@@ -464,7 +479,7 @@ export function BusinessPlanDocument({
                   {marketingStrategy.landingPage.url && (
                     <Text style={[styles.bodyText, { color: '#2563eb' }]}>{marketingStrategy.landingPage.url}</Text>
                   )}
-                  <Text style={styles.bodyText}>{marketingStrategy.landingPage.description}</Text>
+                  <PdfMd text={marketingStrategy.landingPage.description} style={styles.bodyText} />
                 </View>
               )}
             </View>
@@ -505,7 +520,14 @@ export function BusinessPlanDocument({
                   </View>
                 )}
 
-                {costSummary && ops.capacityItems.length > 0 && (
+                {costSummary && ops.capacityItems.length > 0 && (() => {
+                  // Compute mix within same-unit groups only
+                  const pdfUnitTotals = new Map<string, number>();
+                  for (const ci of ops.capacityItems) {
+                    const u = (ci.outputUnitLabel || 'unit').toLowerCase();
+                    pdfUnitTotals.set(u, (pdfUnitTotals.get(u) ?? 0) + Math.max(0, ci.plannedOutputPerMonth));
+                  }
+                  return (
                   <View>
                     <SubsectionTitle>Capacity Mix</SubsectionTitle>
                     <View style={styles.table}>
@@ -518,8 +540,10 @@ export function BusinessPlanDocument({
                         <Text style={[styles.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>Utilization</Text>
                       </View>
                       {ops.capacityItems.map((item, i) => {
-                        const mix = costSummary.totalPlannedOutputPerMonth > 0
-                          ? (item.plannedOutputPerMonth / costSummary.totalPlannedOutputPerMonth) * 100
+                        const unitKey = (item.outputUnitLabel || 'unit').toLowerCase();
+                        const groupTotal = pdfUnitTotals.get(unitKey) ?? 0;
+                        const mix = groupTotal > 0
+                          ? (item.plannedOutputPerMonth / groupTotal) * 100
                           : 0;
                         return (
                           <View key={item.id || i} style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
@@ -533,13 +557,16 @@ export function BusinessPlanDocument({
                         );
                       })}
                     </View>
-                    <View style={styles.statCardRow}>
-                      <StatCard label="Total Planned/Mo" value={String(costSummary.totalPlannedOutputPerMonth)} />
-                      <StatCard label="Total Max/Mo" value={String(costSummary.totalMaxOutputPerMonth)} />
-                      <StatCard label="Weighted Utilization" value={`${costSummary.weightedUtilizationRate.toFixed(1)}%`} />
-                    </View>
+                    {costSummary.capacityByUnit.map((group) => (
+                      <View key={group.unitLabel} style={styles.statCardRow}>
+                        <StatCard label={`Planned/Mo (${group.unitLabel})`} value={String(group.totalPlanned)} />
+                        <StatCard label={`Max/Mo (${group.unitLabel})`} value={String(group.totalMax)} />
+                        <StatCard label={`Utilization (${group.unitLabel})`} value={`${group.weightedUtilization.toFixed(1)}%`} />
+                      </View>
+                    ))}
                   </View>
-                )}
+                  );
+                })()}
 
                 {costSummary && costSummary.monthlyOperationsTotal > 0 && (
                   <View>
@@ -761,9 +788,9 @@ export function BusinessPlanDocument({
                         <Text style={[styles.smallText, { marginLeft: 6 }]}>{risk.category}</Text>
                       </View>
                       <Text style={styles.infoCardTitle}>{risk.title}</Text>
-                      <Text style={styles.bodyText}>{risk.description}</Text>
+                      <PdfMd text={risk.description} style={styles.bodyText} />
                       <Text style={[styles.bodyText, { fontFamily: 'Helvetica-Bold' }]}>
-                        Mitigation: <Text style={{ fontFamily: 'Helvetica' }}>{risk.mitigation}</Text>
+                        Mitigation: <PdfMd text={risk.mitigation} style={{ fontFamily: 'Helvetica' }} inline />
                       </Text>
                     </View>
                   ))}
@@ -783,7 +810,7 @@ export function BusinessPlanDocument({
                         <Text style={[styles.badge, styles.badgeBlue]}>{complianceLabels[item.status]}</Text>
                       </View>
                       <Text style={styles.infoCardTitle}>{item.item}</Text>
-                      <Text style={styles.bodyText}>{item.detail}</Text>
+                      <PdfMd text={item.detail} style={styles.bodyText} />
                     </View>
                   ))}
                 </View>

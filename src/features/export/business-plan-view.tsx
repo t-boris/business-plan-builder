@@ -6,6 +6,7 @@ import { scenarioNameAtom } from '@/store/scenario-atoms';
 import { evaluatedValuesAtom } from '@/store/derived-atoms';
 import { activeBusinessAtom, businessVariablesAtom } from '@/store/business-atoms';
 import { StatCard } from '@/components/stat-card';
+import { Md } from '@/components/md';
 import { normalizeProductService } from '@/features/sections/product-service/normalize';
 import { normalizeOperations } from '@/features/sections/operations/normalize';
 import { computeOperationsCosts } from '@/features/sections/operations/compute';
@@ -244,7 +245,7 @@ function MarketSizingExportBlock({ sizing, narrative }: { sizing: MarketSizing; 
         </div>
       </div>
       {narrative && (
-        <p className="text-sm leading-relaxed mt-2">{narrative}</p>
+        <p className="text-sm leading-relaxed mt-2"><Md text={narrative} /></p>
       )}
     </div>
   );
@@ -382,16 +383,16 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
           <div className="space-y-4 py-4">
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Summary</h3>
-              <p className="text-sm leading-relaxed">{execSummary.summary}</p>
+              <p className="text-sm leading-relaxed"><Md text={execSummary.summary} /></p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Mission</h3>
-                <p className="text-sm leading-relaxed">{execSummary.mission}</p>
+                <p className="text-sm leading-relaxed"><Md text={execSummary.mission} /></p>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Vision</h3>
-                <p className="text-sm leading-relaxed">{execSummary.vision}</p>
+                <p className="text-sm leading-relaxed"><Md text={execSummary.vision} /></p>
               </div>
             </div>
             <div>
@@ -434,8 +435,8 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                       <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
                         <td className="py-2 px-3 border-b font-medium">{c.name}</td>
                         <td className="py-2 px-3 border-b">{c.pricing}</td>
-                        <td className="py-2 px-3 border-b">{c.strengths}</td>
-                        <td className="py-2 px-3 border-b">{c.weaknesses}</td>
+                        <td className="py-2 px-3 border-b"><Md text={c.strengths} /></td>
+                        <td className="py-2 px-3 border-b"><Md text={c.weaknesses} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -472,7 +473,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                     {marketAnalysis.acquisitionFunnel.map((s, i) => (
                       <tr key={i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
                         <td className="py-2 px-3 border-b font-medium">{s.label}</td>
-                        <td className="py-2 px-3 border-b text-muted-foreground">{s.description}</td>
+                        <td className="py-2 px-3 border-b text-muted-foreground"><Md text={s.description} /></td>
                         <td className="py-2 px-3 border-b text-right tabular-nums">{s.volume.toLocaleString()}</td>
                         <td className="py-2 px-3 border-b text-right tabular-nums">{s.conversionRate}%</td>
                       </tr>
@@ -511,7 +512,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
             <SectionHeader number={getSectionNumber('product-service')} title="Product & Service" id={`section-${getSectionNumber('product-service')}`} />
             <div className="space-y-4 py-4">
               {normalizedPS.overview && (
-                <p className="text-sm leading-relaxed">{normalizedPS.overview}</p>
+                <p className="text-sm leading-relaxed"><Md text={normalizedPS.overview} /></p>
               )}
 
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Offerings</h3>
@@ -535,7 +536,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                           <span className="text-xs font-normal text-muted-foreground ml-1">{offering.priceLabel}</span>
                         )}
                       </p>
-                      <p className="text-xs mt-2 whitespace-pre-line">{offering.description}</p>
+                      <p className="text-xs mt-2 whitespace-pre-line"><Md text={offering.description} /></p>
                       {offering.addOnIds.length > 0 && (() => {
                         const linked = offering.addOnIds
                           .map((aid) => normalizedPS.addOns.find((a) => a.id === aid))
@@ -588,7 +589,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                     <span>Leads: {ch.expectedLeads}</span>
                     <span>CAC: {formatCurrency(ch.expectedCAC, currencyCode)}</span>
                   </div>
-                  <p className="text-xs mt-2">{ch.description}</p>
+                  <p className="text-xs mt-2"><Md text={ch.description} /></p>
                 </div>
               ))}
             </div>
@@ -610,7 +611,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                 {marketingStrategy.landingPage.url && (
                   <p className="text-sm text-primary">{marketingStrategy.landingPage.url}</p>
                 )}
-                <p className="text-sm">{marketingStrategy.landingPage.description}</p>
+                <p className="text-sm"><Md text={marketingStrategy.landingPage.description} /></p>
               </div>
             )}
           </div>
@@ -652,7 +653,14 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                 </div>
               )}
 
-              {ops.capacityItems.length > 0 && (
+              {ops.capacityItems.length > 0 && (() => {
+                // Compute mix within same-unit groups only
+                const viewUnitTotals = new Map<string, number>();
+                for (const ci of ops.capacityItems) {
+                  const u = (ci.outputUnitLabel || 'unit').toLowerCase();
+                  viewUnitTotals.set(u, (viewUnitTotals.get(u) ?? 0) + Math.max(0, ci.plannedOutputPerMonth));
+                }
+                return (
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Capacity Mix</h3>
                   <table className="w-full text-sm border">
@@ -668,8 +676,10 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                     </thead>
                     <tbody>
                       {ops.capacityItems.map((item, i) => {
-                        const mix = costSummary.totalPlannedOutputPerMonth > 0
-                          ? (item.plannedOutputPerMonth / costSummary.totalPlannedOutputPerMonth) * 100
+                        const unitKey = (item.outputUnitLabel || 'unit').toLowerCase();
+                        const groupTotal = viewUnitTotals.get(unitKey) ?? 0;
+                        const mix = groupTotal > 0
+                          ? (item.plannedOutputPerMonth / groupTotal) * 100
                           : 0;
                         return (
                           <tr key={item.id || i} className={i % 2 === 1 ? 'bg-muted/30' : ''}>
@@ -684,22 +694,25 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                       })}
                     </tbody>
                   </table>
-                  <div className="grid grid-cols-3 gap-4 mt-3">
-                    <div className="border rounded-lg p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Total Planned/Mo</p>
-                      <p className="text-lg font-bold tabular-nums">{costSummary.totalPlannedOutputPerMonth.toLocaleString()}</p>
+                  {costSummary.capacityByUnit.map((group) => (
+                    <div key={group.unitLabel} className="grid grid-cols-3 gap-4 mt-3">
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Planned/Mo ({group.unitLabel})</p>
+                        <p className="text-lg font-bold tabular-nums">{group.totalPlanned.toLocaleString()}</p>
+                      </div>
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Max/Mo ({group.unitLabel})</p>
+                        <p className="text-lg font-bold tabular-nums">{group.totalMax.toLocaleString()}</p>
+                      </div>
+                      <div className="border rounded-lg p-3 text-center">
+                        <p className="text-xs text-muted-foreground">Utilization ({group.unitLabel})</p>
+                        <p className="text-lg font-bold tabular-nums">{group.weightedUtilization.toFixed(1)}%</p>
+                      </div>
                     </div>
-                    <div className="border rounded-lg p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Total Max/Mo</p>
-                      <p className="text-lg font-bold tabular-nums">{costSummary.totalMaxOutputPerMonth.toLocaleString()}</p>
-                    </div>
-                    <div className="border rounded-lg p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Weighted Utilization</p>
-                      <p className="text-lg font-bold tabular-nums">{costSummary.weightedUtilizationRate.toFixed(1)}%</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              )}
+                );
+              })()}
 
               {costSummary.monthlyOperationsTotal > 0 && (
                 <div>
@@ -986,8 +999,8 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                       <span className="text-xs text-muted-foreground capitalize">{risk.category}</span>
                     </div>
                     <h4 className="font-semibold text-sm">{risk.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{risk.description}</p>
-                    <p className="text-xs mt-1"><span className="font-medium">Mitigation:</span> {risk.mitigation}</p>
+                    <p className="text-xs text-muted-foreground mt-1"><Md text={risk.description} /></p>
+                    <p className="text-xs mt-1"><span className="font-medium">Mitigation:</span> <Md text={risk.mitigation} /></p>
                   </div>
                 ))}
               </div>
@@ -1011,7 +1024,7 @@ export function BusinessPlanView({ chartAnimationDisabled = false, chartContaine
                         </span>
                       </div>
                       <h4 className="font-medium text-sm">{item.item}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5"><Md text={item.detail} /></p>
                     </div>
                   ))}
                 </div>
