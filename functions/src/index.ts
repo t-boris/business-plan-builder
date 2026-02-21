@@ -337,19 +337,13 @@ export const aiTranslateSection = onRequest(
         return;
       }
 
-      // Build dynamic response schema from the input keys
       const keys = Object.keys(texts);
-      const properties: Record<string, { type: string }> = {};
-      for (const key of keys) {
-        properties[key] = { type: 'string' };
-      }
-      const responseSchema = {
-        type: 'object',
-        properties,
-        required: keys,
-      };
 
-      const systemInstruction = `You are a professional business plan translator. Translate the provided text fields into ${targetLanguage}. Preserve all markdown formatting (bold, italic, links, lists). Preserve numbers, proper nouns, brand names, and technical terms. Return ONLY the translated text for each field.`;
+      const systemInstruction = [
+        `You are a professional business plan translator. Translate the provided JSON object values into ${targetLanguage}.`,
+        'Preserve all markdown formatting, numbers, proper nouns, brand names, and technical terms.',
+        'Return a JSON object with the EXACT same keys and translated values. No extra keys, no commentary.',
+      ].join(' ');
 
       const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
       const response = await ai.models.generateContent({
@@ -358,16 +352,15 @@ export const aiTranslateSection = onRequest(
         config: {
           systemInstruction,
           temperature: 0.3,
-          maxOutputTokens: 32768,
+          maxOutputTokens: 16384,
           responseMimeType: 'application/json',
-          responseSchema,
         },
       });
 
       const raw = response.text ?? '{}';
-      let translated: Record<string, string>;
+      let parsed: Record<string, string>;
       try {
-        translated = JSON.parse(raw);
+        parsed = JSON.parse(raw);
       } catch {
         console.error('[aiTranslateSection] Truncated or malformed JSON response', {
           length: raw.length,
@@ -375,6 +368,16 @@ export const aiTranslateSection = onRequest(
         });
         res.status(502).json({ error: 'Translation response was truncated. Try again or reduce content.' });
         return;
+      }
+
+      // Only return keys that were in the input
+      const translated: Record<string, string> = {};
+      for (const key of keys) {
+        if (typeof parsed[key] === 'string') {
+          translated[key] = parsed[key];
+        } else {
+          translated[key] = texts[key]; // fallback to original
+        }
       }
       res.status(200).json({ translated });
     } catch (error: unknown) {
