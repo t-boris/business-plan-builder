@@ -343,7 +343,7 @@ export function FinancialProjections() {
 
   // Monthly profit bar data
   const profitBarData = months.map((m) => ({
-    month: m.month.split(' ')[0],
+    month: m.month.replace('Month ', 'M'),
     Profit: m.revenue - sumMonthlyCosts(m.costs),
   }));
 
