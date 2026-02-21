@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase';
 import { authStateAtom, authStatusAtom } from '@/store/auth-atoms';
 import {
   activeBusinessIdAtom,
+  activeBusinessAtom,
   businessVariablesAtom,
   businessVariablesLoadedAtom,
   businessVariablesLoadFailedAtom,
@@ -18,7 +19,8 @@ import {
   loadDynamicScenarioAtom,
   scenarioSyncReadyAtom,
 } from '@/store/scenario-atoms';
-import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables, getSectionData } from '@/lib/business-firestore';
+import { listScenarioData, getScenarioPreferences, saveScenarioData, saveScenarioPreferences, getBusinessVariables, saveBusinessVariables, getSectionData } from '@/lib/business-firestore';
+import { getDefaultVariables } from '@/lib/variable-templates';
 import { normalizeOperations } from '@/features/sections/operations/normalize';
 import { computeOperationsCosts } from '@/features/sections/operations/compute';
 import type { Operations, FinancialProjections, MarketingStrategy, KpisMetrics, MonthlyCosts } from '@/types';
@@ -68,6 +70,7 @@ function BusinessLoader() {
 function VariableLoader() {
   const authStatus = useAtomValue(authStatusAtom);
   const businessId = useAtomValue(activeBusinessIdAtom);
+  const business = useAtomValue(activeBusinessAtom);
   const setVariables = useSetAtom(businessVariablesAtom);
   const setLoaded = useSetAtom(businessVariablesLoadedAtom);
   const setLoadFailed = useSetAtom(businessVariablesLoadFailedAtom);
@@ -84,11 +87,19 @@ function VariableLoader() {
       prevBusinessIdRef.current = businessId;
     }
 
-    if (authStatus !== 'authenticated' || !businessId) return;
+    if (authStatus !== 'authenticated' || !businessId || !business) return;
 
     async function init() {
       try {
-        const vars = await getBusinessVariables(businessId!);
+        let vars = await getBusinessVariables(businessId!);
+
+        // Backfill: generate default variables for pre-existing businesses that have none
+        if (!vars) {
+          log.info('variables.backfill', { businessId: businessId!, type: business!.profile.type });
+          vars = getDefaultVariables(business!.profile.type);
+          await saveBusinessVariables(businessId!, vars);
+        }
+
         setVariables(vars);
         setLoadFailed(false);
       } catch (err) {
@@ -100,7 +111,7 @@ function VariableLoader() {
       }
     }
     init();
-  }, [authStatus, businessId, setVariables, setLoaded, setLoadFailed]);
+  }, [authStatus, businessId, business, setVariables, setLoaded, setLoadFailed]);
 
   return null;
 }
