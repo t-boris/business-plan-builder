@@ -41,10 +41,24 @@ export interface GeneratePdfParams {
  */
 export async function generateBusinessPlanPdf(params: GeneratePdfParams): Promise<Blob> {
   // Dynamic imports to keep @react-pdf/renderer out of the main bundle
-  const [{ pdf }, { BusinessPlanDocument }] = await Promise.all([
+  const [{ pdf, Font }, { BusinessPlanDocument }] = await Promise.all([
     import('@react-pdf/renderer'),
     import('./BusinessPlanDocument'),
   ]);
+
+  // Register Noto Sans for Cyrillic and multi-script support
+  Font.register({
+    family: 'Noto Sans',
+    fonts: [
+      { src: '/fonts/NotoSans-Regular.ttf', fontWeight: 400, fontStyle: 'normal' },
+      { src: '/fonts/NotoSans-Bold.ttf', fontWeight: 700, fontStyle: 'normal' },
+      { src: '/fonts/NotoSans-Italic.ttf', fontWeight: 400, fontStyle: 'italic' },
+      { src: '/fonts/NotoSans-BoldItalic.ttf', fontWeight: 700, fontStyle: 'italic' },
+    ],
+  });
+
+  // Disable default English hyphenation rules (breaks Cyrillic words incorrectly)
+  Font.registerHyphenationCallback((word) => [word]);
 
   const doc = BusinessPlanDocument({
     execSummary: params.sections.execSummary,

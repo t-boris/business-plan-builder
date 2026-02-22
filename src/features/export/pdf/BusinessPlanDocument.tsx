@@ -285,7 +285,7 @@ export function BusinessPlanDocument({
                     {/* TAM steps */}
                     {marketAnalysis.marketSizing.tam.steps.length > 0 && (
                       <View style={{ marginTop: 4 }}>
-                        <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2 }]}>TAM Steps</Text>
+                        <Text style={[styles.smallText, { fontFamily: 'Noto Sans', fontWeight: 700, marginBottom: 2 }]}>TAM Steps</Text>
                         {marketAnalysis.marketSizing.tam.steps.map((s: CalcStep, i: number) => (
                           <Text key={i} style={styles.bodyText}>
                             {s.label}: {s.type === 'currency' ? formatCurrency(s.value, currencyCode) : `${s.value}`}{typeLabel(s.type) !== '$' ? typeLabel(s.type) : ''}
@@ -297,7 +297,7 @@ export function BusinessPlanDocument({
                     {/* SAM steps */}
                     {marketAnalysis.marketSizing.sam.steps.length > 0 && (
                       <View style={{ marginTop: 4 }}>
-                        <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2 }]}>SAM Steps</Text>
+                        <Text style={[styles.smallText, { fontFamily: 'Noto Sans', fontWeight: 700, marginBottom: 2 }]}>SAM Steps</Text>
                         {marketAnalysis.marketSizing.sam.steps.map((s: CalcStep, i: number) => (
                           <Text key={i} style={styles.bodyText}>
                             {s.label}: {s.type === 'currency' ? formatCurrency(s.value, currencyCode) : `${s.value}`}{typeLabel(s.type) !== '$' ? typeLabel(s.type) : ''}
@@ -309,7 +309,7 @@ export function BusinessPlanDocument({
                     {/* SOM steps */}
                     {marketAnalysis.marketSizing.som.steps.length > 0 && (
                       <View style={{ marginTop: 4 }}>
-                        <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2 }]}>SOM Steps</Text>
+                        <Text style={[styles.smallText, { fontFamily: 'Noto Sans', fontWeight: 700, marginBottom: 2 }]}>SOM Steps</Text>
                         {marketAnalysis.marketSizing.som.steps.map((s: CalcStep, i: number) => (
                           <Text key={i} style={styles.bodyText}>
                             {s.label}: {s.type === 'currency' ? formatCurrency(s.value, currencyCode) : `${s.value}`}{typeLabel(s.type) !== '$' ? typeLabel(s.type) : ''}
@@ -758,7 +758,7 @@ export function BusinessPlanDocument({
                           <Text style={[styles.tableCellBold, { width: '30%' }]}>{m.month}</Text>
                           <Text style={[styles.tableCellRight, { width: '23%' }]}>{formatCurrency(m.revenue, currencyCode)}</Text>
                           <Text style={[styles.tableCellRight, { width: '23%' }]}>{formatCurrency(totalCosts, currencyCode)}</Text>
-                          <Text style={[styles.tableCellRight, { width: '24%', color: profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                          <Text style={[styles.tableCellRight, { width: '24%', color: profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Noto Sans', fontWeight: 700 }]}>
                             {formatCurrency(profit, currencyCode)}
                           </Text>
                         </View>
@@ -919,7 +919,7 @@ export function BusinessPlanDocument({
                           <Text style={[styles.tableCellRight, { width: '14%' }]}>{Math.round(m.bookings)}</Text>
                           <Text style={[styles.tableCellRight, { width: '16%' }]}>{formatCurrency(m.revenue, currencyCode)}</Text>
                           <Text style={[styles.tableCellRight, { width: '16%' }]}>{formatCurrency(m.totalCost, currencyCode)}</Text>
-                          <Text style={[styles.tableCellRight, { width: '16%', color: m.profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                          <Text style={[styles.tableCellRight, { width: '16%', color: m.profit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Noto Sans', fontWeight: 700 }]}>
                             {formatCurrency(m.profit, currencyCode)}
                           </Text>
                         </View>
@@ -931,9 +931,9 @@ export function BusinessPlanDocument({
                       <Text style={[styles.tableCellRight, { width: '10%' }]}></Text>
                       <Text style={[styles.tableCellRight, { width: '14%' }]}></Text>
                       <Text style={[styles.tableCellRight, { width: '14%' }]}></Text>
-                      <Text style={[styles.tableCellRight, { width: '16%', fontFamily: 'Helvetica-Bold' }]}>{formatCurrency(summary.totalRevenue, currencyCode)}</Text>
-                      <Text style={[styles.tableCellRight, { width: '16%', fontFamily: 'Helvetica-Bold' }]}>{formatCurrency(summary.totalCosts, currencyCode)}</Text>
-                      <Text style={[styles.tableCellRight, { width: '16%', color: summary.totalProfit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                      <Text style={[styles.tableCellRight, { width: '16%', fontFamily: 'Noto Sans', fontWeight: 700 }]}>{formatCurrency(summary.totalRevenue, currencyCode)}</Text>
+                      <Text style={[styles.tableCellRight, { width: '16%', fontFamily: 'Noto Sans', fontWeight: 700 }]}>{formatCurrency(summary.totalCosts, currencyCode)}</Text>
+                      <Text style={[styles.tableCellRight, { width: '16%', color: summary.totalProfit >= 0 ? '#16a34a' : '#dc2626', fontFamily: 'Noto Sans', fontWeight: 700 }]}>
                         {formatCurrency(summary.totalProfit, currencyCode)}
                       </Text>
                     </View>
@@ -965,7 +965,7 @@ export function BusinessPlanDocument({
                   </View>
                   {risks.investmentVerdict.conditions.length > 0 && (
                     <View style={{ marginTop: 4 }}>
-                      <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 3, textTransform: 'uppercase' }]}>Conditions</Text>
+                      <Text style={[styles.smallText, { fontFamily: 'Noto Sans', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }]}>Conditions</Text>
                       {risks.investmentVerdict.conditions.map((c, i) => (
                         <View key={i} style={styles.listItem}>
                           <Text style={styles.listBullet}>{i + 1}.</Text>
@@ -989,8 +989,8 @@ export function BusinessPlanDocument({
                       </View>
                       <Text style={styles.infoCardTitle}>{risk.title}</Text>
                       <PdfMd text={risk.description} style={styles.bodyText} />
-                      <Text style={[styles.bodyText, { fontFamily: 'Helvetica-Bold' }]}>
-                        Mitigation: <PdfMd text={risk.mitigation} style={{ fontFamily: 'Helvetica' }} inline />
+                      <Text style={[styles.bodyText, { fontFamily: 'Noto Sans', fontWeight: 700 }]}>
+                        Mitigation: <PdfMd text={risk.mitigation} style={{ fontFamily: 'Noto Sans' }} inline />
                       </Text>
                     </View>
                   ))}
@@ -1146,12 +1146,12 @@ export function BusinessPlanDocument({
                 <Text style={styles.bodyText}>Horizon: {active.horizon} months</Text>
                 {active.assumptions.length > 0 && (
                   <View style={{ marginTop: 4 }}>
-                    <Text style={[styles.smallText, { fontFamily: 'Helvetica-Bold', marginBottom: 2, textTransform: 'uppercase' }]}>Assumptions</Text>
+                    <Text style={[styles.smallText, { fontFamily: 'Noto Sans', fontWeight: 700, marginBottom: 2, textTransform: 'uppercase' }]}>Assumptions</Text>
                     {active.assumptions.map((a) => (
                       <View key={a.id} style={styles.listItem}>
                         <Text style={styles.listBullet}>{'\u2022'}</Text>
                         <Text style={styles.listText}>
-                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{a.label}:</Text> {a.value}
+                          <Text style={{ fontFamily: 'Noto Sans', fontWeight: 700 }}>{a.label}:</Text> {a.value}
                         </Text>
                       </View>
                     ))}
@@ -1222,7 +1222,7 @@ export function BusinessPlanDocument({
               {/* Recommendation */}
               {recommendationText && (
                 <View style={[styles.infoCard, { borderLeftWidth: 3, borderLeftColor: '#16a34a', marginTop: 8 }]}>
-                  <Text style={[styles.bodyText, { fontFamily: 'Helvetica-Bold', color: '#166534' }]}>
+                  <Text style={[styles.bodyText, { fontFamily: 'Noto Sans', fontWeight: 700, color: '#166534' }]}>
                     {recommendationText}
                   </Text>
                 </View>

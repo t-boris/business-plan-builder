@@ -31,11 +31,11 @@ export function PdfMd({
       case 'text':
         return <Text key={i}>{seg.value}</Text>;
       case 'bold':
-        return <Text key={i} style={{ fontFamily: 'Helvetica-Bold' }}>{seg.value}</Text>;
+        return <Text key={i} style={{ fontFamily: 'Noto Sans', fontWeight: 700 }}>{seg.value}</Text>;
       case 'italic':
-        return <Text key={i} style={{ fontFamily: 'Helvetica-Oblique' }}>{seg.value}</Text>;
+        return <Text key={i} style={{ fontFamily: 'Noto Sans', fontStyle: 'italic' }}>{seg.value}</Text>;
       case 'boldItalic':
-        return <Text key={i} style={{ fontFamily: 'Helvetica-BoldOblique' }}>{seg.value}</Text>;
+        return <Text key={i} style={{ fontFamily: 'Noto Sans', fontWeight: 700, fontStyle: 'italic' }}>{seg.value}</Text>;
       case 'link':
         return (
           <Link key={i} src={seg.href} style={{ color: '#2563eb', textDecoration: 'underline' }}>

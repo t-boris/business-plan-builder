@@ -16,7 +16,7 @@ const COLORS = {
 export const styles = StyleSheet.create({
   // Page
   page: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Noto Sans',
     fontSize: 10,
     color: COLORS.text,
     paddingTop: 40,
@@ -26,7 +26,7 @@ export const styles = StyleSheet.create({
 
   // Cover page
   coverPage: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Noto Sans',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
@@ -39,13 +39,13 @@ export const styles = StyleSheet.create({
     marginVertical: 20,
   },
   coverTitle: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 36,
     color: COLORS.primary,
     marginBottom: 4,
   },
   coverSubtitle: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Noto Sans',
     fontSize: 20,
     color: COLORS.textMuted,
     marginBottom: 8,
@@ -83,14 +83,14 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   coverMetricValue: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 14,
     color: COLORS.text,
   },
 
   // Section headers
   sectionHeader: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 16,
     color: COLORS.text,
     marginBottom: 12,
@@ -102,7 +102,7 @@ export const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   subsectionHeader: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 11,
     color: COLORS.textMuted,
     textTransform: 'uppercase',
@@ -159,7 +159,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fafafa',
   },
   tableHeaderCell: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 8,
     color: COLORS.textMuted,
     paddingVertical: 5,
@@ -171,7 +171,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   tableCellBold: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 9,
     paddingVertical: 4,
     paddingHorizontal: 6,
@@ -203,7 +203,7 @@ export const styles = StyleSheet.create({
     marginBottom: 3,
   },
   statValue: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 12,
   },
 
@@ -216,7 +216,7 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   infoCardTitle: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 10,
     marginBottom: 3,
   },
@@ -227,7 +227,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
   },
   badgeHigh: {
     backgroundColor: '#fee2e2',
@@ -316,7 +316,7 @@ export const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   gridValue: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Noto Sans', fontWeight: 700,
     fontSize: 9,
   },
 });
